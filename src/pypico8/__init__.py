@@ -11,7 +11,7 @@
 2021-01-27 v1.5.3 fixed cls, most Prospector problems, prt.
 2021-01-29 v1.5.4 fixed fps.
 2021-02-08 v1.6 added sfx, music, clip, sgn.
-2021-02-09 v1.6.1 fixed min, max, refactored.
+2021-02-09 v1.7 added pack, unpack. Fixed min, max, rnd, chr. Refactored.
 """
 # pylint:disable=import-outside-toplevel,multiple-imports,pointless-string-statement,redefined-builtin,too-many-arguments,unused-import,unidiomatic-typecheck,wrong-import-position,too-many-nested-blocks
 import builtins, os, sys, time as py_time
@@ -19,10 +19,10 @@ import builtins, os, sys, time as py_time
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame, pygame.freetype
 from .math import atan2, ceil, cos, div, flr, max, mid, min, rnd, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
-from .table import Table, add, all, delete, foreach, pairs  # noqa
+from .table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
 from .audio import audio_channel_notes, music, sfx, threads  # noqa
-from .strings import ord, pico8_to_python, printh, split, sub, tonum, tostr, tostring  # noqa
-from .video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, flr, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, printh, prt, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
+from .strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr, tostring  # noqa
+from .video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, prt, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
 #fmt:on
 false = False
 true = True

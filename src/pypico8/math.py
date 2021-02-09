@@ -64,7 +64,7 @@ def atan2(dx, dy):
 
 def rnd(x=1):
     if isinstance(x, dict):
-        return random.choice(x)
+        return random.choice(tuple(x))
     return random.random() * x
 
 

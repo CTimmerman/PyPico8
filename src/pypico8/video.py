@@ -4,7 +4,7 @@ import pygame
 from .multiple_dispatch import multimethod
 from .audio import threads
 from .math import flr
-from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum
+from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, tonum
 from .table import Table
 
 
@@ -462,7 +462,7 @@ def ascii_to_pico8(s):
             try:
                 i = ocr.index(c)
             except ValueError:
-                printh(f"Char not found: {repr(c)} of {repr(s)}.")
+                #printh(f"Char not found: {repr(c)} of {repr(s)}.")
                 i = -1
             if i < 0:
                 i = ord(c)

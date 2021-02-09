@@ -116,10 +116,10 @@ def tonum(s):
         return s
 
     if s is None:
-        return None
+        return 0
 
     base = 10
-    if type(s) is str:
+    if isinstance(s, str):
         if "x" in s:
             base = 16
         elif "b" in s:
@@ -128,7 +128,11 @@ def tonum(s):
     try:
         return int(s, base)
     except ValueError:
-        return None
+        return 0
+
+
+def chr(index):  # noqa
+    return builtins.chr(flr(tonum(index) % 256))
 
 
 def ord(s, index=1):  # noqa

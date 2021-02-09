@@ -154,3 +154,28 @@ def delete(t: dict, v=None):
 
 def pairs(d: dict):
     return d.items()
+
+
+def pack(*args):
+    """
+    >>> pack('hello', 64, 64, 14)
+    {1: 'hello', 2: 64, 3: 64, 4: 14}
+    """
+    return Table(args)
+
+
+def unpack(tbl, start=1, stop=None):
+    """
+    >>> t = Table(["hello", 64, 64, 14])
+    >>> unpack(t)
+    ['hello', 64, 64, 14]
+    >>> unpack(t, 2)
+    [64, 64, 14]
+    >>> unpack(t, 2, 3)
+    [64, 64]
+    """
+    if stop is None: stop = len(tbl)
+    rv = []
+    for i in range(start, stop+1):
+        rv.append(tbl[i])
+    return rv
