@@ -66,7 +66,7 @@ def fake_sprite():
 def _draw():
     """Rainbow zoom."""
     cls()
-    pypico8.surf.blit(pypico8.spritesheet, (0, 0))
+    pypico8.video.surf.blit(pypico8.video.spritesheet, (0, 0))
     scale = sin(t() / 9) + 2
     # rainbow
     for i in range(1, 8 + 1):
@@ -85,7 +85,7 @@ def _draw():
                         c * scale,
                         d * scale,
                     )
-    
+
     fake_sprite()
 
 
