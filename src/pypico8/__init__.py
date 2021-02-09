@@ -1225,19 +1225,11 @@ def cls(col=0):
     """
     Clear the screen and reset the clipping rectangle. col defaults to 0 (black)
     cls() also sets the text cursor in the draw state to (0, 0). TODO: cursor pos is last line pos?
-
-    # https://pico-8.fandom.com/wiki/Cls says:
-    "This ignores the alternate palette set by pal() for the purposes of using color 0.
-    (pal(0, 7) cls() does not fill the screen with white.)
-    To fill the screen with a specific color, use rectfill."
     """
     global cursor_x, cursor_y, pen_x, pen_y
-    if col == 0:
-        surf.fill((0, 0, 0, 255))
-    else:
-        if col not in palette:
-            col %= 16
-        surf.fill(palette[col])
+    if col not in palette:
+        col %= 16
+    surf.fill(palette[col])
     cursor_x = 0
     cursor_y = 0
     pen_x = 0
