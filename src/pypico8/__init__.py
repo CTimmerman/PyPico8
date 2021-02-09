@@ -427,6 +427,8 @@ def music(n=0, fade_len=0, channel_mask=0):
 
     def music_worker():
         thread = threading.currentThread()
+        thread.do_work = threading.Event()  # set() and clear() to run and pause.
+        thread.do_work.set()
         pattern = sfx_list[n]
         while True:
             for note in pattern:
@@ -435,6 +437,7 @@ def music(n=0, fade_len=0, channel_mask=0):
                 py_time.sleep(note.get_length() * reps)
                 if getattr(thread, "stop", False):
                     return
+                thread.do_work.wait()
 
     thread = threading.Thread(target=music_worker)
     threads.append(thread)
@@ -554,9 +557,9 @@ def poke(addr, val):
     elif addr == 24367:
         for thread in threads:
             if val == 1:
-                thread.__flag = threading.Event()
+                thread.do_work.clear()
             elif val == 0:
-                thread.__flag.clear()
+                thread.do_work.set()
 
     memory[addr] = val
 
