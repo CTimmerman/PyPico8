@@ -1,5 +1,4 @@
 """Amorphous Form ported from https://twitter.com/szczm_/status/1125041539498106881
-TODO: Bottom band.
 """
 # fmt: off
 from pypico8 import printh, pico8_to_python, fillp, cos, sin, camera, cls, t, line, sub, run
@@ -34,13 +33,11 @@ def _draw():
     cls()
     m = 0.01 + 3 / 8 * (1 + a(t() / 8)) ** 2
     g = 0.5
-    while g >= 0.03:  # bands
-        g += -0.04
+    while g >= 0:  # bands
         f = -d * a(g)
         h = -e(g - m)
         i = 0
-        while i < 1:  # band wrap ratio
-            i += m
+        while i <= 1:  # band wrap ratio
             b = 50 + e(i + t())
             line(
                 b * h * a(i),
@@ -49,6 +46,8 @@ def _draw():
                 b * (f + h * d * e(i + m)),
                 "0x" + sub("776d11", g * 9, g * 9 + 2),
             )
+            i += m
+        g += -0.04
 
 
 run(_init, _update, _draw)
