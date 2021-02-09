@@ -41,7 +41,7 @@ flip()goto _"""
 def _init():
     global c, d, size, p
     cls()
-    print(r"""☻⑊ᨀ♪😈""")
+    print("NICE\nTUTORIAL")
     memcpy(0, 0x6000, 2048)  # copy screen to spritesheet.
     c = 4
     d = 6
@@ -85,7 +85,7 @@ def _draw():
                         c * scale,
                         d * scale,
                     )
-
+    
     fake_sprite()
 
 
