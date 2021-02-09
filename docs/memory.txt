@@ -1,0 +1,331 @@
+https://pico-8.fandom.com/wiki/Memory
+
+PICO-8 has 32 kilobytes of addressable memory, used for graphics, map, sound, music, and direct access to hardware features such as persistent cartridge data and GPIO pins. Programs can read from and write to this data using peek() and poke().
+
+While many games can use the built-in functions for graphics and sound, memory access enables advanced techniques such as repurposing memory regions or generating graphics and sound data algorithmically. For features such as the GPIO pins, peek() and poke() are currently the only way to access the feature.
+
+The first 16 kilobytes are copied from the cartridge into memory when the cartridge is loaded. When the cartridge changes a value in memory, it is only changed in memory and not in the cartridge itself.
+
+The cstore() function can be used to write memory data to the cartridge file. The reload() function can also be used to load cartridge data back into memory, or load a region of memory from another cartridge file.
+
+The Lua program stack (variables, etc.) is not stored in addressable memory and cannot be accessed directly by the program.
+
+See also P8FileFormat, P8PNGFileFormat.
+
+
+Contents
+Memory map
+Sprite sheet
+Map
+Sprite flags
+Music
+Sound effects
+General use
+Persistent cart data
+Draw state
+Hardware state
+GPIO pins
+Screen data
+Lua Memory
+
+
+Memory map
+This is the high-level memory map for addressable memory:
+
+Start	End	Purpose
+0x0	0x0fff	Sprite sheet (0-127)
+0x1000	0x1fff	Sprite sheet (128-255) / Map (rows 32-63) (shared)
+0x2000	0x2fff	Map (rows 0-31)
+0x3000	0x30ff	Sprite flags
+0x3100	0x31ff	Music
+0x3200	0x42ff	Sound effects
+0x4300	0x5dff	General use (or work RAM)
+0x5e00	0x5eff	Persistent cart data (64 numbers = 256 bytes)
+0x5f00	0x5f3f	Draw state
+0x5f40	0x5f7f	Hardware state
+0x5f80	0x5fff	GPIO pins (128 bytes)
+0x6000	0x7fff	Screen data (8k)
+The in-memory data formats for each section are described below.
+
+Sprite sheet
+The sprite sheet is represented in memory as one large image, 128 x 128 pixels. Each sprite tile is an 8 x 8 region in this image. Each sprite tile gets an ID, counting from 0, left to right, top to bottom.
+
+Each pixel can be one of 16 colors, and is represented by 4 bits. An 8-bit byte represents two pixels, horizontally adjacent, where the most significant (leftmost) 4 bits is the right pixel of the pair, and the least significant 4 bits is the left pixel. Pixels are stored from left to right, top to bottom.
+
+Other than this swapping within the byte, pixels are arranged in memory going left to right, top to bottom, for the entire 128 x 128 pixel image (using 128 * 64 = 8,192 bytes).
+
+The bottom half of the sprite sheet and the bottom half of the map region overlap in memory. Typically, a game uses this region for only one purpose or the other.
+
+0x0000-0x0fff / 0-4095
+
+The upper 64 rows of pixels (that is, upper 8 rows of sprites) in the sprite sheet. Each 64-byte row contains 128 pixels. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+0x1000-0x1fff / 4096-8191
+
+The lower 64 rows of pixels (that is, lower 8 rows of sprites) in the sprite sheet. Same format as above. Overlaps lower half of Map (see below).
+If sp is the sprite number, then the memory address at which a sprite's data starts is given by the expression:
+
+addr = 512 * (sp \ 16) + 4 * (sp % 16)
+Explanation: think of the sprite sheet as a grid of 16x16 sprites. Then the high 4 bits of the sprite number (sp \ 16) indicates the row number (0-15), and the low 4 bits of the sprite number (sp % 16) indicates the column number (0-15). Every row of this grid is made up of 16 sprites, so each row occupes 16 sprites * 32 bytes/sprite = 512 bytes. This explains the 512 * (sp \ 16) part. After that, we have to locate it within the row. The column is sp % 16, and we have to walk forward 4 bytes for each sprite (8 pixels), so we have to move forward sp % 16 bytes.
+
+The entire sprite is NOT stored at that position though, because the sprite sheet is a single image, you will only find, at that address, the 4 bytes (8 pixels) that correspond to the top row of the sprite. If you want the next row, you have to increment addr by 64 (that jumps over an entire row of 128 pixels = 64 bytes). In graphics parlance, the stride (amount you add to get from one row to the next in the image) is 64 bytes.
+
+Map
+The map is 128 tiles wide by 64 tiles high. Each tile is one of the 256 tiles from the sprite sheet, one byte per tile (using 128 * 64 = 8,192 bytes). The value is the sprite ID.
+
+The map is read from left to right, top to bottom order.
+
+0x1000-0x1fff / 4096-8191
+
+The lower 32 rows of the map. Each row contains 128 tiles. Each byte contains one tile index. Overlaps lower half of Sprite Sheet (see above).
+0x2000-0x2fff / 8192-12287
+
+The upper 32 rows of the map. Each row contains 128 tiles. Each byte contains one tile index.
+Sprite flags
+Each sprite tile has 8 flags, each of which can be on or off. One byte stores the flags for a sprite tile. Bytes are arranged by sprite ID, for a total of 256 bytes.
+
+In the graphics editor, the flags are arranged left to right from LSB to MSB: red=1, orange=2, yellow=4, green=8, blue=16, purple=32, pink=64, peach=128.
+
+0x3000-0x30ff / 12288-12543
+
+Each byte represents the flags for the associated sprite.
+Music
+There are 64 music patterns. Each music pattern uses four bytes to assign a sound effect or silence to each of four channels. (4 * 64 = 256 bytes.)
+
+If a sound effect is assigned to a channel, bit 6 is 0, and bits 5-0 are the sound ID (0 through 63). If the channel is silent, bit 6 is 1, and bits 5-0 are not used.
+
+Bit 7 is used to describe the flags for the music pattern. Bit 7 of the first byte (channel 1) is "begin pattern loop." Bit 7 of the second byte (channel 2) is "end pattern loop." Bit 7 of the third byte (channel 3) is "stop at end of pattern." (Bit 7 of the fourth byte is unused.)
+
+Sound effects
+There are 64 sound effects. Each sound effect is 68 bytes, with two bytes for each of 32 notes and then one byte for the editor mode, one byte for the speed, two bytes for the loop range (start, end). (64 * 68 = 4,352 bytes.)
+
+The effect speed is a value between 0 and 255, representing the duration of each note in the effect, as a multiple of 183 ticks (with 22050 ticks in a second), aproximately 1/120 of a second. Using the full effect length of 32 notes, with a speed of 1, the full effect plays aproximately 1/4 second (0.26557823129 seconds, or 32 * 183 / 22050). With a speed of 4, the full effect plays in 1.062 seconds.
+
+In an effect used for a music pattern, beats per minute can be calculated based on how many notes per "beat." For example, if an effect plays a "beat" every four notes in an effect, a speed of 15 is equivalent to 15/120 seconds per note, 15*4/120 seconds per four notes (one beat), (15*4)/(120*60) minutes per beat, or (120*60)/(15*4) = 120 beats per minute. (Note that we take 120 as an aproximation of 22050/183 = 120.491803279)
+
+Each note is encoded in 16 bits, in Little Endian style, with the low 8 bits in the first byte, and the hi 8 bits in the second, formatted like so:
+
+Second byte / Hi 8 bits	c	e	e	e	v	v	v	w   First byte / Lo 8 bits	w	w	p	p	p	p	p	p 
+c: when c is 1, waveform is a custom instrument corresponding to sfx 0-7; otherwise it is one of the eight built-in waveforms (PICO-8 0.1.11+)
+eee: effect (0-7)
+vvv: volume (0-7)
+www: waveform (0-7)
+pppppp: pitch (0-63)
+For example, a note's pitch and effect can be seen using peek(0x3200 + 68*track + 2*time), and instrument and volume by peek(0x3200 + 68*track + 2*time + 1). So if 30 was seen for instrument and volume, they are stored in bits 0b0011110 so the instrument is 0b001 (1) and volume is 0b111 (7); the last bit is used for sfx instrument flag, 0 if off, 1 if on.
+
+General use
+0x4300-0x5dff / 17152-24063
+
+This memory region is available for the program to use for any purpose.
+
+This region is not loaded from the cartridge, though the reload() function can be used to copy data into this region from a cartridge file.
+
+(Undocumented?) This region is not reset when loading another cart via load(), so can be used for passing data to and from the loaded cart.
+
+Persistent cart data
+0x5e00-0x5eff / 24064-24319
+
+After persistent data is initialized with the cartdata() function, the 256-byte region from 0x5e00 to 0x5eff represents the 64 number values accessible by dset() and dget(). These numbers are stored in the same 4-byte, little endian, 16.16 fixed-point format used by peek4() and poke4().
+
+Note that using dset() and dget() partitions this memory into 64 standard PICO-8 numbers, but these are just helper functions and they are not mandatory. This memory region can be formatted in any desired manner. For instance, a bar chart with up to 51 bars could be encoded by saving a width for each bar and its color index, with the width being a full PICO-8 number and the color just being a byte:
+
+function bar_set(index, width, color)
+  local addr = 0x5e00 + index*5
+  poke4(addr, width)
+  poke(addr+4, color)
+end
+
+function bar_get(index)
+  local addr = 0x5e00 + index*5
+  return peek4(addr), peek(addr+4)
+end
+Draw state
+This memory region represents the current draw state. The values are as follows:
+
+0x5f00-0x5f0f / 24320-24335
+
+Draw palette look-up table (pal(), palt()). When PICO-8 is asked to draw a certain 4-bit color index, it looks up the color's index in this table to decide which actual 4-bit color index to write to screen memory. The 16 values in this table should have their lower 4 bits (0-3) set to 0-15, to indicate which index is actually written to screen memory, while bit 4 should be either 0 for normal operation, or 1 (i.e. add 16 to the index) if the color index is to be transparent.
+0x5f10-0x5f1f / 24336-24351
+
+Screen palette look-up table (pal(...,1)). PICO-8 reads this table while converting the color indices in screen memory into system ("hardware") colors to be shown on its display. As of this writing, there are officially only 16 system colors available, whose values range from 0 to 15. However, an additional, but undocumented, 16 colors appear to be available at values from 128 to 143, and zep appears to be fine with us knowing this.
+0x5f20-0x5f23 / 24352-24355
+
+Clipping rectangle (clip(x,y,w,h)):
+0x5f20 / 24352: x_begin (no pixels < x_begin will be drawn)
+0x5f21 / 24353: y_begin (no pixels < y_begin will be drawn)
+0x5f22 / 24354: x_end (no pixels >= x_end will be drawn)
+0x5f23 / 24355: y_end (no pixels >= x_end will be drawn)
+These are somewhat different from the clip(x,y,w,h) arguments. Use clip(xb,yb,xe-xb,ye-yb) to set a clip rectangle using values like these.
+Note: Inside clip() the rectangle is clamped to the edges of the display before the GPU is configured. Expect x,y begin values to be in the range 0..127, and x,y end values to be in the slightly-larger range 0..128.
+0x5f24 / 24356
+
+(unknown, please update this if you know)
+0x5f25 / 24357
+
+Pen color (color()). The bottom 4 bits are the current color index, from 0-15. The top 4 bits are typically 0 and unused, but when using fill patterns, they will be the secondary color index.
+0x5f26-0x5f27 / 24358-24359
+
+Print cursor (cursor()). 0x5f26=x, 0x5f27=y.
+0x5f28-0x5f2b / 24360-24363
+
+Camera position (camera()). The x and y offsets are stored as 16-bit signed integers with the least significant byte first. 0x5f28-0x5f29=x offset, 0x5f2a-0x5f2b=y offset.
+0x5f2c / 24364
+
+This value sets the draw mode to normal, stretching, mirroring, flipping, or rotating.
+0 = normal mode
+1 = horizontal stretch, 64x128px screen, left half of normal screen
+2 = vertical stretch, 128x64px screen, top half of normal screen
+3 = both stretch, 64x64px screen, top left quarter of normal screen
+5 = horizontal mirroring, left half copied and flipped to right half
+6 = vertical mirroring, top half copied and flipped to bottom half
+7 = both mirroring, top left quarter copied and flipped to other quarters
+The following modes have been added as of 0.2.0:
+129 = horizontal flip
+130 = vertical flip
+131 = both flip
+133 = clockwise 90 degree rotation
+134 = 180 degree rotation (effectively equivalent to 131)
+135 = counterclockwise 90 degree rotation
+0x5f2d / 24365
+
+If set to 1, devkit mode is enabled, allowing mouse coordinates and keyboard status to be checked via the stat() command.
+0x5f2e / 24366
+
+(undocumented, but confirmed by zep) If set to 1, causes the current palette scheme (see pal() and/or the 0x5f00-0x5f1f memory range, above) to persist instead of being reset at the end of the program.
+0x5f2f / 24367
+
+(undocumented) If set to 1, pause the music and SFX playback engine, until 0 is written back to it. If set to 2, allow music to continue when the pause menu is displayed.
+0x5f30 / 24368
+
+(undocumented) If set to 1, suppresses the next attempt to bring up the pause menu. This can be done as late as discovering the pause button has been pressed this frame:
+  if(btn(6)) poke(0x5f30,1)
+0x5f31-0x5f33 / 24369-24371
+
+Fill pattern (fillp()). 0x5f31-0x5f32 contain the fill pattern as a 16-bit unsigned integer with the least significant byte first. 0x5f33's bit 0 is the related transparency bit.
+0x5f34 / 24372
+
+If set to 1, changes the PICO-8 drawing API to accept color values that incorporate not just one or two colors, but optionally include information about both the fill pattern and transparency right in the color value. From the manual:
+-- bit  0x1000.0000 means the non-colour bits should be observed
+-- bit  0x0100.0000 transparency bit
+-- bits 0x00FF.0000 are the usual colour bits
+-- bits 0x0000.FFFF are interpreted as the fill pattern
+0x5f35 / 24373
+
+Invalidates the endpoint of the previous line drawn using line(), found in 0x5f3c-0x5f3f. When 0, the endpoint is valid. When 1, it's invalid, as if line() had been called with no arguments.
+0x5f36-0x5f37 / 24374-24375
+
+(unknown, please update this if you know)
+0x5f38 / 24376
+
+The width of the map area to sample with tline(). Coordinates will be calculated modulo this number to produce texture wrapping. It must be a power of 2.
+0x5f39 / 24377
+
+The height of the map area to sample with tline(). Coordinates will be calculated modulo this number to produce texture wrapping. It must be a power of 2.
+0x5f3a / 24378
+
+The x offset of the map area to sample with tline(). It is expressed in map tiles.
+0x5f3b / 24379
+
+The y offset of the map area to sample with tline(). It is expressed in map tiles.
+0x5f3c-0x5f3f / 24380-24383
+
+Endpoint of the previous line drawn using line(). The x and y coordinates are stored as 16-bit signed integers with the least significant byte first. These are only used if the byte at 0x5f3b is 0.
+0x5f3c-0x5f3d / 24380-24381: x coordinate
+0x5f3e-0x5f3f / 24382-24383: y coordinate
+Hardware state
+These memory addresses represent or control various aspects of the hardware. These are undocumented.
+
+0x5f40-0x5f43 are control registers for the audio hardware. They're encoded with the following format:
+
+xxxx-ch3-ch2-ch1-ch0
+
+Setting bit 0 (ch0, value 1) enables the effect for channel 0, bit 1 (ch1, value 2) is for channel 1, etc. The "x" bits are unused. The features that each register control are as follows:
+
+0x5f40 / 24384
+
+Halves an audio channel's clock rate. The main rate is 22.05 KHz, and enabling the feature for a channel will cause it to be 11.025 KHz instead. This causes SFX and arp speeds to be halved, and the note pitch to be an octave lower.
+0x5f41 / 24385
+
+Enables reverb (echo) for a channel.
+0x5f42 / 24386
+
+Distorts the output of a channel. The audio becomes 3-bit (8 linear levels) without any dithering.
+0x5f43 / 24387
+
+Enables a lowpass filter for a channel.
+The priorities of the features are based on the location in memory. That is, Half-Clock goes first, followed by Reverb, and Distortion, and Lowpass.
+0x5f44-0x5f4b / 24388-24395
+
+These 8 bytes mirror the internal state of the pseudo-random number generator that rnd() uses to create random values. This memory range can be saved before calling srand() and rnd() and then restored to continue the original stream of random numbers. This can be useful for games which need separate random number streams so that one may be deterministic over time while another can be used arbitrarily. It is strongly suggested that this state only be saved and restored, but not created. Use srand() to create a good, stable randomizer state.
+0x5f4c-0x5f53 / 24396-24403
+
+These 8 bytes contain the current button state.
+0x5f4c contains the button state for player 0; 0x5f4d - for player 1, and so on up to player 7.
+Each byte is a bitmask arranged just like the output of btn().
+(E.g. 0x5f4c is the same as btn() & 0xff)
+0x5f54-0x5f5b / 24404-24411
+
+(unknown, please update this if you know. Appears to be similar to the button state above, except sometimes all-ones, and only the state of the pause button is reflected UNLESS you press and hold a button together with the pause button.)
+0x5f5c / 24412
+
+Auto-repeat delay for btnp(): When a button is held down, this controls the delay between the initial signal and the first auto-repeat signal. Expressed in 30ths of a second. The default value is 0, which tells PICO-8 to use the system delay setting. A value of 255 (or -1) disables the button repeat feature.
+0x5f5d / 24413
+
+Auto-repeat interval for btnp(): When a button is held down, this controls the intervals between auto-repeat signals. Expressed in 30ths of a second. The default value is 0, which tells PICO-8 to use the system delay setting.
+0x5f5e / 24414
+
+Bitmask for reading and writing colors. Allows PICO-8 to use only certain bits of the source color, and to write only certain bits of the destination color. Applies only when the value is nonzero. In the lower 4 bits, the 1 bits indicate which bits to set, while 0 bits indicate which bits to preserve. In the upper four bits, the 1 bits indicate which source color bits to keep, and the 0 bits indicate which bits to discard. The default value is 0, which allows all bits to be read and written, as if the mask had been set to 0xff.
+This is effectively the pixel-writing operation:
+dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
+0x5f5f / 24415
+
+Specifies a high-color mode. Allows the usage of a second screen palette if set to 0x10, or the usage of a gradient if set to 0x30 - 0x3f (the low hex digit specifies the screen color to replace). Other values will disable high-color, and PICO-8 will operate in regular 16-color mode.
+0x5f60-0x5f6f / 24416-24431
+
+Look-up table for the second screen palette, or the colors that make up the gradient (the first color is for the top-most 128×8 section, the second for the 128×8 section underneath, etc.). The format of this section is identical to the screen palette in the Draw State section (see above).
+0x5f70-0x5f7f / 24432-24447
+
+The bitfield for the screen lines that should use the second screen palette instead of the primary one. This is useful for dividing the screen up into 2 sections, each with a different palette, or even a CRT monitor effect.
+If gradient mode is used, these instead specify a +1 offset for the indexed gradient color on the given line (e.g. line 60 has gradient color 7, and setting the bit will cause it to be 8), with gradient color 15 wrapping around to 0.
+Each of these 16 bytes are for each 8-line section of the screen, which aligns with the gradient sections. Bit 0 contains the section's top-most line, while bit 7 contains its bottom-most line.
+Note that the affected sections aren't limited to horizontal rows. The current draw mode selected in 0x5f2c happens after the selected high-color effect takes place. If rotation modes 133 or 135 are used, this can allow the effect to be applied in vertical columns instead.
+GPIO pins
+This experimental feature provides programs access to the GPIO (general purpose input/output) hardware pins of a Raspberry Pi or CHIP device. These addresses can be used to accept digital input from or write digital output to devices connected to the pins. JavaScript code that runs in a browser can also access them by defining a global array named pico8_gpio. There are up to 128 pins, depending on the platform.
+
+0x5f80-0x5fff / 24448-24575
+
+Each byte represents the value of 1 pin. The possible values vary depending on the platform.
+Screen data
+This 8,192-byte (8 KiB) region contains the graphics buffer. This is what is modified by the built-in drawing functions, and is what is copied to the actual display at the end of the game loop or by a call to flip().
+
+0x6000-0x7fff / 24576-32767
+
+All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+Lua Memory
+The Memory used by Lua (global variables, local variables, tables, etc.) is entirely separate from the Pico-8 memory discussed above and is limited to 2 MiB.
+
+The amount of memory currently used by the program can be checked with stat(0) and adds up as follows (all numbers are in bytes):
+
+nil / boolean / number - no extra cost.
+string - 17 + 1 * (# of characters)
+Strings of length <= 40 are always interned, meaning creating such a string again (through any means) will simply use the previously created string and cost nothing.
+
+On the other hand, interned strings are also stored in a global hash table, which grows whenever the number of interned strings reaches a new power of 2. Here, each interned string costs an additional ~4-8 bytes, though this cost is only observable - in bulk - whenever the hash table grows.
+
+table - 32 + 8 * nextpow2(# of 'array' entries) + 20 * nextpow2(# of 'hash' entries)
+Here, nextpow2 gives the next power of 2 (e.g. 2 -> 2, 3 -> 4, 4 -> 4, 5 -> 8, 130 -> 256).
+
+For example, {1,2,a=3,b=4,c=5} takes 128 bytes: 32 + 8 * 2 + 20 * 4
+
+function - 16 + 4 * (# of captured variables) + 32 * (# of newly captured variables)
+A captured variable is any local variable declared outside the function, that's accessed inside the function.
+
+A "newly" captured variable is merely one that wasn't captured before by other functions.
+
+A function that uses any globals automatically captures _ENV, and this counts as a captured variable. (Unless _ENV is explicitly re-declared, it never counts as a newly captured variable, though.)
+
+If a function is created multiple times, the previously created instance is reused if possible, thus costing nothing. The previous instance can be reused if it has no captured variables, or if it has captured variables but they're all the same variables as the captured variables of the new function.
+
+thread (created by cocreate) - 352 bytes.
+Categories:
+ReferenceADD CATEGORY
+Community content is available under CC-BY-SA unless otherwise noted.
