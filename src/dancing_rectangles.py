@@ -17,7 +17,6 @@ def _draw():
         c = k / 18
         i = 0
         while i <= 1:
-            i += 0.1 / c
             b = i - t() / 24 * c
             x = k * cos(b)
             y = k * sin(b)
@@ -25,7 +24,6 @@ def _draw():
             p = 0
             j = 0
             while j <= 1:
-                j += 0.25
                 a = 64 / k + i * c + j - t() / 4 * c
                 n = 8 * cos(a)
                 m = 8 * sin(a)
@@ -33,6 +31,8 @@ def _draw():
                     line(x + n, y + m, x + o, y + p, 7)
                 o = n
                 p = m
+                j += 0.25
+            i += 0.1 / c
 
 
 run(_init, _update, _draw)

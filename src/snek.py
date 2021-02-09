@@ -39,9 +39,7 @@ def _draw():
     cls()
     for i in range(0, 5):
         y = 1.3
-        while y > 0:
-            y += -0.02
-
+        while y >= 0:
             r = 4
             if y < 0.1:
                 r += 3 - abs(y - 0.07) * 50
@@ -50,6 +48,7 @@ def _draw():
             w = y * 4 + 1.5
             x = sin(y * 2 - t()) * w
             circfill(64.5 + x + i / 2, 28 + y * 90, r - i, 1 + i)
+            y += -0.02
 
 
 run(_init, _update, _draw)
