@@ -1,10 +1,10 @@
-# pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments
+# pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments, pointless-string-statement
 import base64, io, math
 import pygame
 from .multiple_dispatch import multimethod
 from .audio import threads
 from .math import flr
-from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum
+from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa
 from .table import Table
 
 
