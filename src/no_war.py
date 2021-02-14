@@ -1,6 +1,6 @@
 """No War ported from https://twitter.com/brubsby/status/1214986266720133121
 """
-from pypico8 import cls, cos, line, memcpy, pico8_to_python, print, printh, sin, srand, sspr, rnd, run, t
+from pypico8 import cls, cos, line, memcpy, pico8_to_python, print, printh, sin, srand, sspr, rnd, run, t  # noqa
 
 
 printh(
