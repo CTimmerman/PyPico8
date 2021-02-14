@@ -1,5 +1,5 @@
 # pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments
-import base64, io
+import base64, io, math
 import pygame
 from .multiple_dispatch import multimethod
 from .audio import threads
@@ -108,7 +108,7 @@ def poke(addr, val):
     """
     Write one byte to an address in base ram.
     Legal addresses are 0x0..0x7fff
-    Writing out of range causes a runtime error
+    Writing out of range causes a runtime error.
     """
     global SCREEN_SIZE, memory
     if addr == 0x5F2C and val == 3:
@@ -121,6 +121,23 @@ def poke(addr, val):
                 thread.do_work.clear()
             elif val == 0:
                 thread.do_work.set()
+    elif addr == 24372:
+        """
+        TODO:
+        POKE(0x5F34, 1) -- sets integrated fillpattern + colour mode
+        CIRCFILL(64,64,20, 0x114E.ABCD) -- sets fill pattern to ABCD
+
+        -- bit  0x1000.0000 means the non-colour bits should be observed
+        -- bit  0x0100.0000 transparency bit
+        -- bits 0x00FF.0000 are the usual colour bits
+        -- bits 0x0000.FFFF are interpreted as the fill pattern
+        """
+        pattern, colors = math.modf(val)
+        colors = int(colors)
+        col1 = colors & (255 << 8)
+        col2 = colors & 255
+        color(col2)
+        fillp(pattern)
 
     memory[addr] = val
 
@@ -154,10 +171,6 @@ def flip():
     frame_count += 1
     screen.fill(0)
     # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
-
-    # TODO: Don't apply to print, only to fillp methods.
-    #surf.blit(fill_pattern, (0, 0), special_flags=pygame.BLEND_PREMULTIPLIED)
-
     screen.blit(surf, (0, 0))
     pygame.display.flip()
     clock.tick(fps)
@@ -242,13 +255,18 @@ def clip(x=0, y=0, w=SCREEN_SIZE[0], h=SCREEN_SIZE[1]) -> tuple:
     return (x, y, w, h)
 
 
+def with_pattern(area: pygame.Rect):
+    """Applies fill_pattern. TODO: Check whether black (current) or transparent (probably)."""
+    surf.blit(fill_pattern, area[:2], area, special_flags=pygame.BLEND_MIN)
+
+
 def circ(x, y, r=4, col: int = None):
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
     if r > 0:
-        pygame.draw.circle(surf, color(col), pos(x, y), r, 1)
+        with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r, 1))
 
 
 def circfill(x, y, r=4, col: int = None):
@@ -257,17 +275,23 @@ def circfill(x, y, r=4, col: int = None):
     If r is negative, the circle is not drawn
     """
     if r > 0:
-        pygame.draw.circle(surf, color(col), pos(x, y), r)
+        with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r))
 
 
 def oval(x0, y0, x1, y1, col: int = None):
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
-    pygame.draw.ellipse(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), 1)
+    with_pattern(
+        pygame.draw.ellipse(
+            surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), 1
+        )
+    )
 
 
 def ovalfill(x0, y0, x1, y1, col: int = None):
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
-    pygame.draw.ellipse(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)))
+    with_pattern(
+        pygame.draw.ellipse(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)))
+    )
 
 
 def line(x0, y0, x1=None, y1=None, col: int = None):
@@ -277,19 +301,23 @@ def line(x0, y0, x1=None, y1=None, col: int = None):
         x1 = pen_x
     if y1 is None:
         y1 = pen_y
-    pygame.draw.line(surf, color(col), pos(x0, y0), pos(x1, y1))
+    with_pattern(pygame.draw.line(surf, color(col), pos(x0, y0), pos(x1, y1)))
     pen_x = x0
     pen_y = y0
 
 
 def rect(x0, y0, x1, y1, col: int = None):
     """Draw a rectangle."""
-    pygame.draw.rect(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), 1)
+    with_pattern(
+        pygame.draw.rect(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), 1)
+    )
 
 
 def rectfill(x0, y0, x1, y1, col: int = None):
     """Draw a filled rectangle."""
-    pygame.draw.rect(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)))
+    with_pattern(
+        pygame.draw.rect(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)))
+    )
 
 
 @multimethod(int, int, int)
@@ -381,7 +409,7 @@ def pget(x, y) -> int:
 
 def pset(x: int, y: int, col: int = None):
     """Set the color of a pixel at x, y."""
-    surf.set_at(pos(x, y), color(col))
+    with_pattern(surf.set_at(pos(x, y), color(col)))
 
 
 def sget(x, y) -> int:
@@ -610,6 +638,7 @@ def color(col=None):
     """
     global pen_color
     pen_color = to_col(col)
+    # TODO: CIRCFILL(64,64,20, 0x4E) -- 0b01001110 - brown (0100) and pink (1110)
     return palette[pen_color]
 
 
@@ -624,7 +653,7 @@ def cls(col=0):
         col %= 16
     surf.fill(palette[col])
 
-    clip(0)
+    clip()
 
     cursor_x = 0
     cursor_y = 0
@@ -715,8 +744,8 @@ def sspr(
 
 def fillp(p=0):
     """
-    TODO: The PICO-8 fill pattern is a 4x4 2-colour tiled pattern observed by:
-        circ() circfill() rect() rectfill() oval() ovalfill() pset() line()
+    The PICO-8 fill pattern is a 4x4 2-colour tiled pattern observed by:
+    circ() circfill() rect() rectfill() oval() ovalfill() pset() line()
 
     p is a bitfield in reading order starting from the highest bit. To calculate the value
     of p for a desired pattern, add the bit values together:
@@ -744,15 +773,15 @@ def fillp(p=0):
     w, h = SCREEN_SIZE
     for y in range(0, h):
         for x in range(0, w):
-            one = p >> (15 - (x % 4 + y % 4)) & 1
+            one = p >> (15 - (x % 4 + 4 * (y % 4))) & 1
             fill_pattern.set_at((x, y), (0, 0, 0) if one else (255, 255, 255))
 
-    #pygame.image.save(fill_pattern, "fill_pattern.png")
-    printh(f"fillp {p}:")
-    s = f"{bin(p)[2:]:0>16}"
-    for i in range(0, 16, 4):
-        printh(s[i : i + 4])
-    pass
+    # pygame.image.save(fill_pattern, "fill_pattern.png")
+    # printh(f"fillp {p}:")
+    # s = f"{bin(p)[2:]:0>16}"
+    # for i in range(0, 16, 4):
+    #     printh(s[i : i + 4])
+    # pass  # To pause on.
 
 
 def reset():
@@ -760,6 +789,5 @@ def reset():
     global pen_color
     pen_color = 6
     pal()
-    camera(0, 0)
-    clip(0)
-    fillp()
+    camera()
+    clip()
