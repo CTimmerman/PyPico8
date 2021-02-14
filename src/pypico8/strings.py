@@ -65,7 +65,7 @@ def pico8_to_python(s):
     # loops
     s = re.sub(r"([0-9)\] ])\s*do\b", r"\1:", s)
     s = re.sub(
-        r"for (.*?)=(.+?),(.+?),(.+?):", r"\1 = \2\nwhile \1 <= \3:\n    \1 += \4\n", s
+        r"for (.*?)=(.+?),(.+?),(.+?):", r"\1 = \2\nwhile \1 <= \3:\n    \1 += \4  #TODO: move to end of loop\n", s
     )
     s = re.sub(
         r"for (.*?)=([^,]+),(.*?):",
@@ -104,10 +104,6 @@ def tostr(val, use_hex=False):
     if use_hex:
         return hex(val)
     return str(val)
-
-
-def tostring(val, use_hex=False):
-    return tostr(val, use_hex=False)
 
 
 def tonum(s):
