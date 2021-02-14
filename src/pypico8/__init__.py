@@ -6,12 +6,13 @@
 2021-01-09 v1.3 added reset, stop, fget, fset, div, sub, split, argv, btn, printh
 2021-01-11 v1.4 added spr, sspr, sget, sset, screen mode 3 (64x64); fixed rect size.
 2021-01-18 v1.5 added ^, ^=, for with float step, tonum, ceil, atan2, stat.
-2021-01-19 v1.5.1 fixed prt color, atan2.
-2021-01-25 v1.5.2 fixed prt, sget.
-2021-01-27 v1.5.3 fixed cls, most Prospector problems, prt.
+2021-01-19 v1.5.1 fixed print color, atan2.
+2021-01-25 v1.5.2 fixed print, sget.
+2021-01-27 v1.5.3 fixed cls, most Prospector problems, print.
 2021-01-29 v1.5.4 fixed fps.
 2021-02-08 v1.6 added sfx, music, clip, sgn.
 2021-02-09 v1.7 added pack, unpack. Fixed min, max, rnd, chr. Refactored.
+2021-02-14 v1.8 prt -> print, fillp.
 """
 # pylint:disable=import-outside-toplevel,multiple-imports,pointless-string-statement,redefined-builtin,too-many-arguments,unused-import,unidiomatic-typecheck,wrong-import-position,too-many-nested-blocks
 import builtins, os, sys, time as py_time
@@ -22,7 +23,7 @@ from .math import atan2, ceil, cos, div, flr, max, mid, min, rnd, sgn, sin, sqrt
 from .table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
 from .audio import audio_channel_notes, music, sfx, threads  # noqa
 from .strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr, tostring  # noqa
-from .video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, prt, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
+from .video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
 #fmt:on
 false = False
 true = True

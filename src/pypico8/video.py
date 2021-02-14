@@ -4,7 +4,7 @@ import pygame
 from .multiple_dispatch import multimethod
 from .audio import threads
 from .math import flr
-from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, tonum
+from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum
 from .table import Table
 
 
@@ -31,13 +31,12 @@ sprite_flags = []
 
 
 def _init_video() -> None:
-    global characters, clock, frame_count, font_img, pen_color, screen, spritesheet, sprite_flags, surf
+    global characters, clock, frame_count, font_img, screen, spritesheet, sprite_flags, surf
     screen = pygame.display.set_mode(SCREEN_SIZE, pygame.SCALED | pygame.RESIZABLE)
     surf = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
 
-    pen_color = 6
-    cls()  # set cursor
-    camera()  # set camera offset
+    reset()
+    cls()
     clock = pygame.time.Clock()
     frame_count = 0
 
@@ -151,10 +150,14 @@ def flip():
     Flip the back buffer to screen and wait for next frame
     Don't normally need to do this -- _draw() calls it for you.
     """
-    global frame_count
+    global frame_count, fill_pattern
     frame_count += 1
     screen.fill(0)
     # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
+
+    # TODO: Don't apply to print, only to fillp methods.
+    #surf.blit(fill_pattern, (0, 0), special_flags=pygame.BLEND_PREMULTIPLIED)
+
     screen.blit(surf, (0, 0))
     pygame.display.flip()
     clock.tick(fps)
@@ -343,9 +346,9 @@ def pal(tbl: list, remap_screen: int = 0):  # noqa: F811
 @multimethod()
 def pal():  # noqa: F811
     """Resets to system defaults (including transparency values and fill pattern)"""
-    global palette, fill_pattern
+    global palette
     palette = PALETTE.copy()
-    fill_pattern = 0
+    fillp()
 
 
 def palt(col: int = None, transparent: bool = None):
@@ -462,7 +465,7 @@ def ascii_to_pico8(s):
             try:
                 i = ocr.index(c)
             except ValueError:
-                #printh(f"Char not found: {repr(c)} of {repr(s)}.")
+                # printh(f"Char not found: {repr(c)} of {repr(s)}.")
                 i = -1
             if i < 0:
                 i = ord(c)
@@ -470,10 +473,6 @@ def ascii_to_pico8(s):
                 i = 70
         ps += chr(i)
     return ps
-
-
-def prt(s, x=None, y=None, col=None):
-    return print(s, x, y, col)
 
 
 def print(s, x=None, y=None, col=None):
@@ -575,7 +574,6 @@ PALETTE = {
     142: (255, 110, 89),
     143: (255, 157, 129),
 }
-palette = PALETTE.copy()
 
 
 def to_col(col=None):
@@ -620,10 +618,14 @@ def cls(col=0):
     Clear the screen and reset the clipping rectangle. col defaults to 0 (black)
     cls() also sets the text cursor in the draw state to (0, 0). TODO: cursor pos is last line pos?
     """
-    global cursor_x, cursor_y, pen_x, pen_y, surf
+    global palette, cursor_x, cursor_y, pen_x, pen_y, surf
+
     if col not in palette:
         col %= 16
     surf.fill(palette[col])
+
+    clip(0)
+
     cursor_x = 0
     cursor_y = 0
     pen_x = 0
@@ -731,16 +733,33 @@ def fillp(p=0):
 
     For example, FILLP(4+8+64+128+  256+512+4096+8192) would create a checkerboard pattern.
 
-    This can be more neatly expressed in binary: FILLP(0b0011001111001100)
+    This can be more neatly expressed in 16-bit binary: FILLP(0b0011001111001100)
     The default fill pattern is 0, which means a single solid colour is drawn.
     """
     global fill_pattern
-    fill_pattern = p
+
+    p = tonum(p)
+    # 65535 = full transparent (or black?): '0b1111111111111111'
+    fill_pattern = pygame.Surface(SCREEN_SIZE)
+    w, h = SCREEN_SIZE
+    for y in range(0, h):
+        for x in range(0, w):
+            one = p >> (15 - (x % 4 + y % 4)) & 1
+            fill_pattern.set_at((x, y), (0, 0, 0) if one else (255, 255, 255))
+
+    #pygame.image.save(fill_pattern, "fill_pattern.png")
+    printh(f"fillp {p}:")
+    s = f"{bin(p)[2:]:0>16}"
+    for i in range(0, 16, 4):
+        printh(s[i : i + 4])
+    pass
 
 
 def reset():
-    """Reset the draw state, including palette, camera position, TODO: clipping and fill pattern."""
-    global palette, pen_color
+    """Reset the draw state, including palette, camera position, clipping and fill pattern."""
+    global pen_color
     pen_color = 6
-    palette = PALETTE.copy()
+    pal()
     camera(0, 0)
+    clip(0)
+    fillp()
