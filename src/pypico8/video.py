@@ -137,7 +137,7 @@ def poke(addr, val):
         col1 = colors & (255 << 8)
         col2 = colors & 255
         color(col2)
-        fillp(pattern)
+        fillp(int(str(pattern)[2:]))
 
     memory[addr] = val
 
@@ -409,7 +409,8 @@ def pget(x, y) -> int:
 
 def pset(x: int, y: int, col: int = None):
     """Set the color of a pixel at x, y."""
-    with_pattern(surf.set_at(pos(x, y), color(col)))
+    surf.set_at(pos(x, y), color(col))
+    with_pattern((x, y, 1, 1))
 
 
 def sget(x, y) -> int:
@@ -607,15 +608,16 @@ PALETTE = {
 def to_col(col=None):
     global pen_color
 
-    col = tonum(col)
-
     if col is None:
         if "pen_color" not in globals():
             pen_color = 6
         col = pen_color
+
     if col is None:
         col = 6
-
+    else:
+        col = tonum(col)
+    
     if col not in palette:  # Sleight of Hand uses color 48?!
         col %= 16
 
