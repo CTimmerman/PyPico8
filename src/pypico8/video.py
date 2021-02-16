@@ -133,10 +133,7 @@ def poke(addr, val):
         -- bits 0x0000.FFFF are interpreted as the fill pattern
         """
         pattern, colors = math.modf(val)
-        colors = int(colors)
-        col1 = colors & (255 << 8)
-        col2 = colors & 255
-        color(col2)
+        color(colors)
         fillp(int(str(pattern)[2:]))
 
     memory[addr] = val
@@ -167,7 +164,7 @@ def flip():
     Flip the back buffer to screen and wait for next frame
     Don't normally need to do this -- _draw() calls it for you.
     """
-    global frame_count, fill_pattern
+    global frame_count
     frame_count += 1
     screen.fill(0)
     # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
@@ -256,8 +253,15 @@ def clip(x=0, y=0, w=SCREEN_SIZE[0], h=SCREEN_SIZE[1]) -> tuple:
 
 
 def with_pattern(area: pygame.Rect):
-    """Applies fill_pattern. TODO: Check whether black (current) or transparent (probably)."""
-    surf.blit(fill_pattern, area[:2], area, special_flags=pygame.BLEND_MIN)
+    """Applies fill_pattern. TODO: Check whether transparent."""
+    for hi in range(area[3]):
+        for wi in range(area[2]):
+            clr_at = fill_pattern.get_at(pos((area[0] + wi) % SCREEN_SIZE[0], (area[1] + hi) % SCREEN_SIZE[1]))
+            if clr_at[:3] != (0, 0, 0):
+                new_clr = palette[pen_color]
+            else:
+                new_clr = palette[off_color]
+                surf.set_at(pos(area[0] + wi, area[1] + hi), new_clr)
 
 
 def circ(x, y, r=4, col: int = None):
@@ -606,18 +610,6 @@ PALETTE = {
 
 
 def to_col(col=None):
-    global pen_color
-
-    if col is None:
-        if "pen_color" not in globals():
-            pen_color = 6
-        col = pen_color
-
-    if col is None:
-        col = 6
-    else:
-        col = tonum(col)
-    
     if col not in palette:  # Sleight of Hand uses color 48?!
         col %= 16
 
@@ -638,9 +630,22 @@ def color(col=None):
     8  red     9  orange      10  yellow       11  green
     12  blue   13  indigo     14  pink         15  peach
     """
-    global pen_color
+    global off_color, pen_color
+
+    if col is None:
+        if "pen_color" not in globals():
+            pen_color = 6
+        col = pen_color
+
+    if col is None:
+        col = 6
+    else:
+        col = tonum(col)
+
+    # CIRCFILL(64,64,20, 0x4E) -- 0b 0100 1110 - brown (0100, off) and pink (1110, on/pen)
     pen_color = to_col(col)
-    # TODO: CIRCFILL(64,64,20, 0x4E) -- 0b01001110 - brown (0100) and pink (1110)
+    off_color = int(col) >> 4 & 15
+
     return palette[pen_color]
 
 
@@ -649,11 +654,9 @@ def cls(col=0):
     Clear the screen and reset the clipping rectangle. col defaults to 0 (black)
     cls() also sets the text cursor in the draw state to (0, 0). TODO: cursor pos is last line pos?
     """
-    global palette, cursor_x, cursor_y, pen_x, pen_y, surf
+    global cursor_x, cursor_y, pen_x, pen_y
 
-    if col not in palette:
-        col %= 16
-    surf.fill(palette[col])
+    surf.fill(palette[to_col(col)])
 
     clip()
 
@@ -664,6 +667,7 @@ def cls(col=0):
 
 
 def adjust_color(surface: pygame.Surface) -> pygame.Surface:
+    """ Apply current palette to surface. """
     r = surface.get_rect()
 
     old_new = [
@@ -685,6 +689,7 @@ def adjust_color(surface: pygame.Surface) -> pygame.Surface:
 def replace_color(
     surface: pygame.Surface, old_color: tuple, new_color: tuple
 ) -> pygame.Surface:
+    """ Replace single color in surface. """
     r = surface.get_rect()
     for hi in range(r.h):
         for wi in range(r.w):
