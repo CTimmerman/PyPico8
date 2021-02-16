@@ -254,14 +254,16 @@ def clip(x=0, y=0, w=SCREEN_SIZE[0], h=SCREEN_SIZE[1]) -> tuple:
 
 def with_pattern(area: pygame.Rect):
     """Applies fill_pattern. TODO: Check whether transparent."""
+
     for hi in range(area[3]):
         for wi in range(area[2]):
-            clr_at = fill_pattern.get_at(pos((area[0] + wi) % SCREEN_SIZE[0], (area[1] + hi) % SCREEN_SIZE[1]))
+            location = (int(area[0] + wi) % SCREEN_SIZE[0], int(area[1] + hi) % SCREEN_SIZE[1])
+            clr_at = fill_pattern.get_at(location)
             if clr_at[:3] != (0, 0, 0):
                 new_clr = palette[pen_color]
             else:
                 new_clr = palette[off_color]
-                surf.set_at(pos(area[0] + wi, area[1] + hi), new_clr)
+                surf.set_at(location, new_clr)
 
 
 def circ(x, y, r=4, col: int = None):
