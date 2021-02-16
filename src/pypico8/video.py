@@ -287,7 +287,7 @@ def circ(x, y, r=4, col: int = None):
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
-    if r >= 0:
+    if r > 0:
         with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r, 1))
 
 
@@ -628,10 +628,7 @@ PALETTE = {
 
 
 def to_col(col=None):
-    if col not in palette:  # Sleight of Hand uses color 48?!
-        col %= 16
-
-    return flr(col)
+    return flr(col) & 0x8f
 
 
 def color(col=None):
