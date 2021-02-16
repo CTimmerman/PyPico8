@@ -31,7 +31,10 @@ sprite_flags = []
 
 
 def _init_video() -> None:
-    global characters, clock, frame_count, font_img, screen, spritesheet, sprite_flags, surf
+    global characters, clock, frame_count, font_img, screen, spritesheet, sprite_flags, surf, video_mode
+
+    video_mode = peek(24364)
+
     screen = pygame.display.set_mode(SCREEN_SIZE, pygame.SCALED | pygame.RESIZABLE)
     surf = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
 
@@ -110,9 +113,11 @@ def poke(addr, val):
     Legal addresses are 0x0..0x7fff
     Writing out of range causes a runtime error.
     """
-    global SCREEN_SIZE, memory
-    if addr == 0x5F2C and val == 3:
-        SCREEN_SIZE = (64, 64)
+    global SCREEN_SIZE, memory, video_mode
+    if addr == 24364:  # video mode, 0x5F2C
+        video_mode = val
+        if val == 3:
+            SCREEN_SIZE = (64, 64)
     elif addr == 24365:
         pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
     elif addr == 24367:
@@ -168,7 +173,15 @@ def flip():
     frame_count += 1
     screen.fill(0)
     # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
-    screen.blit(surf, (0, 0))
+    if video_mode == 7:
+        topleft = surf.subsurface((0, 0, 64, 64))
+        screen.blit(pygame.transform.flip(topleft, 0, 0), (0, 0))
+        screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
+        screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
+        screen.blit(pygame.transform.flip(topleft, 1, 1), (64, 64))
+    else:
+        screen.blit(surf, (0, 0))
+
     pygame.display.flip()
     clock.tick(fps)
 
@@ -257,7 +270,10 @@ def with_pattern(area: pygame.Rect):
 
     for hi in range(area[3]):
         for wi in range(area[2]):
-            location = (int(area[0] + wi) % SCREEN_SIZE[0], int(area[1] + hi) % SCREEN_SIZE[1])
+            location = (
+                int(area[0] + wi) % SCREEN_SIZE[0],
+                int(area[1] + hi) % SCREEN_SIZE[1],
+            )
             clr_at = fill_pattern.get_at(location)
             if clr_at[:3] != (0, 0, 0):
                 new_clr = palette[pen_color]
@@ -271,7 +287,7 @@ def circ(x, y, r=4, col: int = None):
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
-    if r > 0:
+    if r >= 0:
         with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r, 1))
 
 
