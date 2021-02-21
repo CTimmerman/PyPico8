@@ -128,7 +128,6 @@ def poke(addr, val):
                 thread.do_work.set()
     elif addr == 24372:
         """
-        TODO:
         POKE(0x5F34, 1) -- sets integrated fillpattern + colour mode
         CIRCFILL(64,64,20, 0x114E.ABCD) -- sets fill pattern to ABCD
 
@@ -158,7 +157,7 @@ def memcpy(dest_addr, source_addr, length):
     Sections can be overlapping
     """
     global memory, spritesheet
-    memory[dest_addr : dest_addr + length] = memory[source_addr : source_addr + length]
+    memory[dest_addr : dest_addr + length] = memory[int(source_addr) : int(source_addr) + length]
     if dest_addr == 0 and source_addr == 0x6000:
         # copy drawing surface to spritesheet
         spritesheet = surf.copy()
