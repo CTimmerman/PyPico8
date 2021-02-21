@@ -6,6 +6,8 @@ class Table(dict):
     >>> a[1] = "blah"
     >>> a[2] = 42
     >>> a["foo"] = Table([1,2,3])
+    >>> a
+    {1: 'blah', 2: 42, 'foo': {1: 1, 2: 2, 3: 3}}
 
     Arrays use 1-based indexing by default:
     >>> a = Table([11,12,13,14])
@@ -25,6 +27,13 @@ class Table(dict):
     >>> foo = Table({'bar': 'baz'})
     >>> foo.bar
     'baz'
+
+    Keyword arguments are passed as dict.
+    >>> foo = Table(x=10, y=20, z=30)
+    >>> foo
+    {'x': 10, 'y': 20, 'z': 30}
+    >>> foo.x
+    10
     """
 
     def __init__(self, stuff=None, **kwargs):
@@ -59,10 +68,10 @@ class Table(dict):
             return self.__getitem__(name)
 
     def __setattr__(self, name: str, value) -> None:
-        return super().__setitem__(name, value)
+        return self.__setitem__(name, value)
 
 
-def add(t: dict, v, index=None):
+def add(t: Table, v: any, index: int = None) -> any:
     """https://www.lexaloffle.com/pico-8.php?page=manual#:~:text=add%20t
     add t v [index]
 
@@ -75,8 +84,13 @@ def add(t: dict, v, index=None):
     11
     >>> add(foo, 22)
     22
-    >>> printh(foo[2])
+    >>> print(foo[2])
     22
+    >>> bar = Table(x=0.0, y=99.0)
+    >>> add(foo, bar)
+    {'x': 0.0, 'y': 99.0}
+    >>> foo
+    {1: 11, 2: 22, 3: {'x': 0.0, 'y': 99.0}}
     """
     if index is None:
         index = len(t) + 1
@@ -95,13 +109,13 @@ def all(t: Table):
     14
     >>> add(T,"HI")
     'HI'
-    >>> for v in T: printh(v)
+    >>> for v in T: print(v)
     11
     12
     13
     14
     HI
-    >>> printh(len(T))
+    >>> print(len(T))
     5
     """
     return list(t.values())
@@ -126,12 +140,12 @@ def delete(t: dict, v=None):
     >>> for item in A.copy():
     ...   if item < 10: delete(A, item)
     ...
-    >>> foreach(A, printh)
+    >>> foreach(A, print)
     10
     11
     12
     >>> import time; time.sleep(5)  # Give VS Code debugger time to attach to doctest process.
-    >>> printh(A[3])
+    >>> print(A[3])
     12
     """
     if v is None:
@@ -174,8 +188,9 @@ def unpack(tbl, start=1, stop=None):
     >>> unpack(t, 2, 3)
     [64, 64]
     """
-    if stop is None: stop = len(tbl)
+    if stop is None:
+        stop = len(tbl)
     rv = []
-    for i in range(start, stop+1):
+    for i in range(start, stop + 1):
         rv.append(tbl[i])
     return rv
