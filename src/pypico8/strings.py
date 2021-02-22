@@ -59,6 +59,7 @@ def pico8_to_python(s):
     s = s.replace("\\", "//")
     s = re.sub(r"//\s*1\b", "#int()", s)
     s = s.replace("~=", "!=")
+    s = re.sub(r",%([a-zA-Z0-9]+)", r",peek2(\1)", s)
     # comments
     s = re.sub(r"--\[\[(.*?)\]\]", r"'''\1'''", s, flags=re.DOTALL)
     s = re.sub(r"\[\[(.*?)\]\]", r'"""\1"""', s, flags=re.DOTALL)
