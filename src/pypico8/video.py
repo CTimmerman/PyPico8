@@ -55,7 +55,7 @@ def _init_video() -> None:
     replace_color(font_img, (255, 255, 255, 255), (194, 195, 199, 255))
     font_img.set_colorkey((0, 0, 0))
 
-    spritesheet = font_img.copy()
+    spritesheet = surf.copy()
     sprite_flags = [0] * 256
 
     characters = [get_char_img(i) for i in range(256)]

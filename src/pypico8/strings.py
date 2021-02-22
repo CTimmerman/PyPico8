@@ -62,7 +62,7 @@ def pico8_to_python(s):
     s = re.sub(r"--\[\[(.*?)\]\]", r"'''\1'''", s, flags=re.DOTALL)
     s = re.sub(r"\[\[(.*?)\]\]", r'"""\1"""', s, flags=re.DOTALL)
     s = s.replace("--", "#")
-    # loops
+    # loops, whose variable is local to the loop (TODO). https://www.lexaloffle.com/bbs/?pid=51130#p
     s = re.sub(r"([0-9)\] ])\s*do\b", r"\1:", s)
     s = re.sub(
         r"for (.*?)=(.+?),(.+?),(.+?):", r"\1 = \2\nwhile \1 <= \3:\n    \1 += \4  # TODO, move to end of loop\n", s
