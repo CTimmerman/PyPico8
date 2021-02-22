@@ -11,7 +11,7 @@
 """
 # pylint:disable=multiple-imports,redefined-builtin
 import builtins, math, random
-from math import ceil, floor as flr, sqrt  # noqa; unused here but maybe not elsewhere.
+from math import ceil, floor as flr  # noqa; unused here but maybe not elsewhere.
 
 
 def max(first, second=0):
@@ -22,7 +22,7 @@ def min(first, second=0):
     return builtins.min(first, second)
 
 
-def mid(x, y, z):
+def mid(x, y, z=0):
     """Returns the middle value of parameters
     >>> mid(7,5,10)
     7
@@ -74,6 +74,12 @@ def srand(x=0):
 
 def sgn(x):
     return math.copysign(1, x)
+
+
+def sqrt(x):
+    if x < 0:
+        return 0
+    return math.sqrt(x)
 
 
 def div(a, b):
