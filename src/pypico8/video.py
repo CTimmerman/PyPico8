@@ -21,8 +21,8 @@ CLIP_X2_PT = 24354
 CLIP_Y2_PT = 24355
 
 surf = None
-pen_x = 0
-pen_y = 0
+pen_x = None
+pen_y = None
 
 characters = []
 font_img = None
@@ -321,13 +321,21 @@ def ovalfill(x0, y0, x1, y1, col: int = None):
 def line(x0, y0, x1=None, y1=None, col: int = None):
     """Draw line. If x1,y1 are not given the end of the last drawn line is used"""
     global pen_x, pen_y
+    if pen_x is None:
+        pen_x = x0
+    if pen_y is None:
+        pen_y = y0
     if x1 is None:
         x1 = pen_x
+        pen_x = x0
+    else:
+        pen_x = x1
     if y1 is None:
         y1 = pen_y
+        pen_y = y0
+    else:
+        pen_y = y1
     with_pattern(pygame.draw.line(surf, color(col), pos(x0, y0), pos(x1, y1)))
-    pen_x = x0
-    pen_y = y0
 
 
 def rect(x0, y0, x1, y1, col: int = None, _border=1):
@@ -683,8 +691,8 @@ def cls(col=0):
 
     cursor_x = 0
     cursor_y = 0
-    pen_x = 0
-    pen_y = 0
+    #pen_x = 0
+    #pen_y = 0
 
 
 def adjust_color(surface: pygame.Surface) -> pygame.Surface:
