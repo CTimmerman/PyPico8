@@ -367,7 +367,7 @@ def pal(old_col: int, new_col: int, remap_screen: int = 0):
         img_copy.set_colorkey(color(old_col))
         surf.blit(img_copy, (0, 0))
 
-    palette[old_col] = palette[new_col]
+    palette[old_col], palette[new_col] = palette[new_col], palette[old_col]
 
 
 @multimethod(int, int)
