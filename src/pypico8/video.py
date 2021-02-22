@@ -157,7 +157,9 @@ def memcpy(dest_addr, source_addr, length):
     Sections can be overlapping
     """
     global memory, spritesheet
-    memory[dest_addr : dest_addr + length] = memory[int(source_addr) : int(source_addr) + length]
+    memory[dest_addr : dest_addr + length] = memory[
+        int(source_addr) : int(source_addr) + length
+    ]
     if dest_addr == 0 and source_addr == 0x6000:
         # copy drawing surface to spritesheet
         spritesheet = surf.copy()
@@ -281,13 +283,13 @@ def with_pattern(area: pygame.Rect):
                 surf.set_at(location, new_clr)
 
 
-def circ(x, y, r=4, col: int = None):
+def circ(x, y, r=4, col: int = None, _border=1):
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
     if r > 0:
-        with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r, 1))
+        with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r, _border))
 
 
 def circfill(x, y, r=4, col: int = None):
@@ -295,24 +297,25 @@ def circfill(x, y, r=4, col: int = None):
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
-    if r > 0:
-        with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r))
+    circ(x, y, r, col, 0)
 
 
-def oval(x0, y0, x1, y1, col: int = None):
+def oval(x0, y0, x1, y1, col: int = None, _border=1):
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
+    if x1 < x0:
+        x0, x1 = x1, x0
+    if y1 < y0:
+        y0, y1 = y1, y0
     with_pattern(
         pygame.draw.ellipse(
-            surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), 1
+            surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
         )
     )
 
 
 def ovalfill(x0, y0, x1, y1, col: int = None):
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
-    with_pattern(
-        pygame.draw.ellipse(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)))
-    )
+    oval(x0, y0, x1, y1, col, 0)
 
 
 def line(x0, y0, x1=None, y1=None, col: int = None):
@@ -327,18 +330,22 @@ def line(x0, y0, x1=None, y1=None, col: int = None):
     pen_y = y0
 
 
-def rect(x0, y0, x1, y1, col: int = None):
+def rect(x0, y0, x1, y1, col: int = None, _border=1):
     """Draw a rectangle."""
+    if x1 < x0:
+        x0, x1 = x1, x0
+    if y1 < y0:
+        y0, y1 = y1, y0
     with_pattern(
-        pygame.draw.rect(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), 1)
+        pygame.draw.rect(
+            surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+        )
     )
 
 
 def rectfill(x0, y0, x1, y1, col: int = None):
     """Draw a filled rectangle."""
-    with_pattern(
-        pygame.draw.rect(surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)))
-    )
+    rect(x0, y0, x1, y1, col, 0)
 
 
 @multimethod(int, int, int)
@@ -627,7 +634,7 @@ PALETTE = {
 
 
 def to_col(col=None):
-    return flr(col) & 0x8f
+    return flr(col) & 0x8F
 
 
 def color(col=None):
