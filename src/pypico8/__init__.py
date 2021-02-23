@@ -20,11 +20,11 @@ import builtins, os, sys, time as py_time
 # fmt:off
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame, pygame.freetype
-from .math import atan2, ceil, cos, div, flr, max, mid, min, rnd, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
-from .table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
-from .audio import audio_channel_notes, music, sfx, threads  # noqa
-from .strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
-from .video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
+from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
+from pypico8.table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
+from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
+from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
+from pypico8.video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
 # fmt:on
 false = False
 true = True

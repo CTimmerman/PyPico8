@@ -1,11 +1,11 @@
 # pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments, pointless-string-statement
 import base64, io, math
 import pygame
-from .multiple_dispatch import multimethod
-from .audio import threads
-from .math import flr
-from .strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa
-from .table import Table
+from pypico8.multiple_dispatch import multimethod
+from pypico8.audio import threads
+from pypico8.math import flr
+from pypico8.strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa
+from pypico8.table import Table
 
 
 SCREEN_SIZE = (128, 128)
@@ -377,7 +377,7 @@ def pal(old_col: int, new_col: int):  # noqa: F811
 
 
 @multimethod(int, float)
-def pal(old_col: int, new_col: int):  # noqa: F811
+def pal(old_col: int, new_col: float):  # noqa: F811
     """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
     pal(old_col, flr(new_col), 0)
 
@@ -400,9 +400,7 @@ def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
 
 @multimethod(list, int)
 def pal(tbl: list, remap_screen: int = 0):  # noqa: F811
-    """
-    0-based palette replacement.
-    """
+    """0-based palette replacement."""
     for i, col in enumerate(tbl):
         pal(i, col, remap_screen)
 
@@ -691,8 +689,8 @@ def cls(col=0):
 
     cursor_x = 0
     cursor_y = 0
-    #pen_x = 0
-    #pen_y = 0
+    # pen_x = 0
+    # pen_y = 0
 
 
 def adjust_color(surface: pygame.Surface) -> pygame.Surface:

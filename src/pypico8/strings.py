@@ -1,8 +1,8 @@
 # pylint:disable = multiple-imports
 import builtins, os
 
-from .math import flr
-from .table import Table
+from pypico8.math import flr
+from pypico8.table import Table
 
 
 BTN_X = "❎"
@@ -167,7 +167,7 @@ def split(s, separator=",", convert_numbers=True):
 
     >>> split("1,2,3")
     {1: 1, 2: 2, 3: 3}
-    >>> split("one:two:3",":",false)
+    >>> split("one:two:3",":",False)
     {1: 'one', 2: 'two', 3: '3'}
     >>> split("1,,2,")
     {1: 1, 2: '', 3: 2, 4: ''}

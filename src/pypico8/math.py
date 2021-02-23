@@ -87,3 +87,9 @@ def div(a, b):
     if not b:
         return (-32768.0, 32767.99999)[bool(math.copysign(1, b) + 1)]
     return a / b
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
