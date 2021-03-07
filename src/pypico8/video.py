@@ -139,6 +139,14 @@ def poke(addr, val):
         pattern, colors = math.modf(val)
         color(colors)
         fillp(int(str(pattern)[2:]))
+    elif 0x6000<=addr<=0x7fff:  # 24576-32767
+        """
+        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+        """
+        i = addr-0x6000
+        row = int(i // 64)
+        pset(i % 64 * 2, row, int(val) & 0b1111)
+        pset(i % 64 * 2 + 1, row, int(val) >> 4)
 
     memory[addr] = val
 
@@ -356,16 +364,20 @@ def rectfill(x0, y0, x1, y1, col: int = None):
     rect(x0, y0, x1, y1, col, 0)
 
 
+def replace_screen_color(old_col, new_col):
+    img_copy = surf.copy()
+    cls(new_col)
+    img_copy.set_colorkey(color(old_col))
+    surf.blit(img_copy, (0, 0))
+
+
 @multimethod(int, int, int)
 def pal(old_col: int, new_col: int, remap_screen: int = 0):
     """pal() swaps old_col for new_col for one of two (TODO) palette re-mappings"""
     old_col = to_col(old_col)
     new_col = to_col(new_col)
     if remap_screen:
-        img_copy = surf.copy()
-        cls(new_col)
-        img_copy.set_colorkey(color(old_col))
-        surf.blit(img_copy, (0, 0))
+        replace_screen_color(old_col, new_col)
 
     palette[old_col], palette[new_col] = palette[new_col], palette[old_col]
 
@@ -385,7 +397,7 @@ def pal(old_col: int, new_col: float):  # noqa: F811
 @multimethod(Table, int)
 def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
     """
-    When the first parameter of pal is a table, colours are assigned for each entry.
+    When the first parameter of pal is a table, colours are assigned (not swapped!) for each entry.
     For example, to re-map colour 12 and 14 to red:
 
     PAL({12: 9, 14: 8})
@@ -395,14 +407,24 @@ def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
     PAL({1,1,5,5,5,6,7,13,6,7,7,6,13,6,7}, 1)
     """
     for i, col in enumerate(tbl):
-        pal(i + 1, col, remap_screen)
+        old_col = i + 1
+        new_col = to_col(col)
+        if remap_screen:
+            replace_screen_color(old_col, new_col)
+
+        palette[old_col] = PALETTE[new_col]
 
 
 @multimethod(list, int)
 def pal(tbl: list, remap_screen: int = 0):  # noqa: F811
     """0-based palette replacement."""
     for i, col in enumerate(tbl):
-        pal(i, col, remap_screen)
+        old_col = i
+        new_col = to_col(col)
+        if remap_screen:
+            replace_screen_color(old_col, new_col)
+
+        palette[old_col] = PALETTE[new_col]
 
 
 @multimethod()
@@ -435,7 +457,7 @@ def pget(x, y) -> int:
     p = pos(x, y)
     clr = surf.get_at((p[0] % SCREEN_SIZE[0], p[1] % SCREEN_SIZE[1]))
     col = 0
-    for k, v in palette.items():
+    for k, v in list(palette.items())[::-1]:
         if v == clr:
             col = k
     return col
