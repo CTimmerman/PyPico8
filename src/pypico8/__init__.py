@@ -20,7 +20,7 @@ import builtins, os, sys, time as py_time
 # fmt:off
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame, pygame.freetype
-from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
+from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, rshift, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
 from pypico8.table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
 from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
 from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa

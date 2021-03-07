@@ -68,6 +68,16 @@ def rnd(x=1):
     return random.random() * x
 
 
+def rshift(a, b):
+    """
+    >>> rshift(2,1)
+    1.0
+    >>> rshift(1,1)
+    0.5
+    """
+    return a / 2 ** b
+
+
 def srand(x=0):
     random.seed(x)
 
