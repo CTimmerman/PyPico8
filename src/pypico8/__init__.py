@@ -20,6 +20,8 @@ import builtins, os, sys, time as py_time
 # fmt:off
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame, pygame.freetype
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, rshift, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
 from pypico8.table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
 from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
@@ -165,13 +167,12 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     else:
         fps = 30
 
-    init()
-    if running:
-        return
-
-    stopped = False
     try:
-        _init()
+        init(_init)
+        if running:
+            return
+
+        stopped = False
         running = True
         while running:
             for event in pygame.event.get():
@@ -280,7 +281,7 @@ def stat(x):
 
 
 if __name__ == "__main__":
-    sys.modules["pypico8"] = sys.modules[__name__]
+    printh("WWWWWWWWWWWWWWWWW")
     exec(
         open(
             os.path.join(os.path.dirname(__file__), "../fake_sprite.py"),
