@@ -281,7 +281,6 @@ def stat(x):
 
 
 if __name__ == "__main__":
-    printh("WWWWWWWWWWWWWWWWW")
     exec(
         open(
             os.path.join(os.path.dirname(__file__), "../fake_sprite.py"),
