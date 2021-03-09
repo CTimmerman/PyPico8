@@ -44,6 +44,7 @@ def _init_video() -> None:
     surf = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
 
     reset()
+    color(6)
     cls()
     clock = pygame.time.Clock()
     frame_count = 0
@@ -305,7 +306,13 @@ def circ(x, y, r=4, col: int = None, _border=1):
     If r is negative, the circle is not drawn
     """
     if r > 0:
-        with_pattern(pygame.draw.circle(surf, color(col), pos(x, y), r, _border))
+        cel = surf.copy()
+        cel.fill((0, 0, 0, 0))
+        is_off_color_visible = off_color_visible  # color() resets it
+        
+        area = pygame.draw.circle(cel, color(col), pos(x, y), r, _border)
+
+        draw_pattern(cel, area, is_off_color_visible)
 
 
 def circfill(x, y, r=4, col: int = None):
@@ -326,7 +333,7 @@ def oval(x0, y0, x1, y1, col: int = None, _border=1):
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     is_off_color_visible = off_color_visible  # color() resets it
-    
+
     area = pygame.draw.ellipse(
         cel, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
@@ -371,7 +378,14 @@ def line(x0, y0, x1=None, y1=None, col: int = None):
         pen_y = y0
     else:
         pen_y = y1
-    with_pattern(pygame.draw.line(surf, color(col), pos(x0, y0), pos(x1, y1)))
+
+    cel = surf.copy()
+    cel.fill((0, 0, 0, 0))
+    is_off_color_visible = off_color_visible  # color() resets it
+    
+    area = pygame.draw.line(surf, color(col), pos(x0, y0), pos(x1, y1))
+
+    draw_pattern(cel, area, is_off_color_visible)
 
 
 def rect(x0, y0, x1, y1, col: int = None, _border=1):
