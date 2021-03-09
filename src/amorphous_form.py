@@ -8,11 +8,24 @@ from pypico8 import printh, pico8_to_python, fillp, cos, sin, camera, cls, t, li
 printh(
     pico8_to_python(
         r"""
-    fillp(7^5)a,e=cos,sin::_::d=a(.12)camera(-64,-64)cls()m=.01+3/8*(1+a(t()/8))^2
-for g=.5,0,-.04 do
-f=-d*a(g)h=-e(g-m)for i=0,1,m do
-b=50+e(i+t())line(b*h*a(i),b*(f+h*d*e(i)),b*h*a(i+m),b*(f+h*d*e(i+m)),"0x"..sub("776d11",g*9,g*9+2))end end
-flip()goto _"""
+fillp(7^5)
+a,e=cos,sin
+::_::
+    d=a(.12)
+    camera(-64,-64)
+    cls()
+    m=.01+3/8*(1+a(t()/8))^2
+    for g=.5,0,-.04 do
+        f=-d*a(g)
+        h=-e(g-m)
+        for i=0,1,m do
+            b=50+e(i+t())
+            line(b*h*a(i),b*(f+h*d*e(i)),b*h*a(i+m),b*(f+h*d*e(i+m)),"0x"..sub("776d11",g*9,g*9+2))
+        end
+    end
+flip()
+goto _
+        """
     )
 )
 

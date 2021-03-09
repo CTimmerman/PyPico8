@@ -5,12 +5,10 @@ from pypico8 import (  # noqa
     cls,
     fillp,
     flr,
-    line,
     rectfill,
     pico8_to_python,
     print,
     printh,
-    rect,
     tostr,
     run,
 )
@@ -59,11 +57,11 @@ def _draw():
         x += 1
         p = x / w
     d(p)
-    r(x, 56, x, 72, 9)  # Looks like a line, though.
+    r(x, 56, x, 72, 9)  # patterned bar
     f(0)
-    rect(x + 1, 55, x + 1, 73, 7)  # Again, a line.
-    line(4, 55, 4, 73, 7)  # Why not use above rect for the left border?
-    r(0, 76, 127, 127, 0)
+    r(x + 1, 55, x + 1, 73, 7)  # right border # FIXME: rect x1 = x + 2 is as far and one pixel ahead of "50%". x1 = x + 1 now is x-4 to x+4, only with _border > 0 !
+    r(4, 55, 4, 73, 7)  # left border
+    r(0, 76, 127, 127, 0)  # bottom
     pr = tostr(flr(p * 100)) + "%"
     print(pr, x - 9, 76, 7)
 

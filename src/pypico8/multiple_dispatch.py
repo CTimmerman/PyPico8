@@ -16,7 +16,12 @@ class MultiMethod:
 
     def register(self, types, function):
         if types in self.typemap:
-            raise TypeError("duplicate registration")
+            # raise TypeError("duplicate registration")
+            # print()
+            # print(types, "already in")
+            # for o in self.typemap:
+            #     print(o)
+            pass
         self.typemap[types] = function
 
 

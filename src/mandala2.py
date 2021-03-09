@@ -27,7 +27,6 @@ def _update():
 
 
 def _draw():
-    cls()
     for z in range(0, 7 + 1):
         i = 0
         while i <= 1:

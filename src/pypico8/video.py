@@ -1,6 +1,11 @@
 # pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments, pointless-string-statement
-import base64, io, math
+import base64, io, math, os, sys
+from typing import Union
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
 from pypico8.math import flr
@@ -139,11 +144,11 @@ def poke(addr, val):
         pattern, colors = math.modf(val)
         color(colors)
         fillp(int(str(pattern)[2:]))
-    elif 0x6000<=addr<=0x7fff:  # 24576-32767
+    elif 0x6000 <= addr <= 0x7FFF:  # 24576-32767
         """
         All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
         """
-        i = addr-0x6000
+        i = addr - 0x6000
         row = int(i // 64)
         pset(i % 64 * 2, row, int(val) & 0b1111)
         pset(i % 64 * 2 + 1, row, int(val) >> 4)
@@ -279,16 +284,19 @@ def with_pattern(area: pygame.Rect):
 
     for hi in range(area[3]):
         for wi in range(area[2]):
-            location = (
-                int(area[0] + wi) % SCREEN_SIZE[0],
-                int(area[1] + hi) % SCREEN_SIZE[1],
-            )
-            clr_at = fill_pattern.get_at(location)
-            if clr_at[:3] != (0, 0, 0):
-                new_clr = palette[pen_color]
+            x = int(area[0] + wi) % SCREEN_SIZE[0]
+            y = int(area[1] + hi) % SCREEN_SIZE[1]
+            location = (x, y)
+            if surf.get_at(location) == (0, 0, 0):
+                return
+
+            one = fill_pattern >> (15 - (x % 4 + 4 * (y % 4))) & 1
+            if not one:
+                surf.set_at(location, palette[pen_color])
+                # surf.set_at(location, (0, 255, 0))
             else:
-                new_clr = palette[off_color]
-                surf.set_at(location, new_clr)
+                surf.set_at(location, palette[off_color])
+                # surf.set_at(location, (255, 0, 0))
 
 
 def circ(x, y, r=4, col: int = None, _border=1):
@@ -314,11 +322,31 @@ def oval(x0, y0, x1, y1, col: int = None, _border=1):
         x0, x1 = x1, x0
     if y1 < y0:
         y0, y1 = y1, y0
-    with_pattern(
-        pygame.draw.ellipse(
-            surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
-        )
+
+    cel = surf.copy()
+    cel.fill((0, 0, 0, 0))
+    is_off_color_visible = off_color_visible  # color() resets it
+    
+    area = pygame.draw.ellipse(
+        cel, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
+
+    draw_pattern(cel, area, is_off_color_visible)
+
+
+def draw_pattern(cel, area, is_off_color_visible):
+    on_clr = palette[pen_color]
+    off_clr = palette[off_color]
+    for x in range(area.left, area.right):
+        for y in range(area.top, area.bottom):
+            location = (x, y)
+            if cel.get_at(location) != (0, 0, 0, 0):
+                one = fill_pattern >> (15 - (x % 4 + 4 * (y % 4))) & 1
+                if one:
+                    if is_off_color_visible:
+                        surf.set_at(location, off_clr)
+                else:
+                    surf.set_at(location, on_clr)
 
 
 def ovalfill(x0, y0, x1, y1, col: int = None):
@@ -522,16 +550,16 @@ def ascii_to_pico8(s):
     # Pause Black formatter to not mess this up.
     # fmt: off
     ocr = [
-        '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
-        '▌', '⯀','⚬', '×', '∷', '⏸', '⏴','⏵', '⌜','⌟', '¥', '⬝', '⹁', '․', '"', '˚',
-        ' ', '!', '"', '#', '$', '%', '&', '´', '(', ')', '*', '+', ',', '-', '.', '/',
+        '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',  # 16
+        '▌', '⯀','⚬', '×', '∷', '⏸', '⏴','⏵', '⌜','⌟', '¥', '⬝', '⹁', '․', '"', '˚',  # 32
+        ' ', '!', '"', '#', '$', '%', '&', '´', '(', ')', '*', '+', ',', '-', '.', '/',  # 64
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
         '@', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
         'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '[', '\\',']', '^', '_',
         '`', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-        'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '{', '|', '}', '?', '⚬',
-        '█', '▒','😈','⬇️','░', '✦','⚈', '♥', '⟐','웃','🏠','⬅️','☻', '♪','🅾️','♦',
-        '᠁','➡️','★','⌛','⬆️','~','〜','❎','≡', '⦀','あ', 'い','う','え','お','か',
+        'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '{', '|', '}', '?', '⚬',  # 128
+        '█', '▒','😈','⬇️','░', '✽','⚈', '♥', '⟐','웃','🏠','⬅️','☻', '♪','☉','♦',
+        '…','➡️','★','⧗','⬆️','ˇ','∧','❎','▤', '⦀','あ', 'い','う','え','お','か',
         'ぎ','く','け','こ','さ','し','す','せ', 'そ','た','ち','つ','て','と','な','に',
         'ぬ','ね','の','は','ひ','ふ','へ','ほ', 'ま','み','む','め','も','や','ゆ','よ',
         'ら','り','る','れ','ろ','わ','を','ん', 'ゔ','っ','ぇ','ょ','ア','イ','ウ','エ',
@@ -679,7 +707,7 @@ def color(col=None):
     8  red     9  orange      10  yellow       11  green
     12  blue   13  indigo     14  pink         15  peach
     """
-    global off_color, pen_color
+    global off_color, off_color_visible, pen_color
 
     if col is None:
         if "pen_color" not in globals():
@@ -694,6 +722,7 @@ def color(col=None):
     # CIRCFILL(64,64,20, 0x4E) -- 0b 0100 1110 - brown (0100, off) and pink (1110, on/pen)
     pen_color = to_col(col)
     off_color = int(col) >> 4 & 15
+    off_color_visible = True
 
     return palette[pen_color]
 
@@ -798,7 +827,7 @@ def sspr(
     surf.blit(sprite, (dx, dy))
 
 
-def fillp(p=0):
+def fillp(p: Union[int, str] = 0):
     """
     The PICO-8 fill pattern is a 4x4 2-colour tiled pattern observed by:
     circ() circfill() rect() rectfill() oval() ovalfill() pset() line()
@@ -820,24 +849,47 @@ def fillp(p=0):
 
     This can be more neatly expressed in 16-bit binary: FILLP(0b0011001111001100)
     The default fill pattern is 0, which means a single solid colour is drawn.
-    """
-    global fill_pattern
 
-    p = tonum(p)
-    # 65535 = full transparent (or black?): '0b1111111111111111'
-    fill_pattern = pygame.Surface(SCREEN_SIZE)
-    w, h = SCREEN_SIZE
-    for y in range(0, h):
-        for x in range(0, w):
-            one = p >> (15 - (x % 4 + 4 * (y % 4))) & 1
-            fill_pattern.set_at((x, y), (0, 0, 0) if one else (255, 255, 255))
+    >>> fillp(0); rectfill(0,0,1,1)
+    >>> surf.get_at((0, 0))
+    (194, 195, 199, 255)
+    >>> fillp(1); rectfill(0,0,3,3)
+    >>> surf.get_at((3, 3))
+    (0, 0, 0, 255)
+    >>> fillp(4+8+64+128+  256+512+4096+8192); rectfill(0,0,3,3)
+    >>> surf.get_at((0, 0))
+    (194, 195, 199, 255)
+    >>> surf.get_at((2, 0))
+    (0, 0, 0, 255)
+    """
+    global fill_pattern, off_color_visible
+
+    if isinstance(p, str):  # ovals.py
+        index = ord(ascii_to_pico8(p))
+        character = characters[index].copy()
+        r = character.get_rect()
+        p = 0
+        for hi in range(4):
+            for wi in range(4):
+                clr_at = character.get_at((wi, hi))
+                if clr_at[:3] != (0, 0, 0):
+                    p = (p << 1) + 0
+                else:
+                    p = (p << 1) + 1
+        off_color_visible = False
+    else:
+        p = tonum(p)
+    
+    # 65535 = full off color 16-bit pattern.
+    p &= 0b1111111111111111
 
     # pygame.image.save(fill_pattern, "fill_pattern.png")
     # printh(f"fillp {p}:")
     # s = f"{bin(p)[2:]:0>16}"
     # for i in range(0, 16, 4):
     #     printh(s[i : i + 4])
-    # pass  # To pause on.
+
+    fill_pattern = p
 
 
 def reset():
@@ -847,3 +899,10 @@ def reset():
     pal()
     camera()
     clip()
+
+
+if __name__ == "__main__":
+    import doctest
+
+    _init_video()
+    doctest.testmod()
