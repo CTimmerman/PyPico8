@@ -22,7 +22,7 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame, pygame.freetype
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, rshift, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
+from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
 from pypico8.table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
 from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
 from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa

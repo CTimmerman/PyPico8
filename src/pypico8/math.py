@@ -42,24 +42,43 @@ def sin(x):
 
 
 def atan2(dx, dy):
-    """
+    r"""
     Converts dx, dy into an angle from 0..1
-    As with cos/sin, angle is taken to run anticlockwise in screenspace
 
-    Longer vector uses the ratio:
-    >>> atan2(99, 99)
-    0.875
+    >>> atan2(100, 10)
+    0.9841
+    >>> atan2(1, .1)
+    0.9841
+    >>> atan2(1, -.1)
+    0.0159
+    >>> atan2(100, -10)
+    0.0159
 
-    Special case:
-    >>> atan2(0, 0)
-    0.25
-
-    >>> [(x,y, atan2(x,y)) for x in range(-1,2) for y in range(-1,2)]
-    [(-1, -1, -0.375), (-1, 0, 0.5), (-1, 1, 0.625), (0, -1, -0.25), (0, 0, 0.25), (0, 1, 0.75), (1, -1, 0.125), (1, 0, 0.0), (1, 1, 0.875)]
+    for dy=1,-1,-1 do for dx=-1,1 do print(dx..", "..dy.." = "..atan2(dx,dy)) end end -- Lua/Pico8 version
+    >>> print('\n'.join(f'{dx:2},{dy:2} = {atan2(dx,dy)}' for dy in range(1,-2,-1) for dx in range(-1,2)))
+    -1, 1 = 0.625
+     0, 1 = 0.75
+     1, 1 = 0.875
+    -1, 0 = 0.5
+     0, 0 = 0.25
+     1, 0 = 0
+    -1,-1 = 0.375
+     0,-1 = 0.25
+     1,-1 = 0.125
     """
+    if dx == 0 and dy == 0:
+        return 0.25
+    if dy == 0:
+        if dx < 0:
+            return 0.5
+        if dx == 0:
+            return 0.25
+        if dx > 0:
+            return 0
+
     newangle = math.atan2(dy, -dx)
     normalizedangle = (newangle / math.pi + 1) / 2
-    return normalizedangle
+    return round(normalizedangle, 4)
 
 
 def rnd(x=1):
@@ -68,14 +87,24 @@ def rnd(x=1):
     return random.random() * x
 
 
-def rshift(a, b):
-    """
-    >>> rshift(2,1)
+def shl(x, n):
+    """Shift left n bits (zeros come in from the right)
+    >>> shl(0.5, 1)
     1.0
-    >>> rshift(1,1)
+    >>> shl(0.1, 1)
+    0.2
+    """
+    return x * 2 ** n
+
+
+def shr(x, n):
+    """Arithmetic right shift (the left-most bit state is duplicated)
+    >>> shr(2,1)
+    1.0
+    >>> shr(1,1)
     0.5
     """
-    return a / 2 ** b
+    return x / 2 ** n
 
 
 def srand(x=0):
