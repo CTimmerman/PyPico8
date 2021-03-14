@@ -1,0 +1,2 @@
+https://nerdyteachers.com/PICO-8/resources/img/reference/palette_full_trans.png
+Note that according to https://www.youtube.com/watch?v=AsVzk6kCAJY col >= 128 can only be painted using pal(a,b,1)

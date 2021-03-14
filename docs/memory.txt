@@ -48,6 +48,7 @@ Start	End	Purpose
 The in-memory data formats for each section are described below.
 
 Sprite sheet
+
 The sprite sheet is represented in memory as one large image, 128 x 128 pixels. Each sprite tile is an 8 x 8 region in this image. Each sprite tile gets an ID, counting from 0, left to right, top to bottom.
 
 Each pixel can be one of 16 colors, and is represented by 4 bits. An 8-bit byte represents two pixels, horizontally adjacent, where the most significant (leftmost) 4 bits is the right pixel of the pair, and the least significant 4 bits is the left pixel. Pixels are stored from left to right, top to bottom.
@@ -96,6 +97,7 @@ If a sound effect is assigned to a channel, bit 6 is 0, and bits 5-0 are the sou
 Bit 7 is used to describe the flags for the music pattern. Bit 7 of the first byte (channel 1) is "begin pattern loop." Bit 7 of the second byte (channel 2) is "end pattern loop." Bit 7 of the third byte (channel 3) is "stop at end of pattern." (Bit 7 of the fourth byte is unused.)
 
 Sound effects
+
 There are 64 sound effects. Each sound effect is 68 bytes, with two bytes for each of 32 notes and then one byte for the editor mode, one byte for the speed, two bytes for the loop range (start, end). (64 * 68 = 4,352 bytes.)
 
 The effect speed is a value between 0 and 255, representing the duration of each note in the effect, as a multiple of 183 ticks (with 22050 ticks in a second), aproximately 1/120 of a second. Using the full effect length of 32 notes, with a speed of 1, the full effect plays aproximately 1/4 second (0.26557823129 seconds, or 32 * 183 / 22050). With a speed of 4, the full effect plays in 1.062 seconds.
@@ -294,13 +296,17 @@ This experimental feature provides programs access to the GPIO (general purpose 
 0x5f80-0x5fff / 24448-24575
 
 Each byte represents the value of 1 pin. The possible values vary depending on the platform.
+
 Screen data
+
 This 8,192-byte (8 KiB) region contains the graphics buffer. This is what is modified by the built-in drawing functions, and is what is copied to the actual display at the end of the game loop or by a call to flip().
 
 0x6000-0x7fff / 24576-32767
 
 All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+
 Lua Memory
+
 The Memory used by Lua (global variables, local variables, tables, etc.) is entirely separate from the Pico-8 memory discussed above and is limited to 2 MiB.
 
 The amount of memory currently used by the program can be checked with stat(0) and adds up as follows (all numbers are in bytes):
