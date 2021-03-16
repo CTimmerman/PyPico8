@@ -1,5 +1,4 @@
 """Amorphous Form ported from https://twitter.com/szczm_/status/1125041539498106881
-FIXME
 """
 # fmt: off
 from pypico8 import printh, pico8_to_python, fillp, cos, sin, camera, cls, t, line, sub, run
@@ -32,7 +31,7 @@ goto _
 
 def _init():
     global a, e
-    
+
     fillp(7 ** 5)
     a, e = cos, sin
 

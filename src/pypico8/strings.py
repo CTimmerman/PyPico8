@@ -1,6 +1,7 @@
 # pylint:disable = multiple-imports
-import builtins, os
+import builtins, os, sys
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.math import flr
 from pypico8.table import Table
 
@@ -67,7 +68,9 @@ def pico8_to_python(s):
     # loops, whose variable is local to the loop (TODO). https://www.lexaloffle.com/bbs/?pid=51130#p
     s = re.sub(r"([0-9)\] ])\s*do\b", r"\1:", s)
     s = re.sub(
-        r"for (.*?)=(.+?),(.+?),(.+?):", r"\1 = \2\nwhile \1 <= \3:\n    \1 += \4  # TODO, move to end of loop\n", s
+        r"for (.*?)=(.+?),(.+?),(.+?):",
+        r"\1 = \2\nwhile \1 <= \3:\n    \1 += \4  # TODO, move to end of loop\n",
+        s,
     )
     s = re.sub(
         r"for (.*?)=([^,]+),(.*?):",
@@ -150,12 +153,21 @@ def sub(s, pos0, pos1=None):
     When pos1 is not specified, the remainer of the string is returned.
 
     >>> s = "the quick brown fox"
-    >>> sub(s,5,9)
+    >>> sub(s, 5, 9)
     'quick'
-    >>> sub(s,5)
-    'quick brown fox'
+    >>> sub(s, -2.1, -.1)
+    'fox'
+    >>> sub(s, -2.1, -2)
+    'fo'
     """
-    return s[flr(pos0) - 1 : flr(pos1) if pos1 else None]
+    pos0 = flr(pos0) - (1 if pos0 >= 1 else 0)
+    if pos1 is not None:
+        pos1 = flr(pos1)
+        if pos1 < 0:
+            pos1 += 1
+            if pos1 >= 0:
+                pos1 = None
+    return s[pos0 : pos1]
 
 
 def split(s, separator=",", convert_numbers=True):
