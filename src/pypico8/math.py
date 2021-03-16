@@ -43,17 +43,7 @@ def sin(x):
 
 def atan2(dx, dy):
     r"""
-    Converts dx, dy into an angle from 0..1
-
-    >>> atan2(100, 10)
-    0.9841
-    >>> atan2(1, .1)
-    0.9841
-    >>> atan2(1, -.1)
-    0.0159
-    >>> atan2(100, -10)
-    0.0159
-
+    Converts dx, dy into a clockwise angle >= 0 and < 1, aka [0, 1).
     for dy=1,-1,-1 do for dx=-1,1 do print(dx..", "..dy.." = "..atan2(dx,dy)) end end -- Lua/Pico8 version
     >>> print('\n'.join(f'{dx:2},{dy:2} = {atan2(dx,dy)}' for dy in range(1,-2,-1) for dx in range(-1,2)))
     -1, 1 = 0.625
@@ -66,8 +56,6 @@ def atan2(dx, dy):
      0,-1 = 0.25
      1,-1 = 0.125
     """
-    if dx == 0 and dy == 0:
-        return 0.25
     if dy == 0:
         if dx < 0:
             return 0.5
@@ -76,9 +64,7 @@ def atan2(dx, dy):
         if dx > 0:
             return 0
 
-    newangle = math.atan2(dy, -dx)
-    normalizedangle = (newangle / math.pi + 1) / 2
-    return round(normalizedangle, 4)
+    return (math.atan2(dy, -dx) / math.pi + 1) / 2
 
 
 def rnd(x=1):
