@@ -8,7 +8,7 @@ import pygame
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
-from pypico8.math import flr
+from pypico8.math import ceil, flr
 from pypico8.strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa
 from pypico8.table import Table
 
@@ -99,8 +99,16 @@ def peek(addr: int):
     Legal addresses are 0x0..0x7fff
     Reading out of range returns 0
     """
+    if 0x6000 <= addr <= 0x7FFF:  # 24576-32767
+        """
+        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+        """
+        i = int(addr - 0x6000)
+        row = int(i // 64)
+        return pget(i % 64 * 2, row) + (pget(i % 64 * 2 + 1, row) << 4)
+
     try:
-        return memory[addr]
+        return memory[int(addr)]
     except IndexError:
         return 0
 
@@ -152,7 +160,7 @@ def poke(addr, val):
         i = addr - 0x6000
         row = int(i // 64)
         pset(i % 64 * 2, row, int(val) & 0b1111)
-        pset(i % 64 * 2 + 1, row, int(val) >> 4)
+        pset(i % 64 * 2 + 1, row, (int(val) & 0b11110000) >> 4)
 
     memory[addr] = val
 
@@ -177,6 +185,21 @@ def memcpy(dest_addr, source_addr, length):
     if dest_addr == 0 and source_addr == 0x6000:
         # copy drawing surface to spritesheet
         spritesheet = surf.copy()
+    elif 24576 <= dest_addr <= 32767:
+        """
+        Screen data
+        This 8,192-byte (8 KiB) region contains the graphics buffer. This is what is modified by the built-in drawing functions, and is what is copied to the actual display at the end of the game loop or by a call to flip().
+
+        0x6000-0x7fff / 24576-32767
+
+        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+        """
+        vals = []
+        for i in range(length):
+            vals.append(peek(source_addr + i))
+        # printh(f"{vals[30]:b}")
+        for i, val in enumerate(vals):
+            poke(dest_addr + i, val)
 
 
 def flip():
@@ -280,39 +303,19 @@ def clip(x=0, y=0, w=SCREEN_SIZE[0], h=SCREEN_SIZE[1]) -> tuple:
     return (x, y, w, h)
 
 
-def with_pattern(area: pygame.Rect):
-    """Applies fill_pattern. TODO: Check whether transparent."""
-
-    for hi in range(area[3]):
-        for wi in range(area[2]):
-            x = int(area[0] + wi) % SCREEN_SIZE[0]
-            y = int(area[1] + hi) % SCREEN_SIZE[1]
-            location = (x, y)
-            if surf.get_at(location) == (0, 0, 0):
-                return
-
-            one = fill_pattern >> (15 - (x % 4 + 4 * (y % 4))) & 1
-            if not one:
-                surf.set_at(location, palette[pen_color])
-                # surf.set_at(location, (0, 255, 0))
-            else:
-                surf.set_at(location, palette[off_color])
-                # surf.set_at(location, (255, 0, 0))
-
-
-def circ(x, y, r=4, col: int = None, _border=1):
+def circ(x, y, radius=4, col: int = None, _border=1):
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
-    if r > 0:
+    if radius > 0:
         cel = surf.copy()
         cel.fill((0, 0, 0, 0))
         is_off_color_visible = off_color_visible  # color() resets it
-        
-        area = pygame.draw.circle(cel, color(col), pos(x, y), r, _border)
 
-        draw_pattern(cel, area, is_off_color_visible)
+        area = pygame.draw.circle(cel, color(col), pos(x, y), ceil(radius), _border)
+
+        draw_pattern(area, cel, is_off_color_visible)
 
 
 def circfill(x, y, r=4, col: int = None):
@@ -338,10 +341,14 @@ def oval(x0, y0, x1, y1, col: int = None, _border=1):
         cel, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
 
-    draw_pattern(cel, area, is_off_color_visible)
+    draw_pattern(area, cel, is_off_color_visible)
 
 
-def draw_pattern(cel, area, is_off_color_visible):
+def draw_pattern(
+    area: pygame.Rect, cel: pygame.Surface = None, is_off_color_visible: bool = True
+):
+    if cel is None:
+        cel = surf
     on_clr = palette[pen_color]
     off_clr = palette[off_color]
     for x in range(area.left, area.right):
@@ -381,11 +388,9 @@ def line(x0, y0, x1=None, y1=None, col: int = None):
 
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
-    is_off_color_visible = off_color_visible  # color() resets it
-    
-    area = pygame.draw.line(surf, color(col), pos(x0, y0), pos(x1, y1))
-
-    draw_pattern(cel, area, is_off_color_visible)
+    is_off_color_visible = off_color_visible
+    area = pygame.draw.line(cel, color(col), pos(x0, y0), pos(x1, y1))
+    draw_pattern(area, cel, is_off_color_visible)
 
 
 def rect(x0, y0, x1, y1, col: int = None, _border=1):
@@ -394,10 +399,17 @@ def rect(x0, y0, x1, y1, col: int = None, _border=1):
         x0, x1 = x1, x0
     if y1 < y0:
         y0, y1 = y1, y0
-    with_pattern(
+
+    cel = surf.copy()
+    cel.fill((0, 0, 0, 0))
+    is_off_color_visible = off_color_visible  # color() resets it
+
+    draw_pattern(
         pygame.draw.rect(
-            surf, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
-        )
+            cel, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+        ),
+        cel,
+        is_off_color_visible,
     )
 
 
@@ -415,13 +427,15 @@ def replace_screen_color(old_col, new_col):
 
 @multimethod(int, int, int)
 def pal(old_col: int, new_col: int, remap_screen: int = 0):
-    """pal() swaps old_col for new_col for one of two (TODO) palette re-mappings"""
+    """pal() swaps (NOT - neon_jellyfish.py) old_col for new_col for one of two (TODO) palette re-mappings"""
+    global dark_mode
+    dark_mode = remap_screen
     old_col = to_col(old_col)
     new_col = to_col(new_col)
     if remap_screen:
         replace_screen_color(old_col, new_col)
 
-    palette[old_col], palette[new_col] = palette[new_col], palette[old_col]
+    palette[old_col] = PALETTE[new_col]
 
 
 @multimethod(int, int)
@@ -449,30 +463,21 @@ def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
     PAL({1,1,5,5,5,6,7,13,6,7,7,6,13,6,7}, 1)
     """
     for i, col in enumerate(tbl):
-        old_col = i + 1
-        new_col = to_col(col)
-        if remap_screen:
-            replace_screen_color(old_col, new_col)
-
-        palette[old_col] = PALETTE[new_col]
+        pal(i + 1, col, remap_screen)
 
 
 @multimethod(list, int)
 def pal(tbl: list, remap_screen: int = 0):  # noqa: F811
     """0-based palette replacement."""
     for i, col in enumerate(tbl):
-        old_col = i
-        new_col = to_col(col)
-        if remap_screen:
-            replace_screen_color(old_col, new_col)
-
-        palette[old_col] = PALETTE[new_col]
+        pal(i, col, remap_screen)
 
 
 @multimethod()
 def pal():  # noqa: F811
     """Resets to system defaults (including transparency values and fill pattern)"""
-    global palette
+    global dark_mode, palette
+    dark_mode = 0
     palette = PALETTE.copy()
     fillp()
 
@@ -507,8 +512,14 @@ def pget(x, y) -> int:
 
 def pset(x: int, y: int, col: int = None):
     """Set the color of a pixel at x, y."""
-    surf.set_at(pos(x, y), color(col))
-    with_pattern((x, y, 1, 1))
+    color(col)
+    on_clr = palette[pen_color]
+    off_clr = palette[off_color]
+    if fill_pattern >> (15 - (int(x) % 4 + 4 * (int(y) % 4))) & 1:
+        if off_color_visible:
+            surf.set_at(pos(x, y), off_clr)
+    else:
+        surf.set_at(pos(x, y), on_clr)
 
 
 def sget(x, y) -> int:
@@ -704,7 +715,9 @@ PALETTE = {
 
 
 def to_col(col=None):
-    return flr(col) & 0x8F
+    return flr(col) & (
+        0x8F if dark_mode or peek(0x5F2E) else 0b1111
+    )  # https://youtu.be/AsVzk6kCAJY?t=434
 
 
 def color(col=None):
@@ -726,16 +739,16 @@ def color(col=None):
     if col is None:
         if "pen_color" not in globals():
             pen_color = 6
-        col = pen_color
+            off_color = 0
+        col = pen_color + off_color * 16
 
     if col is None:
         col = 6
     else:
         col = tonum(col)
 
-    # CIRCFILL(64,64,20, 0x4E) -- 0b 0100 1110 - brown (0100, off) and pink (1110, on/pen)
     pen_color = to_col(col)
-    off_color = int(col) >> 4 & 15
+    off_color = to_col(int(col) >> 4 & 0b1111)
     off_color_visible = True
 
     return palette[pen_color]
@@ -744,18 +757,14 @@ def color(col=None):
 def cls(col=0):
     """
     Clear the screen and reset the clipping rectangle. col defaults to 0 (black)
-    cls() also sets the text cursor in the draw state to (0, 0). TODO: cursor pos is last line pos?
+    cls() also sets the text cursor in the draw state to (0, 0).
     """
-    global cursor_x, cursor_y, pen_x, pen_y
-
-    surf.fill(palette[to_col(col)])
+    global cursor_x, cursor_y
 
     clip()
-
+    surf.fill(palette[to_col(col)])
     cursor_x = 0
     cursor_y = 0
-    # pen_x = 0
-    # pen_y = 0
 
 
 def adjust_color(surface: pygame.Surface) -> pygame.Surface:
@@ -893,7 +902,7 @@ def fillp(p: Union[int, str] = 0):
         off_color_visible = False
     else:
         p = tonum(p)
-    
+
     # 65535 = full off color 16-bit pattern.
     p &= 0b1111111111111111
 
