@@ -50,12 +50,10 @@ def _update():
 
 def _draw():
     global w
-
     cls(12)
-    fillp(0)  # TODO: Why here?
-    q(63, 63, 56, 10)
+    q(63, 63, 56, 170)
     w = sin(t() / 8)
-    u(63, 80, 0.75, 32, 9)
+    u(63, 80, 0.75, 32, 153)
     for y in range(0, 128):
         n = 24576 + y * 64
         memcpy(n, n + sin(t() + y / 9) * y / 64 + 2, 60)  # apply wave effect to VRAM

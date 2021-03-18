@@ -159,8 +159,8 @@ def poke(addr, val):
         """
         i = addr - 0x6000
         row = int(i // 64)
-        pset(i % 64 * 2, row, int(val) & 0b1111)
-        pset(i % 64 * 2 + 1, row, (int(val) & 0b11110000) >> 4)
+        surf.set_at((i % 64 * 2, row), color(int(val) & 0b1111))
+        surf.set_at((i % 64 * 2 + 1, row), color((int(val) & 0b11110000) >> 4))
 
     memory[addr] = val
 
