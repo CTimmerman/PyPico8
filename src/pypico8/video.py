@@ -114,11 +114,18 @@ def peek(addr: int):
 
 
 def peek2(addr):
-    return peek(addr)
+    """Read 16 bits"""
+    return (peek(addr) << 8) + peek(addr + 1)
 
 
 def peek4(addr):
-    return peek(addr)
+    """Read 32 bits"""
+    return (
+        (peek(addr) << 32)
+        + (peek(addr + 1) << 16)
+        + (peek(addr + 2) << 8)
+        + peek(addr + 3)
+    )
 
 
 def poke(addr, val):
@@ -166,11 +173,17 @@ def poke(addr, val):
 
 
 def poke2(addr, val):
-    return poke(addr, val)
+    """Write 16 bits"""
+    poke(addr, (int(val) >> 8) & 0b11111111)
+    poke(addr + 1, int(val) & 0b11111111)
 
 
 def poke4(addr, val):
-    return poke(addr, val)
+    """Write 32 bits"""
+    poke(addr, (int(val) >> 32) & 0b11111111)
+    poke(addr + 1, (int(val) >> 16) & 0b11111111)
+    poke(addr + 2, (int(val) >> 8) & 0b11111111)
+    poke(addr + 3, int(val) & 0b11111111)
 
 
 def memcpy(dest_addr, source_addr, length):
