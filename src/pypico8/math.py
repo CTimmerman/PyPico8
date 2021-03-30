@@ -98,7 +98,7 @@ def srand(x=0):
 
 
 def sgn(x):
-    return math.copysign(1, x)
+    return int(math.copysign(1, x))
 
 
 def sqrt(x):
