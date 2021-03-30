@@ -1,2 +1,8 @@
+https://www.lexaloffle.com/pico-8.php
+
+https://www.lexaloffle.com/pico8_manual.txt#:~:text=circ
+https://pico-8.fandom.com/wiki/Circ
+https://www.pygame.org/docs/ref/draw.html#pygame.draw.circle
+
 https://nerdyteachers.com/PICO-8/resources/img/reference/palette_full_trans.png
 Note that according to https://www.youtube.com/watch?v=AsVzk6kCAJY col >= 128 can only be painted using pal(a,b,1)
