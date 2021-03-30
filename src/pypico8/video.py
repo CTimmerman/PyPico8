@@ -1,3 +1,6 @@
+"""Graphical functions.
+>>> _init_video()
+"""
 # pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments, pointless-string-statement
 import base64, io, math, os, sys
 from typing import Union
@@ -8,8 +11,12 @@ import pygame
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
-from pypico8.math import ceil, flr
-from pypico8.strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa
+from pypico8.math import ceil, flr, shl, shr
+from pypico8.strings import (
+    PROBLEMATIC_MULTI_CHAR_CHARS,
+    printh,
+    tonum,
+)  # noqa, printh is for doctest.
 from pypico8.table import Table
 
 
@@ -108,7 +115,7 @@ def peek(addr: int):
         return pget(i % 64 * 2, row) + (pget(i % 64 * 2 + 1, row) << 4)
 
     try:
-        return memory[int(addr)]
+        return memory[int(addr)] & 0xFF
     except IndexError:
         return 0
 
@@ -119,13 +126,28 @@ def peek2(addr):
 
 
 def peek4(addr):
-    """Read 32 bits"""
-    return (
-        (peek(addr) << 32)
-        + (peek(addr + 1) << 16)
-        + (peek(addr + 2) << 8)
-        + peek(addr + 3)
+    """Read a 32-bit float.
+    >>> a = 0x5000
+    >>> poke4(a, -(1/512 + 1/4 + 42 + 256)); peek4(a)
+    -298.251953125
+    >>> v = 2**15; poke4(a, v); peek4(a)
+    -32768.0
+    >>> v = 2**15-1; poke4(a, v); peek4(a)
+    32767.0
+    >>> v = 2**15+1; poke4(a, v); peek4(a)
+    -32767.0
+    >>> v = 2**16+1234567; poke4(a, v); peek4(a)
+    -10617.0
+    """
+    rv = (
+        shr(peek(addr), 16)
+        + shr(peek(addr + 1), 8)
+        + peek(addr + 2)
+        + shl(peek(addr + 3), 8)
     )
+    if int(rv) & 2 ** 15:
+        rv = -0xFFFF + rv - 1
+    return rv
 
 
 def poke(addr, val):
@@ -160,14 +182,16 @@ def poke(addr, val):
         pattern, colors = math.modf(val)
         color(colors)
         fillp(int(str(pattern)[2:]))
-    elif 0x6000 <= addr <= 0x7FFF:  # 24576-32767
-        """
-        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
-        """
-        i = addr - 0x6000
-        row = int(i // 64)
-        surf.set_at((i % 64 * 2, row), palette[int(val) & 0b1111])
-        surf.set_at((i % 64 * 2 + 1, row), palette[(int(val) & 0b11110000) >> 4])
+    else:
+        val = flr(val)
+        if 0x6000 <= addr <= 0x7FFF:  # 24576-32767
+            """
+            All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+            """
+            i = addr - 0x6000
+            row = int(i // 64)
+            surf.set_at((i % 64 * 2, row), palette[val & 0b1111])
+            surf.set_at((i % 64 * 2 + 1, row), palette[(val & 0b11110000) >> 4])
 
     memory[addr] = val
 
@@ -179,11 +203,48 @@ def poke2(addr, val):
 
 
 def poke4(addr, val):
-    """Write 32 bits"""
-    poke(addr, (int(val) >> 32) & 0b11111111)
-    poke(addr + 1, (int(val) >> 16) & 0b11111111)
-    poke(addr + 2, (int(val) >> 8) & 0b11111111)
-    poke(addr + 3, int(val) & 0b11111111)
+    """Write 32-bit float.
+    >>> def p(v): poke4(0x5000, v); exec("for i in range(4): i8 = peek(0x5000 + i); printh(i8)")
+    >>> p(1/512 + 1/4 + 42 + 256)
+    128
+    64
+    42
+    1
+    >>> p(-(1/512 + 1/4 + 42 + 256))
+    128
+    191
+    213
+    254
+    >>> p(1)
+    0
+    0
+    1
+    0
+    >>> p(-1)
+    0
+    0
+    255
+    255
+    >>> p(-1.5)
+    0
+    128
+    254
+    255
+    >>> p(.75)
+    0
+    192
+    0
+    0
+    """
+    whole = int(val)
+    part = int(shl(val, 16))
+    if val < 0 and val % 1:
+        print("-")
+        whole -= 1
+    poke(addr, part & 0xFF)
+    poke(addr + 1, part >> 8 & 0xFF)
+    poke(addr + 2, whole & 0xFF)
+    poke(addr + 3, whole >> 8 & 0xFF)
 
 
 def memcpy(dest_addr, source_addr, length):
@@ -326,7 +387,7 @@ def circ(x, y, radius=4, col: int = None, _border=1):
         cel.fill((0, 0, 0, 0))
         is_off_color_visible = off_color_visible  # color() resets it
 
-        area = pygame.draw.circle(cel, color(col), pos(x, y), ceil(radius), _border)
+        area = pygame.draw.circle(cel, rgb(col), pos(x, y), ceil(radius), _border)
 
         draw_pattern(area, cel, is_off_color_visible)
 
@@ -351,7 +412,7 @@ def oval(x0, y0, x1, y1, col: int = None, _border=1):
     is_off_color_visible = off_color_visible  # color() resets it
 
     area = pygame.draw.ellipse(
-        cel, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+        cel, rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
 
     draw_pattern(area, cel, is_off_color_visible)
@@ -402,7 +463,7 @@ def line(x0, y0, x1=None, y1=None, col: int = None):
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     is_off_color_visible = off_color_visible
-    area = pygame.draw.line(cel, color(col), pos(x0, y0), pos(x1, y1))
+    area = pygame.draw.line(cel, rgb(col), pos(x0, y0), pos(x1, y1))
     draw_pattern(area, cel, is_off_color_visible)
 
 
@@ -419,7 +480,7 @@ def rect(x0, y0, x1, y1, col: int = None, _border=1):
 
     draw_pattern(
         pygame.draw.rect(
-            cel, color(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+            cel, rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
         ),
         cel,
         is_off_color_visible,
@@ -434,7 +495,7 @@ def rectfill(x0, y0, x1, y1, col: int = None):
 def replace_screen_color(old_col, new_col):
     img_copy = surf.copy()
     cls(new_col)
-    img_copy.set_colorkey(color(old_col))
+    img_copy.set_colorkey(rgb(old_col))
     surf.blit(img_copy, (0, 0))
 
 
@@ -549,7 +610,7 @@ def sget(x, y) -> int:
 
 def sset(x, y, col=None):
     """Set the color of a spritesheet pixel."""
-    spritesheet.set_at(pos(x, y), color(col))
+    spritesheet.set_at(pos(x, y), rgb(col))
 
 
 def fget(n: int, flag_index: int = None):
@@ -655,7 +716,7 @@ def print(s, x=None, y=None, col=None):
     font2.render_to(surf, pos(x, y), s, color(col))
     """
     for s in str(s).split("\n"):  # noqa
-        clr = color(col)
+        clr = rgb(col)
         for c in ascii_to_pico8(s):
             character = characters[ord(c)].copy()
             r = character.get_rect()
@@ -746,6 +807,8 @@ def color(col=None):
     4  brown   5  dark_gray   6  light_gray    7  white
     8  red     9  orange      10  yellow       11  green
     12  blue   13  indigo     14  pink         15  peach
+
+    Returns previous color byte (primary + secondary*16).
     """
     global off_color, off_color_visible, pen_color
 
@@ -760,10 +823,17 @@ def color(col=None):
     else:
         col = tonum(col)
 
+    old_col = pen_color + off_color * 16
+
     pen_color = to_col(col)
     off_color = to_col(int(col) >> 4 & 0b1111)
     off_color_visible = True
 
+    return old_col
+
+
+def rgb(col):
+    color(col)
     return palette[pen_color]
 
 
@@ -886,17 +956,17 @@ def fillp(p: Union[int, str] = 0):
     This can be more neatly expressed in 16-bit binary: FILLP(0b0011001111001100)
     The default fill pattern is 0, which means a single solid colour is drawn.
 
-    >>> fillp(0); rectfill(0,0,1,1)
-    >>> surf.get_at((0, 0))
-    (194, 195, 199, 255)
-    >>> fillp(1); rectfill(0,0,3,3)
-    >>> surf.get_at((3, 3))
-    (0, 0, 0, 255)
-    >>> fillp(4+8+64+128+  256+512+4096+8192); rectfill(0,0,3,3)
-    >>> surf.get_at((0, 0))
-    (194, 195, 199, 255)
-    >>> surf.get_at((2, 0))
-    (0, 0, 0, 255)
+    >>> fillp(32768); rectfill(0, 0, 10, 10)
+    >>> pget(0, 0)
+    0
+    >>> pget(1, 0)
+    6
+    >>> color(10 + 1*16); rectfill(0, 0, 10, 10)
+    6
+    >>> pget(0, 0)
+    1
+    >>> pget(1, 0)
+    10
     """
     global fill_pattern, off_color_visible
 
@@ -930,8 +1000,9 @@ def fillp(p: Union[int, str] = 0):
 
 def reset():
     """Reset the draw state, including palette, camera position, clipping and fill pattern."""
-    global pen_color
+    global pen_color, off_color
     pen_color = 6
+    off_color = 0
     pal()
     camera()
     clip()
@@ -940,5 +1011,4 @@ def reset():
 if __name__ == "__main__":
     import doctest
 
-    _init_video()
     doctest.testmod()
