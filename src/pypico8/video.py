@@ -3,6 +3,7 @@
 """
 # pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments, pointless-string-statement
 import base64, io, math, os, sys
+import builtins
 from typing import Union
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
@@ -694,28 +695,10 @@ def print(s, x=None, y=None, col=None):
     if y is not None:
         cursor_y = y
 
-    """
-    if y >= 128:
-        # Scroll up.
-        # surf_old = surf.copy()
-        # surf_old.fill(color(1))
-        screen.fill(color(0))
-        # surf.blit(surf_old, (0, -16))
-        surf.scroll(0, -8)
-        y = 112
-    """
-    """
-    font = pygame.font.SysFont("System", 15)
-    text = font.render(s, True, color(col))
-    surf.blit(text, (x, y))
-    """
-    """
-    font2 = pygame.freetype.Font(
-        "PICO-8 wide.ttf", 8
-    )  # Download from https://www.lexaloffle.com/bbs/?tid=3760
-    font2.render_to(surf, pos(x, y), s, color(col))
-    """
     for s in str(s).split("\n"):  # noqa
+        if y is None and cursor_y > 128 - 7:
+            scroll(-7)
+            cursor_y -= 7
         clr = rgb(col)
         for c in ascii_to_pico8(s):
             character = characters[ord(c)].copy()
@@ -731,13 +714,18 @@ def print(s, x=None, y=None, col=None):
 
             surf.blit(character, (xo + cursor_x, yo + cursor_y))
             cursor_x += 4 if ord(c) < 128 else 8
-            if cursor_y > 128:
-                # TODO: scroll up.
-                # yo += 8
-                pass
 
-        cursor_x = 0
+        if x is None:
+            cursor_x = 0
+        else:
+            cursor_x = x
         cursor_y += 6
+
+
+def scroll(dy: int):
+    surf_old = surf.copy()
+    surf.fill((0, 0, 0))
+    surf.blit(surf_old, (0, dy))
 
 
 def cursor(x, y, col=None):
