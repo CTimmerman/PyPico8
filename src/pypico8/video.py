@@ -158,7 +158,10 @@ def poke(addr, val):
     Writing out of range causes a runtime error.
     """
     global SCREEN_SIZE, memory, video_mode
-    if addr == 24364:  # video mode, 0x5F2C
+    if 0 <= addr <= 0x1fff:  # Spritesheet
+        spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
+        spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
+    elif addr == 24364:  # video mode, 0x5F2C
         video_mode = val
         if val == 3:
             SCREEN_SIZE = (64, 64)
@@ -253,28 +256,11 @@ def memcpy(dest_addr, source_addr, length):
     Copy len bytes of base ram from source to dest
     Sections can be overlapping
     """
-    global memory, spritesheet
-    memory[dest_addr : dest_addr + length] = memory[
-        int(source_addr) : int(source_addr) + length
-    ]
-    if dest_addr == 0 and source_addr == 0x6000:
-        # copy drawing surface to spritesheet
-        spritesheet = surf.copy()
-    elif 24576 <= dest_addr <= 32767:
-        """
-        Screen data
-        This 8,192-byte (8 KiB) region contains the graphics buffer. This is what is modified by the built-in drawing functions, and is what is copied to the actual display at the end of the game loop or by a call to flip().
-
-        0x6000-0x7fff / 24576-32767
-
-        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
-        """
-        vals = []
-        for i in range(length):
-            vals.append(peek(source_addr + i))
-        # printh(f"{vals[30]:b}")
-        for i, val in enumerate(vals):
-            poke(dest_addr + i, val)
+    vals = []
+    for i in range(length):
+        vals.append(peek(source_addr + i))
+    for i, val in enumerate(vals):
+        poke(dest_addr + i, val)
 
 
 def flip():
@@ -596,6 +582,10 @@ def pset(x: int, y: int, col: int = None):
     else:
         surf.set_at(pos(x, y), on_clr)
 
+def rgb2col(clr: tuple):
+    for k, v in PALETTE.items():
+        if v[:3] == clr[:3]:
+            return k
 
 def sget(x, y) -> int:
     """Get the color of a spritesheet pixel."""
@@ -916,7 +906,7 @@ def sspr(
     sprite = pygame.transform.flip(
         spritesheet.subsurface((sx, sy, sw, sh)), flip_x, flip_y
     )
-    sprite = adjust_color(pygame.transform.scale(sprite, (flr(dw), flr(dh))))
+    sprite = adjust_color(pygame.transform.scale(sprite, (abs(flr(dw)), abs(flr(dh)))))
     sprite.set_colorkey((0, 0, 0))
     surf.blit(sprite, (dx, dy))
 

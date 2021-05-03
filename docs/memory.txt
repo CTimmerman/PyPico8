@@ -278,19 +278,27 @@ Auto-repeat interval for btnp(): When a button is held down, this controls the i
 Bitmask for reading and writing colors. Allows PICO-8 to use only certain bits of the source color, and to write only certain bits of the destination color. Applies only when the value is nonzero. In the lower 4 bits, the 1 bits indicate which bits to set, while 0 bits indicate which bits to preserve. In the upper four bits, the 1 bits indicate which source color bits to keep, and the 0 bits indicate which bits to discard. The default value is 0, which allows all bits to be read and written, as if the mask had been set to 0xff.
 This is effectively the pixel-writing operation:
 dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
+
+
 0x5f5f / 24415
 
 Specifies a high-color mode. Allows the usage of a second screen palette if set to 0x10, or the usage of a gradient if set to 0x30 - 0x3f (the low hex digit specifies the screen color to replace). Other values will disable high-color, and PICO-8 will operate in regular 16-color mode.
+
+
 0x5f60-0x5f6f / 24416-24431
 
 Look-up table for the second screen palette, or the colors that make up the gradient (the first color is for the top-most 128×8 section, the second for the 128×8 section underneath, etc.). The format of this section is identical to the screen palette in the Draw State section (see above).
+
+
 0x5f70-0x5f7f / 24432-24447
 
 The bitfield for the screen lines that should use the second screen palette instead of the primary one. This is useful for dividing the screen up into 2 sections, each with a different palette, or even a CRT monitor effect.
 If gradient mode is used, these instead specify a +1 offset for the indexed gradient color on the given line (e.g. line 60 has gradient color 7, and setting the bit will cause it to be 8), with gradient color 15 wrapping around to 0.
 Each of these 16 bytes are for each 8-line section of the screen, which aligns with the gradient sections. Bit 0 contains the section's top-most line, while bit 7 contains its bottom-most line.
 Note that the affected sections aren't limited to horizontal rows. The current draw mode selected in 0x5f2c happens after the selected high-color effect takes place. If rotation modes 133 or 135 are used, this can allow the effect to be applied in vertical columns instead.
+
 GPIO pins
+
 This experimental feature provides programs access to the GPIO (general purpose input/output) hardware pins of a Raspberry Pi or CHIP device. These addresses can be used to accept digital input from or write digital output to devices connected to the pins. JavaScript code that runs in a browser can also access them by defining a global array named pico8_gpio. There are up to 128 pins, depending on the platform.
 
 0x5f80-0x5fff / 24448-24575
