@@ -174,9 +174,17 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
 
         stopped = False
         running = True
+        pause_start = 0
         while running:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        stopped = not stopped
+                        if stopped:
+                            pause_start = time()
+                        else:
+                            begin += time() - pause_start
+                elif event.type == pygame.QUIT:
                     global threads
                     for thread in threads:
                         thread.stop = True
@@ -206,7 +214,7 @@ def stop(message=None):
 
 
 def t():
-    """Or time(). Returns the number of seconds elasped since the cartridge was run."""
+    """Or time(). Returns the number of seconds elapsed since the cartridge was run."""
     global begin
     return py_time.time() - begin
 
