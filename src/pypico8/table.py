@@ -1,7 +1,12 @@
+"""Table object functions."""
+
+from typing import Any
+
+
 class Table(dict):
     """
-    In Lua, tables are a collection of key-value pairs where the key and value types can both be mixed.
-    They can be used as arrays by indexing them with integers.
+    In Lua, tables are a collection of key-value pairs where the key and value
+    types can both be mixed. They can be used as arrays by indexing them with integers.
     >>> a=Table()  # create an empty table
     >>> a[1] = "blah"
     >>> a[2] = 42
@@ -71,7 +76,7 @@ class Table(dict):
         return self.__setitem__(name, value)
 
 
-def add(t: Table, v: any, index: int = None) -> any:
+def add(t: Table, v: Any, index: int | None = None) -> Any:  # NOSONAR
     """https://www.lexaloffle.com/pico-8.php?page=manual#:~:text=add%20t
     add t v [index]
 
@@ -122,6 +127,7 @@ def all(t: Table):
 
 
 def foreach(t: Table, fun: type):
+    "Apply function fun to table t."
     list(map(fun, t))
 
 
@@ -167,6 +173,10 @@ def delete(t: dict, v=None):
 
 
 def pairs(d: dict):
+    """Return dict key-value pairs.
+    >>> pairs({'foo': 'bar'})
+    dict_items([('foo', 'bar')])
+    """
     return d.items()
 
 

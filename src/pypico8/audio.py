@@ -1,17 +1,18 @@
-# pylint:disable=multiple-imports,wrong-import-position
-import os, threading, time
+"""Audio functions."""
+
+# pylint:disable = multiple-imports, no-member, unused-argument, wrong-import-position
+import os, threading, time  # noqa: E401
+from array import array
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
-# https://gist.github.com/ohsqueezy/6540433
-from array import array
 from pygame.mixer import Sound, get_init, pre_init
 
 pre_init(44100, -16, 1, 1024)
 pygame.init()
 
 audio_channel_notes = [0, 0, 0]
-threads = []
+threads: list = []
 
 
 def sfx(n, channel=-1, offset=0, length=1):
@@ -39,16 +40,16 @@ def sfx(n, channel=-1, offset=0, length=1):
             time.sleep(note.get_length() * reps)
 
 
-
-
-
 class Note(Sound):
+    """A musical note. Code from https://gist.github.com/ohsqueezy/6540433"""
+
     def __init__(self, frequency, volume=0.1):
         self.frequency = frequency
         Sound.__init__(self, self.build_samples())
         self.set_volume(volume)
 
     def build_samples(self):
+        """Raw wave data."""
         period = int(round(get_init()[0] / self.frequency))
         samples = array("h", [0] * period)
         amplitude = 2 ** (abs(get_init()[1]) - 1) - 1
@@ -81,7 +82,7 @@ def music(n=0, fade_len=0, channel_mask=0):
     Reserved channels can still be used to play sound effects on, but only when that
     channel index is explicitly requested by sfx().
     """
-    global threads
+    # global threads
     if n == -1:
         for thread in threads:
             thread.stop = True
@@ -89,7 +90,7 @@ def music(n=0, fade_len=0, channel_mask=0):
         return
 
     def music_worker():
-        thread = threading.currentThread()
+        thread = threading.current_thread()
         thread.do_work = threading.Event()  # set() and clear() to run and pause.
         thread.do_work.set()
         pattern = sfx_list[n]

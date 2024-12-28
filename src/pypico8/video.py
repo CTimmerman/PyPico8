@@ -1,9 +1,10 @@
 """Graphical functions.
 >>> _init_video()
 """
-# pylint:disable = multiple-imports, too-many-function-args, redefined-builtin, too-many-arguments, pointless-string-statement
-import base64, io, math, os, sys
-import builtins
+
+# pylint:disable = function-redefined, global-statement, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-function-args, too-many-lines, unused-import, wrong-import-position
+import base64, io, math, os, sys  # noqa: E401
+# import builtins
 from typing import Union
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
@@ -13,19 +14,17 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
 from pypico8.math import ceil, flr, shl, shr
-from pypico8.strings import (
-    PROBLEMATIC_MULTI_CHAR_CHARS,
-    printh,
-    tonum,
-)  # noqa, printh is for doctest.
+from pypico8.strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa:E401,F401
+# printh is for doctest.
 from pypico8.table import Table
 
 
 SCREEN_SIZE = (128, 128)
-screen = None
-clock = None
-fps = 30
-frame_count = 0
+screen: pygame.Surface
+clock: pygame.time.Clock
+dark_mode: int
+fps: int = 30
+frame_count: int = 0
 
 # Pointers
 CLIP_X1_PT = 24352
@@ -33,14 +32,24 @@ CLIP_Y1_PT = 24353
 CLIP_X2_PT = 24354
 CLIP_Y2_PT = 24355
 
-surf = None
-pen_x = None
-pen_y = None
+cursor_x: int
+cursor_y: int
+off_color: int
+off_color_visible: bool
+palette: dict
+pen_color: int
+pen_x: int | None = None
+pen_y: int | None = None
+surf: pygame.Surface
+xo: int
+yo: int
 
-characters = []
-font_img = None
-spritesheet = None
-sprite_flags = []
+characters: list = []
+fill_pattern: int
+font_img: pygame.Surface
+spritesheet: pygame.Surface
+sprite_flags: list = []
+video_mode: int
 
 
 def _init_video() -> None:
@@ -48,6 +57,7 @@ def _init_video() -> None:
 
     video_mode = peek(24364)
 
+    pygame.display.set_caption("PyPico8")
     screen = pygame.display.set_mode(SCREEN_SIZE, pygame.SCALED | pygame.RESIZABLE)
     surf = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
 
@@ -98,7 +108,7 @@ Colour format (gfx/screen) is 2 pixels per byte: low bits encode the left pixel 
 Map format is one byte per cel, where each byte normally encodes a sprite index.
 """
 
-memory = [0] * 2 ** 15
+memory = [0] * 2**15
 
 
 def peek(addr: int):
@@ -109,7 +119,9 @@ def peek(addr: int):
     """
     if 0x6000 <= addr <= 0x7FFF:  # 24576-32767
         """
-        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
+        Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
+        and the hi 4 bits being the right/odd pixel.
         """
         i = int(addr - 0x6000)
         row = int(i // 64)
@@ -146,7 +158,7 @@ def peek4(addr):
         + peek(addr + 2)
         + shl(peek(addr + 3), 8)
     )
-    if int(rv) & 2 ** 15:
+    if int(rv) & 2**15:
         rv = -0xFFFF + rv - 1
     return rv
 
@@ -157,8 +169,8 @@ def poke(addr, val):
     Legal addresses are 0x0..0x7fff
     Writing out of range causes a runtime error.
     """
-    global SCREEN_SIZE, memory, video_mode
-    if 0 <= addr <= 0x1fff:  # Spritesheet
+    global SCREEN_SIZE, video_mode
+    if 0 <= addr <= 0x1FFF:  # Spritesheet
         spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
         spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
     elif addr == 24364:  # video mode, 0x5F2C
@@ -190,7 +202,9 @@ def poke(addr, val):
         val = flr(val)
         if 0x6000 <= addr <= 0x7FFF:  # 24576-32767
             """
-            All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes. Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel and the hi 4 bits being the right/odd pixel.
+            All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
+            Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
+            and the hi 4 bits being the right/odd pixel.
             """
             i = addr - 0x6000
             row = int(i // 64)
@@ -301,7 +315,6 @@ def mget(x: int, y: int) -> int:
 
 def mset(x: int, y: int, v: int) -> None:
     """Set map value (v) at x,y"""
-    global map_sprites
     map_sprites[x + y * 128] = v
 
 
@@ -333,8 +346,7 @@ def map(cell_x, cell_y, sx, sy, cell_w=128, cell_h=32, layers=None):
             v = map_sprites[xi + yi * 128]
             if v == 0:
                 continue
-            if layers is not None:
-                if fget(v) & layers:
+            if layers is not None and (fget(v) & layers):
                     spr(map_sprites[xi + yi * 128], sx, sy)
 
 
@@ -360,11 +372,11 @@ def clip(x=0, y=0, w=SCREEN_SIZE[0], h=SCREEN_SIZE[1]) -> tuple:
     poke(CLIP_Y1_PT, y)
     poke(CLIP_X2_PT, x + w)
     poke(CLIP_Y2_PT, y + h)
-    surf.set_clip(x, y, x + w, y + h)
+    surf.set_clip((x, y, x + w, y + h))
     return (x, y, w, h)
 
 
-def circ(x, y, radius=4, col: int = None, _border=1):
+def circ(x, y, radius=4, col: int | None = None, _border=1):
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
@@ -379,7 +391,7 @@ def circ(x, y, radius=4, col: int = None, _border=1):
         draw_pattern(area, cel, is_off_color_visible)
 
 
-def circfill(x, y, r=4, col: int = None):
+def circfill(x, y, r=4, col: int | None = None):
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
@@ -387,7 +399,7 @@ def circfill(x, y, r=4, col: int = None):
     circ(x, y, r, col, 0)
 
 
-def oval(x0, y0, x1, y1, col: int = None, _border=1):
+def oval(x0, y0, x1, y1, col: int | None = None, _border=1):
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
     if x1 < x0:
         x0, x1 = x1, x0
@@ -406,30 +418,38 @@ def oval(x0, y0, x1, y1, col: int = None, _border=1):
 
 
 def draw_pattern(
-    area: pygame.Rect, cel: pygame.Surface = None, is_off_color_visible: bool = True
+    area: pygame.Rect,
+    cel: pygame.Surface | None = None,
+    is_off_color_visible: bool = True,
 ):
+    "Draws global fill_pattern."
     if cel is None:
         cel = surf
     on_clr = palette[pen_color]
     off_clr = palette[off_color]
-    for x in range(area.left, area.right):
-        for y in range(area.top, area.bottom):
+    xr = range(area.left, area.right)
+    yr = range(area.top, area.bottom)
+    # b = cel.get_view('a').raw
+    # b = pygame.surfarray.pixels_alpha(cel)
+    for x in xr:
+        xm = x % 4
+        for y in yr:
             location = (x, y)
-            if cel.get_at(location) != (0, 0, 0, 0):
-                one = fill_pattern >> (15 - (x % 4 + 4 * (y % 4))) & 1
-                if one:
+            if cel.get_at(location)[3] != 0:
+                # if b[x][y] != 0:
+                if fill_pattern >> (15 - (xm + 4 * (y % 4))) & 1:
                     if is_off_color_visible:
                         surf.set_at(location, off_clr)
                 else:
                     surf.set_at(location, on_clr)
 
 
-def ovalfill(x0, y0, x1, y1, col: int = None):
+def ovalfill(x0, y0, x1, y1, col: int | None = None):
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
     oval(x0, y0, x1, y1, col, 0)
 
 
-def line(x0, y0, x1=None, y1=None, col: int = None):
+def line(x0, y0, x1=None, y1=None, col: int | None = None):
     """Draw line. If x1,y1 are not given the end of the last drawn line is used"""
     global pen_x, pen_y
     if pen_x is None:
@@ -454,7 +474,7 @@ def line(x0, y0, x1=None, y1=None, col: int = None):
     draw_pattern(area, cel, is_off_color_visible)
 
 
-def rect(x0, y0, x1, y1, col: int = None, _border=1):
+def rect(x0, y0, x1, y1, col: int | None = None, _border=1):
     """Draw a rectangle."""
     if x1 < x0:
         x0, x1 = x1, x0
@@ -474,12 +494,13 @@ def rect(x0, y0, x1, y1, col: int = None, _border=1):
     )
 
 
-def rectfill(x0, y0, x1, y1, col: int = None):
+def rectfill(x0, y0, x1, y1, col: int | None = None):
     """Draw a filled rectangle."""
     rect(x0, y0, x1, y1, col, 0)
 
 
 def replace_screen_color(old_col, new_col):
+    "Replace screen color."
     img_copy = surf.copy()
     cls(new_col)
     img_copy.set_colorkey(rgb(old_col))
@@ -499,19 +520,19 @@ def pal(old_col: int, new_col: int, remap_screen: int = 0):
     palette[old_col] = PALETTE[new_col]
 
 
-@multimethod(int, int)
+@multimethod(int, int)  # type: ignore
 def pal(old_col: int, new_col: int):  # noqa: F811
     """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
     pal(old_col, new_col, 0)
 
 
-@multimethod(int, float)
+@multimethod(int, float)  # type: ignore
 def pal(old_col: int, new_col: float):  # noqa: F811
     """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
     pal(old_col, flr(new_col), 0)
 
 
-@multimethod(Table, int)
+@multimethod(Table, int)  # type: ignore
 def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
     """
     When the first parameter of pal is a table, colours are assigned (not swapped!) for each entry.
@@ -527,14 +548,14 @@ def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
         pal(i + 1, col, remap_screen)
 
 
-@multimethod(list, int)
+@multimethod(list, int)  # type: ignore
 def pal(tbl: list, remap_screen: int = 0):  # noqa: F811
     """0-based palette replacement."""
     for i, col in enumerate(tbl):
         pal(i, col, remap_screen)
 
 
-@multimethod()
+@multimethod()  # type: ignore
 def pal():  # noqa: F811
     """Resets to system defaults (including transparency values and fill pattern)"""
     global dark_mode, palette
@@ -543,14 +564,19 @@ def pal():  # noqa: F811
     fillp()
 
 
-def palt(col: int = None, transparent: bool = None):
-    if col is None and transparent is None:
-        for col in palette:  # noqa
-            r, g, b, *_ = palette[col]
-            palette[col] = (r, g, b, 255)
+def palt(coli: int | None = None, transparent: bool | None = None):
+    """PALT(C, [T]) Set transparency for colour index to T (boolean)
+    Transparency is observed by SPR(), SSPR(), MAP() AND TLINE()
+    
+    PALT() resets to default: all colours opaque except colour 0
+    """
+    if coli is None and transparent is None:
+        for c in palette:  # noqa
+            r, g, b, *_ = palette[c]
+            palette[c] = (r, g, b, 255 if c > 0 else 0)
     else:
-        r, g, b, *_ = palette[col]
-        palette[col] = (r, g, b, 0 if transparent else 255)
+        r, g, b, *_ = palette[coli]
+        palette[coli] = (r, g, b, 0 if transparent else 255)
 
 
 def pos(x, y):
@@ -571,7 +597,7 @@ def pget(x, y) -> int:
     return col
 
 
-def pset(x: int, y: int, col: int = None):
+def pset(x: int, y: int, col: int | None = None):
     """Set the color of a pixel at x, y."""
     color(col)
     on_clr = palette[pen_color]
@@ -582,10 +608,13 @@ def pset(x: int, y: int, col: int = None):
     else:
         surf.set_at(pos(x, y), on_clr)
 
-def rgb2col(clr: tuple):
+
+def rgb2col(clr: tuple) -> int | None:
+    "RGB tuple to color index."
     for k, v in PALETTE.items():
         if v[:3] == clr[:3]:
             return k
+    return None
 
 def sget(x, y) -> int:
     """Get the color of a spritesheet pixel."""
@@ -604,21 +633,21 @@ def sset(x, y, col=None):
     spritesheet.set_at(pos(x, y), rgb(col))
 
 
-def fget(n: int, flag_index: int = None):
+def fget(n: int, flag_index: int | None = None):
     """Get sprite n flag_index (0..7; not 1-based like Table) value, or combined flags value."""
     if flag_index is None:
         return sprite_flags[n]
     return sprite_flags[n] & (1 << flag_index)
 
 
-def fset(n: int, f: int = None, v: bool = None):
+def fset(n: int, f: int | None = None, v: bool | None = None):
     """
     >>> fset(2, 1+2+8)  # sets bits 0,1 and 3
     >>> fset(2, 4, True)  # sets bit 4
     >>> printh(fget(2))  # (1+2+8+16)
     27
     """
-    global sprite_flags
+    # global sprite_flags
     if v is None:  # f not provided. No function overloading in Python.
         sprite_flags[n] = f
     if v:
@@ -628,15 +657,17 @@ def fset(n: int, f: int = None, v: bool = None):
 
 
 def get_char_img(n: int):
+    """Return Surface with character N image."""
     x = n % 16 * 8
     y = n // 16 * 8
-    rect = (x, y, 8, 8)
+    area = (x, y, 8, 8)
     image = pygame.Surface((8, 8), pygame.SRCALPHA).convert_alpha()
-    image.blit(font_img, (0, 0), rect)
+    image.blit(font_img, (0, 0), area)
     return image
 
 
-def ascii_to_pico8(s):
+def ascii_to_pico8(s) -> str:
+    "Match source code char to Pico8 char."
     # Pause Black formatter to not mess this up.
     # fmt: off
     ocr = [
@@ -679,7 +710,10 @@ def ascii_to_pico8(s):
 
 
 def print(s, x=None, y=None, col=None):
-    global cursor_x, cursor_y, yo
+    r"""TODO: https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
+    For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
+    """
+    global cursor_x, cursor_y
     if x is not None:
         cursor_x = x
     if y is not None:
@@ -713,6 +747,7 @@ def print(s, x=None, y=None, col=None):
 
 
 def scroll(dy: int):
+    "Shift surface pixels by offset dy."
     surf_old = surf.copy()
     surf.fill((0, 0, 0))
     surf.blit(surf_old, (0, dy))
@@ -766,7 +801,8 @@ PALETTE = {
 }
 
 
-def to_col(col=None):
+def to_col(col=None) -> int:
+    "XXX: Return palette index?"
     return flr(col) & (
         0x8F if dark_mode or peek(0x5F2E) else 0b1111
     )  # https://youtu.be/AsVzk6kCAJY?t=434
@@ -811,6 +847,7 @@ def color(col=None):
 
 
 def rgb(col):
+    "Return RGB from color index."
     color(col)
     return palette[pen_color]
 
@@ -829,7 +866,7 @@ def cls(col=0):
 
 
 def adjust_color(surface: pygame.Surface) -> pygame.Surface:
-    """ Apply current palette to surface. """
+    """Apply current palette to surface."""
     r = surface.get_rect()
 
     old_new = [
@@ -851,7 +888,7 @@ def adjust_color(surface: pygame.Surface) -> pygame.Surface:
 def replace_color(
     surface: pygame.Surface, old_color: tuple, new_color: tuple
 ) -> pygame.Surface:
-    """ Replace single color in surface. """
+    """Replace single color in surface."""
     r = surface.get_rect()
     for hi in range(r.h):
         for wi in range(r.w):
@@ -951,7 +988,7 @@ def fillp(p: Union[int, str] = 0):
     if isinstance(p, str):  # ovals.py
         index = ord(ascii_to_pico8(p))
         character = characters[index].copy()
-        r = character.get_rect()
+        # r = character.get_rect()
         p = 0
         for hi in range(4):
             for wi in range(4):
@@ -965,7 +1002,7 @@ def fillp(p: Union[int, str] = 0):
         p = tonum(p)
 
     # 65535 = full off color 16-bit pattern.
-    p &= 0b1111111111111111
+    p &= 0b1111111111111111  # type: ignore
 
     # pygame.image.save(fill_pattern, "fill_pattern.png")
     # printh(f"fillp {p}:")
