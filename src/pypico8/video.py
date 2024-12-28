@@ -482,7 +482,11 @@ def rect(x0, y0, x1, y1, col: int | None = None, _border=1):
         y0, y1 = y1, y0
 
     cel = surf.copy()
+    # qr_trawling
     cel.fill((0, 0, 0, 0))
+    # moving_checkers
+    if not col:
+        col = 0
     is_off_color_visible = off_color_visible  # color() resets it
 
     draw_pattern(

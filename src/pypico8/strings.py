@@ -1,5 +1,6 @@
-# pylint:disable = multiple-imports
-import builtins, os, sys
+"""Pico8 string functions."""
+# pylint:disable = import-outside-toplevel, multiple-imports, redefined-builtin, wrong-import-position
+import builtins, os, sys  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.math import flr
@@ -27,7 +28,7 @@ def printh(s, filename=None, overwrite=False, save_to_desktop=False):
             os.environ["HOMEPATH"], "Desktop", os.path.split(filename)[1]
         )
     if filename:
-        with open(filename, "w" if overwrite else "a") as fp:
+        with open(filename, "w" if overwrite else "a", encoding="UTF8") as fp:
             fp.write(s)
     else:
         builtins.print(s)
@@ -106,13 +107,15 @@ def pico8_to_python(s):
 
 
 def tostr(val, use_hex=False):
+    "Value to string or hex string."
     if use_hex:
         return hex(val)
     return str(val)
 
 
 def tonum(s):
-    """Converts a string representation of a decimal, hexadecimal, or binary number to a number value or None."""
+    """Converts a string representation of a decimal, hexadecimal,
+    or binary number to a number value or None."""
     if type(s) in (int, float):
         return s
 
@@ -133,6 +136,7 @@ def tonum(s):
 
 
 def chr(index):  # noqa
+    "Number string to char."
     return builtins.chr(flr(tonum(index) % 256))
 
 
