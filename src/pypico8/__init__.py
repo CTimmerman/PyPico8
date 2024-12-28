@@ -14,15 +14,16 @@
 2021-02-09 v1.7 added pack, unpack. Fixed min, max, rnd, chr. Refactored.
 2021-02-14 v1.8 prt -> print, fillp.
 """
-# pylint:disable=import-outside-toplevel,multiple-imports,pointless-string-statement,redefined-builtin,too-many-arguments,unused-import,unidiomatic-typecheck,wrong-import-position,too-many-nested-blocks
-import builtins, os, sys, time as py_time
+
+# pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
+import builtins, os, sys, time as py_time  # noqa: E401
 
 # fmt:off
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
-import pygame, pygame.freetype
+import pygame, pygame.freetype  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa; unused here but maybe not elsewhere.
+from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
 from pypico8.table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
 from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
 from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
@@ -113,9 +114,8 @@ def btn(i=None, p=0):
 
     button_pressed = False
     for key in pressed:
-        if key in player_keymap:
-            if player_keymap[key] == i:
-                button_pressed = True
+        if key in player_keymap and player_keymap[key] == i:
+            button_pressed = True
 
     return button_pressed
 
@@ -149,11 +149,17 @@ def btnp(i=None, p=0):
 
 # ---------- Control flow ---------- #
 def init(_init=lambda: True):
+    "Initialize."
     _init_video()
     _init()
     flip()
 
 
+begin = py_time.time()
+btnp_state = 0
+btnp_frame = 0
+fps = 30
+stopped = False
 running = False
 
 
@@ -169,6 +175,9 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
 
     try:
         init(_init)
+        caption = pygame.display.get_caption()[0]
+        pygame.display.set_caption(caption + " " + sys.argv[-1])
+
         if running:
             return
 
@@ -178,14 +187,17 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_p:
+                    if event.key in (pygame.K_BREAK, pygame.K_p, pygame.K_RETURN):
                         stopped = not stopped
                         if stopped:
                             pause_start = time()
+                            caption = pygame.display.get_caption()[0]
+                            pygame.display.set_caption(caption + " PAUSED")
                         else:
                             begin += time() - pause_start
+                            caption = pygame.display.get_caption()[0]
+                            pygame.display.set_caption(caption[: -len(" PAUSED")])
                 elif event.type == pygame.QUIT:
-                    global threads
                     for thread in threads:
                         thread.stop = True
                     for thread in threads:
@@ -213,13 +225,13 @@ def stop(message=None):
     stopped = True
 
 
-def t():
-    """Or time(). Returns the number of seconds elapsed since the cartridge was run."""
-    global begin
+def t() -> float:
+    "Return seconds since cart start."
     return py_time.time() - begin
 
 
-def time():
+def time() -> float:
+    "Return seconds since cart start."
     return t()
 
 
@@ -261,7 +273,6 @@ def stat(x):
     100     Current breadcrumb label, or nil
     110     Returns true when in frame-by-frame mode
     """
-    global audio_channel_notes, fps
     if x == 7:
         return fps
     if x == 30:
@@ -289,6 +300,7 @@ def stat(x):
 
 
 if __name__ == "__main__":
+    # pylint: disable = exec-used
     exec(
         open(
             os.path.join(os.path.dirname(__file__), "../fake_sprite.py"),
