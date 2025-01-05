@@ -43,8 +43,12 @@ class Table(dict):
 
     def __init__(self, stuff=None, **kwargs):
         if stuff is not None:
-            for index, item in enumerate(stuff):
-                dict.__setitem__(self, index + 1, item)
+            if isinstance(stuff, dict):
+                for index, item in enumerate(stuff):
+                    dict.__setitem__(self, "key" + str(index + 1), item)
+            else:
+                for index, item in enumerate(stuff):
+                    dict.__setitem__(self, index + 1, item)
         else:
             stuff = kwargs
 
@@ -53,10 +57,36 @@ class Table(dict):
                 self[key] = stuff[key]
 
     def __iter__(self):
+        """
+        >>> t = Table([10, 20, 30])
+        >>> for v in t:
+        ...    print(v)
+        10
+        20
+        30
+        >>> A = Table([1,10,2,11,3,12])
+        >>> for k in list(A.keys()):
+        ...   if A[k] < 10:
+        ...     delete(A, A[k])
+        ...
+        1
+        2
+        3
+        >>> foreach(A, print)
+        10
+        11
+        12
+        """
         for index in dict.__iter__(self.copy()):
             yield dict.__getitem__(self, index)
 
     def __getitem__(self, index):
+        """
+        >>> t = Table()
+        >>> t[10] = "ten"
+        >>> t[10]
+        'ten'
+        """
         if index in dict.__iter__(self):
             return dict.__getitem__(self, index)
 
@@ -106,32 +136,37 @@ def add(t: Table, v: Any, index: int | None = None) -> Any:  # NOSONAR
 # pylint:disable=redefined-builtin
 def all(t: Table):
     """
-    Used in FOR loops to iterate over all items in a Table (that have a 1-based integer index),
-    in the order they were added.
-
-    >>> T = Table([11,12,13])
-    >>> add(T,14)
-    14
-    >>> add(T,"HI")
-    'HI'
-    >>> for v in T: print(v)
+    Returns an iterator for all non-nil items in a sequence in a table, for use with for...in.
+    >>> t = Table([11, None, 13])
+    >>> for v in all(t): print(v)
     11
-    12
     13
-    14
-    HI
-    >>> print(len(T))
-    5
+    >>> print(len(t))
+    3
+    >>> t = Table({10: "ten"})
+    >>> t
+    {'key1': 10, 10: 'ten'}
+    >>> for v in all(t): print(v)
+    >>> t[1] = "one"
+    >>> for v in all(t): print(v)
+    one
     """
-    return list(t.values())
+    k = 0
+    while 1:
+        k += 1
+        if k not in t:
+            break
+        if t[k] is None:
+            continue
+        yield t[k]
 
 
-def foreach(t: Table, fun: type):
+def foreach(t: Table, fun: type) -> None:
     "Apply function fun to table t."
     list(map(fun, t))
 
 
-def delete(t: dict, v=None):
+def delete(t: dict, v=None) -> Any | None:
     """
     del  t [v]
 
@@ -143,9 +178,13 @@ def delete(t: dict, v=None):
     del returns the deleted item, or returns no value when nothing was deleted.
 
     >>> A = Table([1,10,2,11,3,12])
-    >>> for item in A.copy():
-    ...   if item < 10: delete(A, item)
+    >>> for k in list(A.keys()):
+    ...   if A[k] < 10:
+    ...     delete(A, A[k])
     ...
+    1
+    2
+    3
     >>> foreach(A, print)
     10
     11
@@ -160,16 +199,57 @@ def delete(t: dict, v=None):
         except IndexError:
             return None
 
-    done = False
     for k in list(t.keys()):
-        if done:
-            t[k - 1] = t[k]
-        elif t[k] == v:
+        if t[k] == v:
+            rv = t[k]
             del t[k]
-            done = True
-            break
+            return rv
 
     return None
+
+
+# del is a Python keyword.
+# def del():
+
+
+def deli(t: Table, i: int | None = None) -> Any | None:
+    """Like del(), but remove the item from table t at index i.
+    >>> A = Table([1,10,2,11,3,12])
+    >>> deli(A, 1)
+    1
+    >>> A
+    {1: 10, 2: 2, 3: 11, 4: 3, 5: 12}
+    >>> deli(A, 2)
+    2
+    >>> A
+    {1: 10, 2: 11, 3: 3, 4: 12}
+    >>> for v in all(A): print(v)
+    10
+    11
+    3
+    12
+    """
+    if i is None:
+        try:
+            return t.pop(list(t.keys())[-1])
+        except IndexError:
+            return None
+
+    rv = None
+    reindex = False
+    for j, k in enumerate(list(t.keys())):
+        if j+1 == i:
+            rv = t[k]
+            if j + 1 == len(t):
+                del t[k]
+            else:
+                # Don't delete; k reinsertion gets appended.
+                reindex = True
+        elif reindex:
+            t[j] = t[k]
+            if j + 1 == len(t):
+                del t[k]
+    return rv
 
 
 def pairs(d: dict):
@@ -180,7 +260,15 @@ def pairs(d: dict):
     return d.items()
 
 
-def pack(*args):
+def ipairs(d: dict):
+    """Return dict key > 1 -value pairs.
+    >>> ipairs({-1: 'a', 0: 'b', 1: "c", 2: "d"})
+    [(1, 'c'), (2, 'd')]
+    """
+    return [(k, v) for k, v in d.items() if isinstance(k, int) and k > 0]
+
+
+def pack(*args) -> Table:
     """
     >>> pack('hello', 64, 64, 14)
     {1: 'hello', 2: 64, 3: 64, 4: 14}
@@ -188,7 +276,7 @@ def pack(*args):
     return Table(args)
 
 
-def unpack(tbl, start=1, stop=None):
+def unpack(tbl, start=1, stop=None) -> list:
     """
     >>> t = Table(["hello", 64, 64, 14])
     >>> unpack(t)
@@ -204,3 +292,19 @@ def unpack(tbl, start=1, stop=None):
     for i in range(start, stop + 1):
         rv.append(tbl[i])
     return rv
+
+
+def select(start, *array):
+    """Lua select from array.
+    >>> select(1, "a", "b", "c")
+    ('a', 'b', 'c')
+    >>> select(2, "a", "b", "c")
+    ('b', 'c')
+    >>> select("#")
+    0
+    >>> print(select("#", {1,2,3}, 4, 5, {6,7,8}))
+    4
+    """
+    if start == "#":
+        return len(array)
+    return array[start - 1 :]
