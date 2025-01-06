@@ -714,7 +714,7 @@ def utf8_to_p8scii(s: str) -> str:
     # fmt: on
     ps = ""
     if s in PROBLEMATIC_MULTI_CHAR_CHARS:
-        s = [s]  # Else Python takes multiple characters from it!
+        s = [s]  # type: ignore  # Else Python takes multiple characters from it!
     for c in s:
         if c == "O":  # torus_knot.py
             c = "🅾️"
@@ -743,6 +743,7 @@ def print(s, x=None, y=None, col=None):
     r"""TODO: https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
     For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
     """
+    s = str(s)
     if s.startswith("\\^@"):
         addr = int(s[3:7], 16)
         n = int(s[7:11], 16)
@@ -756,19 +757,19 @@ def print(s, x=None, y=None, col=None):
             poke(addr + i, ord(utf8_to_p8scii(c)))
         return
 
-    global cursor_x, cursor_y, pen_color, off_color
+    global cursor_x, cursor_y
     if x is not None:
         cursor_x = x
     if y is not None:
         cursor_y = y
 
-    background_rgb = None
-    for s in str(s).split("\n"):  # noqa
+    bg_rgb = None
+    fg_rgb = rgb(col)
+    for ln in s.split("\n"):  # noqa
         if y is None and cursor_y > 128 - 7:
             scroll(-7)
             cursor_y -= 7
-        clr = rgb(col)
-        tokens = list(c for c, _ in tokenize(s, True))
+        tokens = list(c for c, _ in tokenize(ln, True))
         i = 0
         invert = False
         while i < len(tokens):
@@ -776,8 +777,14 @@ def print(s, x=None, y=None, col=None):
             if c == "\\" and i + 2 < len(tokens):
                 if tokens[i + 1] == "#":
                     # Set background color for this print call only.
-                    background_rgb = PALETTE[int(tokens[i + 2], 16)]
-                    # foreground poke(24357, int(tokens[i + 2], 16))
+                    bg_rgb = PALETTE[int(tokens[i + 2], 16)]
+                    i += 3
+                    continue
+                if tokens[i + 1] == "f":
+                    # Set foreground color.
+                    ci = int(tokens[i + 2], 16)
+                    fg_rgb = PALETTE[ci]
+                    poke(24357, ci)
                     i += 3
                     continue
                 if "".join(tokens[i : i + 3]) == "\\^i":
@@ -796,9 +803,9 @@ def print(s, x=None, y=None, col=None):
                 for wi in range(r.w):
                     clr_at = character.get_at((wi, hi))
                     if clr_at[:3] != (0, 0, 0):
-                        character.set_at((wi, hi), background_rgb if invert else clr)
-                    elif background_rgb is not None:
-                        character.set_at((wi, hi), clr if invert else background_rgb)
+                        character.set_at((wi, hi), bg_rgb if invert else fg_rgb)
+                    elif bg_rgb is not None:
+                        character.set_at((wi, hi), fg_rgb if invert else bg_rgb)
 
             # character.fill(color(col), special_flags=pygame.BLEND_MULT)  # uses 254? so nonzero color band values are 1 short!
 

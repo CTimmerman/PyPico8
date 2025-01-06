@@ -1,5 +1,6 @@
 """256 Followers ported from https://twitter.com/ValerADHD/status/1332080472193687552
 """
+
 from pypico8 import (
     cls,
     circfill,
@@ -51,10 +52,10 @@ def _draw():
         for i in range(0, 999 + 1):
             pset(r(64), r(64), 1)
         circfill(r(64), r(64), r(7), r(8) + 8)
-        print("THANK YOU!", 12, 28, 7)
+        print("thank you!", 12, 28, 7)
     else:
         cls(1)
-        print(f"FOLLOWERS: {int(n // 1)}", 4, 16)
+        print(f"followers: {int(n // 1)}", 4, 16)
         for i in range(0, 7 + 1):
             print(int(n) >> i & 1, 44 - i * 4, 28)
 
