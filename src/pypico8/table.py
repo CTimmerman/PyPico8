@@ -307,4 +307,4 @@ def select(start, *array):
     """
     if start == "#":
         return len(array)
-    return array[start - 1 :]
+    return Table(array[start - 1 :])
