@@ -1,5 +1,6 @@
 """Merry Xmas ported from https://twitter.com/Frozax/status/1342463299909275651
 """
+
 from pypico8 import *
 
 
@@ -50,7 +51,7 @@ def _draw():
         circfill(x, y, r, 5 - d)
 
     e(64, 64, 25, 5)
-    print("MERRY XMAS", 45, 62, 7)
+    print("merry xmas", 45, 62, 7)
 
 
 run(_init, _update, _draw)

@@ -1,5 +1,6 @@
 """Fatal Error ported from https://twitter.com/cbmakes/status/1348119427150188544
 """
+
 from pypico8 import cls, pal, poke, print, rect, rectfill, rnd, run
 
 '''

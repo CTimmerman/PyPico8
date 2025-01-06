@@ -1,5 +1,5 @@
 """The pico8 manual math section implementations.
-
+NOTE: Test with python math.py instad of python -m doctest math.py
 >>> flr(4.1)
 4
 >>> ceil(4.1)
@@ -9,10 +9,17 @@
 >>> ceil(-2.3)
 -2
 """
+
 # pylint:disable = line-too-long, multiple-imports, redefined-builtin, unused-import
 import builtins, math, random  # noqa: E401
-from math import ceil, floor as flr  # noqa: F401
-# unused here but maybe not elsewhere.
+from math import (
+    ceil,  # noqa: F401
+    floor as flr,  # noqa: F401
+)  # unused here but maybe not elsewhere.
+
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from pypico8.infix import Infix
 
 
 def max(first, second=0):
@@ -110,18 +117,21 @@ def shl(x, n):
     >>> shl(0.1, 1)
     0.2
     """
-    return x * 2 ** n
+    return x * 2**n
 
 
-def shr(x, n):
+def _shr(x, n):
     """Arithmetic right shift (the left-most bit state is duplicated)
     >>> shr(2,1)
     1.0
     >>> shr(1,1)
     0.5
+    >>> 1 |shr| 1
+    0.5
     """
-    return x / 2 ** n
+    return x / 2**n
 
+shr = Infix(_shr)
 
 def srand(x=0):
     "Seed random number generator."
@@ -143,13 +153,39 @@ def sqrt(x):
     return math.sqrt(x)
 
 
-def div(a, b):
+def _div(a, b) -> float | int:
     """Dividing by zero evaluates to 0x7fff.ffff if positive, or -0x7fff.ffff if negative.
-    (-32768.0 to 32767.99999)"""
+    (-32768.0 to 32767.99999)
+    >>> _div(1, 0)
+    32768
+    >>> _div(-1, 0)
+    -32768
+    >>> _div(1, 2)
+    0.5
+    """
     if not b:
-        return (-32768.0, 32767.99999)[bool(math.copysign(1, b) + 1)]
+        return -32768 if a < 0 else 32768
     return a / b
 
+
+div = Infix(_div)
+
+
+def _divi(a, b) -> int:
+    """Divide and floor.
+    >>> _divi(1, 0)
+    32767
+    >>> _divi(-1, 0)
+    -32768
+    >>> _divi(1, 2)
+    0
+    """
+    if not b:
+        return -32768 if a < 0 else 32767
+    return math.floor(a / b)
+
+
+divi = Infix(_divi)
 
 if __name__ == "__main__":
     import doctest

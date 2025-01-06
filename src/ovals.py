@@ -1,6 +1,7 @@
 """Ovals ported from https://www.lexaloffle.com/bbs/?tid=38665
 TODO: Fix character patterns.
 """
+
 # flake8:noqa
 from pypico8 import *
 
@@ -64,7 +65,7 @@ def _draw():
         ovalfill(x - w, y - h, x + w, y + h, (i * 32) % 8 + 8)
         i += 1 / 32
 
-    print("PICO-8 0.2.1", 40, 62, 13)
+    print("pico-8 0.2.1", 40, 62, 13)
 
 
 run(_init, _update, _draw)

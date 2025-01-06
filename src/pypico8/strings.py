@@ -58,7 +58,9 @@ def pico8_to_python(s):
     s = s.replace("...", "*argv")
     s = s.replace("..", "+")
     s = s.replace("^", "**")
-    s = s.replace("\\", "//")
+    s = s.replace("/", "|div|")
+    s = s.replace("\\", "|divi|")
+    s = s.replace(">>", "|shr|")
     s = re.sub(r"//\s*1\b", "#int()", s)
     s = s.replace("~=", "!=")
     s = re.sub(r",%([a-zA-Z0-9]+)", r",peek2(\1)", s)
@@ -94,7 +96,7 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
 
     s = re.sub(r"\bdel\b", "delete", s)
     # separate statements
-    s = re.sub(r"([\])])([a-zA-Z])", r"\1\n\2", s)
+    s = re.sub(r"([\])0-9])([a-zA-Z])", r"\1\n\2", s)
     # hooks
     s = "def _init():\n    global \n" + s
     s = re.sub(r"\n{3,}", r"\n\n", s)

@@ -1,5 +1,6 @@
 """3D Helix ported from https://twitter.com/p01/status/1009386060214874112
 """
+
 from pypico8 import *
 
 
@@ -23,11 +24,11 @@ flip()goto _
 
 def _init():
     global r, s
-    r = "3D HELIX ★ P01"
+    r = "3d helix ★ p01"
     cls()
     s = sin
     print(r)
-    memcpy(0, 0x6000-8, 999)  # screen to spritesheet
+    memcpy(0, 0x6000 - 8, 999)  # screen to spritesheet
 
 
 def _update():
