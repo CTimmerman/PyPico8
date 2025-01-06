@@ -142,7 +142,7 @@ def btnp(i=None, p=0):
     if current_state != btnp_state:
         btnp_state = current_state
         btnp_frame = frame_count
-        printh(f"frame: {btnp_frame}")
+        # TODO: printh(f"frame: {btnp_frame}")
         return current_state
 
     return False
