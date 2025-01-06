@@ -46,7 +46,7 @@ def _draw():
             j + flr(j + 0.7) * 16,
         )
 
-    print("T☉RUS\nKN☉T", 9, 9)
+    print("tOrus\nknOt", 9, 9)
 
 
 run(_init, _update, _draw)

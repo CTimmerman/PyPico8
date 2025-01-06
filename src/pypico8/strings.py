@@ -81,14 +81,14 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
         s,
     )
     # print
-    s = (
-        s.replace(BTN_X, "P0_X")
-        .replace(BTN_O, "P0_O")
-        .replace(BTN_LEFT, "P0_LEFT")
-        .replace(BTN_RIGHT, "P0_RIGHT")
-        .replace(BTN_UP, "P0_UP")
-        .replace(BTN_DOWN, "P0_DOWN")
-    )
+    # s = (
+    #     s.replace(BTN_X, "P0_X")
+    #     .replace(BTN_O, "P0_O")
+    #     .replace(BTN_LEFT, "P0_LEFT")
+    #     .replace(BTN_RIGHT, "P0_RIGHT")
+    #     .replace(BTN_UP, "P0_UP")
+    #     .replace(BTN_DOWN, "P0_DOWN")
+    # )
     s = re.sub(r"print\(?(\b[^\)]+?)\)?", r"print(\1)", s)
     s = re.sub(r"\?\s*(.*)", r"print(\1)", s)
 

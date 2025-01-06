@@ -68,7 +68,7 @@ def _draw():
     y = r(w) // 1 * 4
     print("◆", x, y, 0)
     print(chr(-r(2)), x, y, 7)
-    for _ in range(0, 100):
+    for _ in range(0, 1000):
         x = r(w)
         y = r(w)
         k = pget(x, y)

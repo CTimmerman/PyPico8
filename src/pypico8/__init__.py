@@ -13,6 +13,7 @@
 2021-02-08 v1.6 added sfx, music, clip, sgn.
 2021-02-09 v1.7 added pack, unpack. Fixed min, max, rnd, chr. Refactored.
 2021-02-14 v1.8 prt -> print, fillp.
+2025-01-04 v1.9 added deli, ipairs, select.
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
@@ -24,7 +25,7 @@ import pygame, pygame.freetype  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.math import atan2, ceil, cos, div, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
-from pypico8.table import Table, add, all, delete, foreach, pairs, pack, unpack  # noqa
+from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
 from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
 from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
 from pypico8.video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
@@ -197,11 +198,9 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                             begin += time() - pause_start
                             caption = pygame.display.get_caption()[0]
                             pygame.display.set_caption(caption[: -len(" PAUSED")])
+                    elif event.key == pygame.K_ESCAPE:
+                        running = False
                 elif event.type == pygame.QUIT:
-                    for thread in threads:
-                        thread.stop = True
-                    for thread in threads:
-                        thread.join()
                     running = False
 
             if not stopped:
@@ -213,6 +212,10 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
         builtins.print("Use div(a, b) instead.", file=sys.stderr)
         raise
 
+    for thread in threads:
+        thread.stop = True
+    for thread in threads:
+        thread.join()
     pygame.quit()
 
 

@@ -4,8 +4,11 @@
 
 # pylint:disable = function-redefined, global-statement, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-function-args, too-many-lines, unused-import, wrong-import-position
 import base64, io, math, os, sys  # noqa: E401
+
 # import builtins
 from typing import Union
+
+from emoji.tokenizer import tokenize
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
@@ -14,8 +17,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
 from pypico8.math import ceil, flr, shl, shr
-from pypico8.strings import PROBLEMATIC_MULTI_CHAR_CHARS, printh, tonum  # noqa:E401,F401
-# printh is for doctest.
+from pypico8.strings import (
+    PROBLEMATIC_MULTI_CHAR_CHARS,
+    printh,  # noqa:E401,F401  # printh is for doctest.
+    tonum,
+)
+
 from pypico8.table import Table
 
 
@@ -347,7 +354,7 @@ def map(cell_x, cell_y, sx, sy, cell_w=128, cell_h=32, layers=None):
             if v == 0:
                 continue
             if layers is not None and (fget(v) & layers):
-                    spr(map_sprites[xi + yi * 128], sx, sy)
+                spr(map_sprites[xi + yi * 128], sx, sy)
 
 
 def camera(x_offset=0, y_offset=0):
@@ -431,6 +438,7 @@ def draw_pattern(
     yr = range(area.top, area.bottom)
     # b = cel.get_view('a').raw
     # b = pygame.surfarray.pixels_alpha(cel)
+    read_mask = write_mask = peek(24414)
     for x in xr:
         xm = x % 4
         for y in yr:
@@ -441,6 +449,14 @@ def draw_pattern(
                     if is_off_color_visible:
                         surf.set_at(location, off_clr)
                 else:
+                    if read_mask:
+                        # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
+                        # dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
+                        dst_color = to_col(cel.get_at(location))
+                        on_clr = palette[
+                            (dst_color & ~write_mask)
+                            | (pen_color & write_mask & read_mask)
+                        ]
                     surf.set_at(location, on_clr)
 
 
@@ -571,7 +587,7 @@ def pal():  # noqa: F811
 def palt(coli: int | None = None, transparent: bool | None = None):
     """PALT(C, [T]) Set transparency for colour index to T (boolean)
     Transparency is observed by SPR(), SSPR(), MAP() AND TLINE()
-    
+
     PALT() resets to default: all colours opaque except colour 0
     """
     if coli is None and transparent is None:
@@ -619,6 +635,7 @@ def rgb2col(clr: tuple) -> int | None:
         if v[:3] == clr[:3]:
             return k
     return None
+
 
 def sget(x, y) -> int:
     """Get the color of a spritesheet pixel."""
@@ -671,7 +688,7 @@ def get_char_img(n: int):
 
 
 def ascii_to_pico8(s) -> str:
-    "Match source code char to Pico8 char."
+    "Match source code char to Pico8 char in docs/pico-8_font_020.png."
     # Pause Black formatter to not mess this up.
     # fmt: off
     ocr = [
@@ -683,7 +700,7 @@ def ascii_to_pico8(s) -> str:
         'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '[', '\\',']', '^', '_',
         '`', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
         'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '{', '|', '}', '?', '⚬',  # 128
-        '█', '▒','😈','⬇️','░', '✽','⚈', '♥', '⟐','웃','🏠','⬅️','☻', '♪','☉','♦',
+        '█', '▒','😈','⬇️','░', '✽','⚈', '♥', '⟐','웃','🏠','⬅️','☻', '♪','🅾️','♦',  # or ☉?
         '…','➡️','★','⧗','⬆️','ˇ','∧','❎','▤', '⦀','あ', 'い','う','え','お','か',
         'ぎ','く','け','こ','さ','し','す','せ', 'そ','た','ち','つ','て','と','な','に',
         'ぬ','ね','の','は','ひ','ふ','へ','ほ', 'ま','み','む','め','も','や','ゆ','よ',
@@ -697,9 +714,16 @@ def ascii_to_pico8(s) -> str:
     if s in PROBLEMATIC_MULTI_CHAR_CHARS:
         s = [s]  # Else Python takes multiple characters from it!
     for c in s:
+        if c == "O":  # torus_knot.py
+            c = "🅾️"
+        elif c == "X":  # implied by O
+            c = "❎"
+
         if c == "?":
             i = 63
         else:
+            if c in "abcdefghijklmnopqrstuvwxyz":
+                c = c.upper()
             try:
                 i = ocr.index(c)
             except ValueError:
@@ -728,7 +752,8 @@ def print(s, x=None, y=None, col=None):
             scroll(-7)
             cursor_y -= 7
         clr = rgb(col)
-        for c in ascii_to_pico8(s):
+        for c, _ in tokenize(s, True):
+            c = ascii_to_pico8(c)
             character = characters[ord(c)].copy()
             r = character.get_rect()
 
