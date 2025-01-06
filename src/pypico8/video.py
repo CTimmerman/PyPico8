@@ -170,7 +170,7 @@ def peek4(addr):
     return rv
 
 
-def poke(addr, val):
+def poke(addr: int, val: int) -> None:
     """
     Write one byte to an address in base ram.
     Legal addresses are 0x0..0x7fff
@@ -180,6 +180,8 @@ def poke(addr, val):
     if 0 <= addr <= 0x1FFF:  # Spritesheet
         spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
         spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
+    elif 24337 <= addr < 24337 + 16:
+        palette[addr - 24337] = val
     elif addr == 24364:  # video mode, 0x5F2C
         video_mode = val
         if val == 3:
@@ -221,13 +223,13 @@ def poke(addr, val):
     memory[addr] = val
 
 
-def poke2(addr, val):
+def poke2(addr: int, val: int) -> None:
     """Write 16 bits"""
     poke(addr, (int(val) >> 8) & 0b11111111)
     poke(addr + 1, int(val) & 0b11111111)
 
 
-def poke4(addr, val):
+def poke4(addr: int, val: int) -> None:
     """Write 32-bit float.
     >>> def p(v): poke4(0x5000, v); exec("for i in range(4): i8 = peek(0x5000 + i); printh(i8)")
     >>> p(1/512 + 1/4 + 42 + 256)
@@ -681,13 +683,13 @@ def get_char_img(n: int):
     """Return Surface with character N image."""
     x = n % 16 * 8
     y = n // 16 * 8
-    area = (x, y, 8, 8)
-    image = pygame.Surface((8, 8), pygame.SRCALPHA).convert_alpha()
-    image.blit(font_img, (0, 0), area)
+    area = (x, y, 8, 5)
+    image = pygame.Surface((9, 7), pygame.SRCALPHA).convert_alpha()
+    image.blit(font_img, (1, 1), area)
     return image
 
 
-def ascii_to_pico8(s) -> str:
+def utf8_to_p8scii(s: str) -> str:
     "Match source code char to Pico8 char in docs/pico-8_font_020.png."
     # Pause Black formatter to not mess this up.
     # fmt: off
@@ -700,7 +702,7 @@ def ascii_to_pico8(s) -> str:
         'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '[', '\\',']', '^', '_',
         '`', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
         'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '{', '|', '}', '?', '⚬',  # 128
-        '█', '▒','😈','⬇️','░', '✽','⚈', '♥', '⟐','웃','🏠','⬅️','☻', '♪','🅾️','♦',  # or ☉?
+        '█', '▒','😈','⬇️','░', '✽','⚈', '♥', '⟐','웃','🏠','⬅️','😐', '♪','🅾️','♦',  # or ☉ and ☻?
         '…','➡️','★','⧗','⬆️','ˇ','∧','❎','▤', '⦀','あ', 'い','う','え','お','か',
         'ぎ','く','け','こ','さ','し','す','せ', 'そ','た','ち','つ','て','と','な','に',
         'ぬ','ね','の','は','ひ','ふ','へ','ほ', 'ま','み','む','め','も','や','ゆ','よ',
@@ -741,19 +743,52 @@ def print(s, x=None, y=None, col=None):
     r"""TODO: https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
     For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
     """
-    global cursor_x, cursor_y
+    if s.startswith("\\^@"):
+        addr = int(s[3:7], 16)
+        n = int(s[7:11], 16)
+        for i in range(n):
+            poke(addr + i, ord(utf8_to_p8scii(s[11 + i])))
+        return
+    # spark.py uses 0x5f11 aka 24337 to set the palette.
+    if s.startswith("\\^!"):
+        addr = int(s[3:7], 16)
+        for i, c in enumerate(s[7:]):
+            poke(addr + i, ord(utf8_to_p8scii(c)))
+        return
+
+    global cursor_x, cursor_y, pen_color, off_color
     if x is not None:
         cursor_x = x
     if y is not None:
         cursor_y = y
 
+    background_rgb = None
     for s in str(s).split("\n"):  # noqa
         if y is None and cursor_y > 128 - 7:
             scroll(-7)
             cursor_y -= 7
         clr = rgb(col)
-        for c, _ in tokenize(s, True):
-            c = ascii_to_pico8(c)
+        tokens = list(c for c, _ in tokenize(s, True))
+        i = 0
+        invert = False
+        while i < len(tokens):
+            c = tokens[i]
+            if c == "\\" and i + 2 < len(tokens):
+                if tokens[i + 1] == "#":
+                    # Set background color for this print call only.
+                    background_rgb = PALETTE[int(tokens[i + 2], 16)]
+                    # foreground poke(24357, int(tokens[i + 2], 16))
+                    i += 3
+                    continue
+                if "".join(tokens[i : i + 3]) == "\\^i":
+                    invert = True
+                    i += 3
+                    continue
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == "\\^-i":
+                    invert = False
+                    i += 4
+                    continue
+            c = utf8_to_p8scii(c)
             character = characters[ord(c)].copy()
             r = character.get_rect()
 
@@ -761,12 +796,15 @@ def print(s, x=None, y=None, col=None):
                 for wi in range(r.w):
                     clr_at = character.get_at((wi, hi))
                     if clr_at[:3] != (0, 0, 0):
-                        character.set_at((wi, hi), clr)
+                        character.set_at((wi, hi), background_rgb if invert else clr)
+                    elif background_rgb is not None:
+                        character.set_at((wi, hi), clr if invert else background_rgb)
 
             # character.fill(color(col), special_flags=pygame.BLEND_MULT)  # uses 254? so nonzero color band values are 1 short!
 
-            surf.blit(character, (xo + cursor_x, yo + cursor_y))
+            surf.blit(character, (xo + cursor_x - 1, yo + cursor_y - 1))
             cursor_x += 4 if ord(c) < 128 else 8
+            i += 1
 
         if x is None:
             cursor_x = 0
@@ -1015,7 +1053,7 @@ def fillp(p: Union[int, str] = 0):
     global fill_pattern, off_color_visible
 
     if isinstance(p, str):  # ovals.py
-        index = ord(ascii_to_pico8(p))
+        index = ord(utf8_to_p8scii(p))
         character = characters[index].copy()
         # r = character.get_rect()
         p = 0
