@@ -110,14 +110,19 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     return s
 
 
-def tostr(val, use_hex=False):
-    "Value to string or hex string."
+def tostr(val, use_hex=False) -> str:
+    """Value to string or hex string.
+    >>> tostr(244)
+    '244'
+    >>> tostr(244, 1)
+    '0X00F4.0000'
+    """
     if use_hex:
-        return hex(val)
+        return f"0X{hex(val).upper()[2:]:>04}.0000"
     return str(val)
 
 
-def tonum(s):
+def tonum(s) -> int:
     """Converts a string representation of a decimal, hexadecimal,
     or binary number to a number value or None."""
     if type(s) in (int, float):
@@ -139,12 +144,12 @@ def tonum(s):
         return 0
 
 
-def chr(index):  # noqa
+def chr(index) -> str:  # noqa
     "Number string to char."
     return builtins.chr(flr(tonum(index) % 256))
 
 
-def ord(s, index=1):  # noqa
+def ord(s, index=1) -> int:  # noqa
     """
     >>> ord("@")
     64
@@ -155,7 +160,7 @@ def ord(s, index=1):  # noqa
     return builtins.ord(c)
 
 
-def sub(s, pos0, pos1=None):
+def sub(s: str, pos0: int, pos1: int | None=None) -> str:
     """
     Grab a substring from string str, from pos0 up to and including pos1.
     When pos1 is not specified, the remainer of the string is returned.
@@ -178,7 +183,7 @@ def sub(s, pos0, pos1=None):
     return s[pos0 : pos1]
 
 
-def split(s, separator=",", convert_numbers=True):
+def split(s: str, separator=",", convert_numbers=True) -> Table:
     """
     Split a string into a table of elements delimited by the given separator (defaults to ",").
     When convert_numbers is true, numerical tokens are stored as numbers (defaults to true).
@@ -200,7 +205,7 @@ def split(s, separator=",", convert_numbers=True):
                 if item == "":
                     result.append("")
                 else:
-                    result.append(tonum(item))
+                    result.append(tonum(item))  # type: ignore
             except ValueError:
                 result.append(item)
         else:

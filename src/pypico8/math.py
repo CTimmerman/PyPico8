@@ -1,5 +1,5 @@
 """The pico8 manual math section implementations.
-NOTE: Test with python math.py instad of python -m doctest math.py
+NOTE: Test with python math.py instead of python -m doctest math.py
 >>> flr(4.1)
 4
 >>> ceil(4.1)
@@ -14,12 +14,18 @@ NOTE: Test with python math.py instad of python -m doctest math.py
 import builtins, math, random  # noqa: E401
 from math import (
     ceil,  # noqa: F401
-    floor as flr,  # noqa: F401
+    floor,  # noqa: F401
 )  # unused here but maybe not elsewhere.
 
 import os, sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.infix import Infix
+
+
+def flr(v: int | float | str | None = 0) -> int:
+    "Returns floored integer."
+    return floor(float(v))  # type: ignore
 
 
 def max(first, second=0):
@@ -131,7 +137,9 @@ def _shr(x, n):
     """
     return x / 2**n
 
+
 shr = Infix(_shr)
+
 
 def srand(x=0):
     "Seed random number generator."
