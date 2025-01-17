@@ -30,7 +30,7 @@ def printh(s, filename=None, overwrite=False, save_to_desktop=False):
         filename = os.path.join(
             os.environ["HOMEPATH"], "Desktop", os.path.split(filename)[1]
         )
-    else:
+    elif filename:
         p = pathlib.Path(filename).resolve()
         p2 = pathlib.Path(sys.argv and sys.argv[0] or sys.executable).parent.resolve()
         if not str(p).startswith(str(p2)):
