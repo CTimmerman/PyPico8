@@ -1,6 +1,6 @@
 """Pico8 string functions."""
 # pylint:disable = import-outside-toplevel, multiple-imports, redefined-builtin, wrong-import-position
-import builtins, os, sys  # noqa: E401
+import builtins, os, pathlib, sys  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.math import flr
@@ -22,12 +22,19 @@ def printh(s, filename=None, overwrite=False, save_to_desktop=False):
     >>> printh('pico8 printh test', filename, overwrite=True, save_to_desktop=True)
     >>> open(os.path.join(os.environ["HOMEPATH"], "Desktop", os.path.split(filename)[1])).read()
     'pico8 printh test'
+    >>> printh('naughty',  '../../../../../../../../../../important')  # doctest:+ELLIPSIS
+    Traceback (most recent call last):
+    OSError: path ...
     """
     if save_to_desktop:
         filename = os.path.join(
             os.environ["HOMEPATH"], "Desktop", os.path.split(filename)[1]
         )
-    if filename:
+    elif filename:
+        p = pathlib.Path(filename).resolve()
+        p2 = pathlib.Path(sys.argv and sys.argv[0] or sys.executable).parent.resolve()
+        if not str(p).startswith(str(p2)):
+            raise IOError(f"path {p} not in {p2}")
         with open(filename, "w" if overwrite else "a", encoding="UTF8") as fp:
             fp.write(s)
     else:
