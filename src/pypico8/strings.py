@@ -30,11 +30,12 @@ def printh(s, filename=None, overwrite=False, save_to_desktop=False):
         filename = os.path.join(
             os.environ["HOMEPATH"], "Desktop", os.path.split(filename)[1]
         )
-    elif filename:
+    else:
         p = pathlib.Path(filename).resolve()
         p2 = pathlib.Path(sys.argv and sys.argv[0] or sys.executable).parent.resolve()
         if not str(p).startswith(str(p2)):
             raise IOError(f"path {p} not in {p2}")
+    if filename:
         with open(filename, "w" if overwrite else "a", encoding="UTF8") as fp:
             fp.write(s)
     else:
