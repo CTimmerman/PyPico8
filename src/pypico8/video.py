@@ -522,7 +522,7 @@ def draw_pattern(
                     if is_off_color_visible:
                         surf.set_at(location, off_clr)
                 else:
-                    if read_mask:
+                    if write_mask:
                         # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
                         # dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
                         dst_color = pget(x, y)  #to_col(cel.get_at(location))

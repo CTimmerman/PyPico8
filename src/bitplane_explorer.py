@@ -1,5 +1,4 @@
 """Bitplane Explorer ported from https://www.lexaloffle.com/bbs/?tid=54214
-FIXME: Read mask 0; 0x00 should be black insteadof 0xFF.
 """
 
 # pylint: disable=redefined-builtin
@@ -180,7 +179,6 @@ def _draw():
     for i in range(0, 15 + 1):
         u, v = i % 4 * 32, i // 4 * 32
         rectfill(u, v, u + 31, v + 31, i)
-    # }
 
     # handle buttons
     if btn(5):
@@ -193,7 +191,6 @@ def _draw():
         maskem = ""
         maskex = " ❎"
         # maskex = " 5"
-    # }
     if btn(4):
         dx, dy = axis(btnp())
         r0 += dx * 16
@@ -205,7 +202,6 @@ def _draw():
     else:
         colem = ""
         colex = " 🅾️"
-    # }
 
     # move
     if not btn(4) and not btn(5):
@@ -215,7 +211,6 @@ def _draw():
         btnex = "⬅️➡️⬆️⬇️"
     else:
         btnex = ""
-    # }
 
     # animate radius
     rgoal = r0
@@ -240,13 +235,10 @@ def _draw():
         print("            \\#00xrw")
     else:
         print("")
-    # }
+
     print(btnex, 0, 0)
     print(qf("poke(0x5f5e,%%)%", maskem, tobyte(val), maskex))
     print(qf("circfill(x,y,%%,%)%", colem, r0, col, colex))
-
-
-# }
 
 
 # >8
@@ -256,7 +248,6 @@ def axis(b):
     return b // 2 % 2 - b % 2, b // 8 % 2 - b // 4 % 2
 
 
-# }
 def tobyte(num: int) -> str:
     """
     >>> tobyte(244)
@@ -265,14 +256,10 @@ def tobyte(num: int) -> str:
     return "0x" + sub(tostr(num, 1), 5, 6)
 
 
-# }
 def approach(x, x1, dx):
     "Return increment that doesn't exceed target value."
     dx = dx or 1
     return x < x1 and min(x + dx, x1) or max(x - dx, x1)
-
-
-# }
 
 
 def qf(fmt: str, *argv) -> str:
@@ -283,11 +270,8 @@ def qf(fmt: str, *argv) -> str:
     for ix, pt in ipairs(parts):
         arg = select(ix, *argv)[1]
         s += tostr(arg) + pt
-    # }
+
     return str(s)
-
-
-# }
 
 
 def _update():
