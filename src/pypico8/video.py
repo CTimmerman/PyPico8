@@ -171,92 +171,93 @@ def peek4(addr: int) -> int:
     return rv
 
 
-def poke(addr: int, val: int = 0) -> None:
+def poke(addr: int, val: int = 0, *more) -> None:
     """
     Write one byte to an address in base ram.
     Legal addresses are 0x0..0x7fff
     Writing out of range causes a runtime error.
     """
     global SCREEN_SIZE, video_mode
-    if 0 <= addr <= 0x1FFF:  # Spritesheet
-        spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
-        spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
-    elif 0x2000 <= addr <= 0x2FFF:
-        # https://pico-8.fandom.com/wiki/Memory#Memory_map
-        pass
-    elif 0x3000 <= addr <= 0x30FF:
-        # https://pico-8.fandom.com/wiki/Memory#Sprite_flags
-        pass
-    elif 0x3100 <= addr <= 0x31FF:
-        # https://pico-8.fandom.com/wiki/Memory#Music
-        pass
-    elif 0x3200 <= addr <= 0x42FF:
-        # https://pico-8.fandom.com/wiki/Memory#Sound_effects
-        pass
-    elif 0x4300 <= addr <= 0x55FF:
-        # General use
-        pass
-    elif 0x5600 <= addr <= 0x5DFF:
-        # General use / custom font (Pico8 0.2.2+)
-        pass
-    elif 0x5E00 <= addr <= 0x5EFF:
-        # Persistent cart data (64 numbers = 256 bytes)
-        pass
-    elif 0x5F00 <= addr <= 0x5F3F:  # 24320 24383
-        # https://pico-8.fandom.com/wiki/Memory#Draw_state
-        if 24320 <= addr < 24351:
-            col = to_col(val)
-            printh(f"poking palette {addr - 24320} to {val} {col}: {palette[col]}")
-            palette[addr - 24320] = palette[col]
-            val = col
-        elif addr == 24364:  # video mode, 0x5F2C
-            video_mode = val
-            if val == 3:
-                SCREEN_SIZE = (64, 64)
-        elif addr == 24365:
-            pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
-        elif addr == 24367:
-            for thread in threads:
-                if val == 1:
-                    thread.do_work.clear()
-                elif val == 0:
-                    thread.do_work.set()
-        elif addr == 24372:
-            """
-            POKE(0x5F34, 1) -- sets integrated fillpattern + colour mode
-            CIRCFILL(64,64,20, 0x114E.ABCD) -- sets fill pattern to ABCD
+    for val in (val, *more):
+        if 0 <= addr <= 0x1FFF:  # Spritesheet
+            spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
+            spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
+        elif 0x2000 <= addr <= 0x2FFF:
+            # https://pico-8.fandom.com/wiki/Memory#Memory_map
+            pass
+        elif 0x3000 <= addr <= 0x30FF:
+            # https://pico-8.fandom.com/wiki/Memory#Sprite_flags
+            pass
+        elif 0x3100 <= addr <= 0x31FF:
+            # https://pico-8.fandom.com/wiki/Memory#Music
+            pass
+        elif 0x3200 <= addr <= 0x42FF:
+            # https://pico-8.fandom.com/wiki/Memory#Sound_effects
+            pass
+        elif 0x4300 <= addr <= 0x55FF:
+            # General use
+            pass
+        elif 0x5600 <= addr <= 0x5DFF:
+            # General use / custom font (Pico8 0.2.2+)
+            pass
+        elif 0x5E00 <= addr <= 0x5EFF:
+            # Persistent cart data (64 numbers = 256 bytes)
+            pass
+        elif 0x5F00 <= addr <= 0x5F3F:  # 24320 24383
+            # https://pico-8.fandom.com/wiki/Memory#Draw_state
+            if 24320 <= addr < 24351:
+                col = to_col(val)
+                printh(f"poking palette {addr - 24320} to {val} {col}: {palette[col]}")
+                palette[addr - 24320] = palette[col]
+                val = col
+            elif addr == 24364:  # video mode, 0x5F2C
+                video_mode = val
+                if val == 3:
+                    SCREEN_SIZE = (64, 64)
+            elif addr == 24365:
+                pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
+            elif addr == 24367:
+                for thread in threads:
+                    if val == 1:
+                        thread.do_work.clear()
+                    elif val == 0:
+                        thread.do_work.set()
+            elif addr == 24372:
+                """
+                POKE(0x5F34, 1) -- sets integrated fillpattern + colour mode
+                CIRCFILL(64,64,20, 0x114E.ABCD) -- sets fill pattern to ABCD
 
-            -- bit  0x1000.0000 means the non-colour bits should be observed
-            -- bit  0x0100.0000 transparency bit
-            -- bits 0x00FF.0000 are the usual colour bits
-            -- bits 0x0000.FFFF are interpreted as the fill pattern
-            """
-            pattern, colors = math.modf(val)
-            color(colors)
-            fillp(int(str(pattern)[2:]))
-    elif 0x5F40 <= addr <= 0x5F7F:  # 24384 24447
-        # https://pico-8.fandom.com/wiki/Memory#Hardware_state
-        if (
-            addr == 24414
-        ):  # 0x5F5E  # bitplane read (hi nibble) and write (lo nibble) masks.
-            printh(f"bitplane poke {val}")
-    else:
-        val = flr(val)
-        if 0x6000 <= addr <= 0x7FFF:  # 24576 32767  Screen data (8k)*
-            # * These are only the default regions for the sprite sheet and screen data. As of version 0.2.4, they can be remapped to be opposite of each other, or overlap a single region (see 0x5f54..0x5f55 below).
-            """
-            All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
-            Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
-            and the hi 4 bits being the right/odd pixel.
-            """
-            i = addr - 0x6000
-            row = int(i // 64)
-            surf.set_at((i % 64 * 2, row), palette[val & 0b1111])
-            surf.set_at((i % 64 * 2 + 1, row), palette[(val & 0b11110000) >> 4])
+                -- bit  0x1000.0000 means the non-colour bits should be observed
+                -- bit  0x0100.0000 transparency bit
+                -- bits 0x00FF.0000 are the usual colour bits
+                -- bits 0x0000.FFFF are interpreted as the fill pattern
+                """
+                pattern, colors = math.modf(val)
+                color(colors)
+                fillp(int(str(pattern)[2:]))
+        elif 0x5F40 <= addr <= 0x5F7F:  # 24384 24447
+            # https://pico-8.fandom.com/wiki/Memory#Hardware_state
+            if (
+                addr == 24414
+            ):  # 0x5F5E  # bitplane read (hi nibble) and write (lo nibble) masks.
+                printh(f"bitplane poke {val}")
+        else:
+            val = flr(val)
+            if 0x6000 <= addr <= 0x7FFF:  # 24576 32767  Screen data (8k)*
+                # * These are only the default regions for the sprite sheet and screen data. As of version 0.2.4, they can be remapped to be opposite of each other, or overlap a single region (see 0x5f54..0x5f55 below).
+                """
+                All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
+                Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
+                and the hi 4 bits being the right/odd pixel.
+                """
+                i = addr - 0x6000
+                row = int(i // 64)
+                surf.set_at((i % 64 * 2, row), palette[val & 0b1111])
+                surf.set_at((i % 64 * 2 + 1, row), palette[(val & 0b11110000) >> 4])
 
-        # 0x8000	0xffff	General use / extended map (0.2.4+)
+            # 0x8000	0xffff	General use / extended map (0.2.4+)
 
-    memory[addr] = val
+        memory[addr] = val
 
 
 def poke2(addr: int, val: int) -> None:
