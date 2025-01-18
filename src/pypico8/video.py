@@ -39,20 +39,20 @@ CLIP_Y1_PT = 24353
 CLIP_X2_PT = 24354
 CLIP_Y2_PT = 24355
 
-cursor_x: int
-cursor_y: int
+cursor_x: int = 0
+cursor_y: int = 0
 off_color: int
-off_color_visible: bool
-palette: dict
+off_color_visible: bool = True
+palette: dict = {}
 pen_color: int
 pen_x: int | None = None
 pen_y: int | None = None
 surf: pygame.Surface
-xo: int
-yo: int
+xo: int = 0
+yo: int = 0
 
 characters: list = []
-fill_pattern: int
+fill_pattern: int = 0
 font_img: pygame.Surface
 spritesheet: pygame.Surface
 sprite_flags: list = []
@@ -115,10 +115,11 @@ Colour format (gfx/screen) is 2 pixels per byte: low bits encode the left pixel 
 Map format is one byte per cel, where each byte normally encodes a sprite index.
 """
 
-memory = [0] * 2**15
+memory = [0] * 65535  # 16 bit (15 until Pico8 0.2.4)
+memory[24414] = 255  # bitplane mode disabled
 
 
-def peek(addr: int):
+def peek(addr: int) -> int:
     """
     Read one byte from an address in base ram.
     Legal addresses are 0x0..0x7fff
@@ -140,12 +141,12 @@ def peek(addr: int):
         return 0
 
 
-def peek2(addr):
+def peek2(addr: int) -> int:
     """Read 16 bits"""
     return (peek(addr) << 8) + peek(addr + 1)
 
 
-def peek4(addr):
+def peek4(addr: int) -> int:
     """Read a 32-bit float.
     >>> a = 0x5000
     >>> poke4(a, -(1/512 + 1/4 + 42 + 256)); peek4(a)
@@ -170,7 +171,7 @@ def peek4(addr):
     return rv
 
 
-def poke(addr: int, val: int) -> None:
+def poke(addr: int, val: int = 0) -> None:
     """
     Write one byte to an address in base ram.
     Legal addresses are 0x0..0x7fff
@@ -180,36 +181,69 @@ def poke(addr: int, val: int) -> None:
     if 0 <= addr <= 0x1FFF:  # Spritesheet
         spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
         spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
-    elif 24337 <= addr < 24337 + 16:
-        palette[addr - 24337] = val
-    elif addr == 24364:  # video mode, 0x5F2C
-        video_mode = val
-        if val == 3:
-            SCREEN_SIZE = (64, 64)
-    elif addr == 24365:
-        pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
-    elif addr == 24367:
-        for thread in threads:
-            if val == 1:
-                thread.do_work.clear()
-            elif val == 0:
-                thread.do_work.set()
-    elif addr == 24372:
-        """
-        POKE(0x5F34, 1) -- sets integrated fillpattern + colour mode
-        CIRCFILL(64,64,20, 0x114E.ABCD) -- sets fill pattern to ABCD
+    elif 0x2000 <= addr <= 0x2FFF:
+        # https://pico-8.fandom.com/wiki/Memory#Memory_map
+        pass
+    elif 0x3000 <= addr <= 0x30FF:
+        # https://pico-8.fandom.com/wiki/Memory#Sprite_flags
+        pass
+    elif 0x3100 <= addr <= 0x31FF:
+        # https://pico-8.fandom.com/wiki/Memory#Music
+        pass
+    elif 0x3200 <= addr <= 0x42FF:
+        # https://pico-8.fandom.com/wiki/Memory#Sound_effects
+        pass
+    elif 0x4300 <= addr <= 0x55FF:
+        # General use
+        pass
+    elif 0x5600 <= addr <= 0x5DFF:
+        # General use / custom font (Pico8 0.2.2+)
+        pass
+    elif 0x5E00 <= addr <= 0x5EFF:
+        # Persistent cart data (64 numbers = 256 bytes)
+        pass
+    elif 0x5F00 <= addr <= 0x5F3F:  # 24320 24383
+        # https://pico-8.fandom.com/wiki/Memory#Draw_state
+        if 24320 <= addr < 24351:
+            col = to_col(val)
+            printh(f"poking palette {addr - 24320} to {val} {col}: {palette[col]}")
+            palette[addr - 24320] = palette[col]
+            val = col
+        elif addr == 24364:  # video mode, 0x5F2C
+            video_mode = val
+            if val == 3:
+                SCREEN_SIZE = (64, 64)
+        elif addr == 24365:
+            pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
+        elif addr == 24367:
+            for thread in threads:
+                if val == 1:
+                    thread.do_work.clear()
+                elif val == 0:
+                    thread.do_work.set()
+        elif addr == 24372:
+            """
+            POKE(0x5F34, 1) -- sets integrated fillpattern + colour mode
+            CIRCFILL(64,64,20, 0x114E.ABCD) -- sets fill pattern to ABCD
 
-        -- bit  0x1000.0000 means the non-colour bits should be observed
-        -- bit  0x0100.0000 transparency bit
-        -- bits 0x00FF.0000 are the usual colour bits
-        -- bits 0x0000.FFFF are interpreted as the fill pattern
-        """
-        pattern, colors = math.modf(val)
-        color(colors)
-        fillp(int(str(pattern)[2:]))
+            -- bit  0x1000.0000 means the non-colour bits should be observed
+            -- bit  0x0100.0000 transparency bit
+            -- bits 0x00FF.0000 are the usual colour bits
+            -- bits 0x0000.FFFF are interpreted as the fill pattern
+            """
+            pattern, colors = math.modf(val)
+            color(colors)
+            fillp(int(str(pattern)[2:]))
+    elif 0x5F40 <= addr <= 0x5F7F:  # 24384 24447
+        # https://pico-8.fandom.com/wiki/Memory#Hardware_state
+        if (
+            addr == 24414
+        ):  # 0x5F5E  # bitplane read (hi nibble) and write (lo nibble) masks.
+            printh(f"bitplane poke {val}")
     else:
         val = flr(val)
-        if 0x6000 <= addr <= 0x7FFF:  # 24576-32767
+        if 0x6000 <= addr <= 0x7FFF:  # 24576 32767  Screen data (8k)*
+            # * These are only the default regions for the sprite sheet and screen data. As of version 0.2.4, they can be remapped to be opposite of each other, or overlap a single region (see 0x5f54..0x5f55 below).
             """
             All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
             Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
@@ -219,6 +253,8 @@ def poke(addr: int, val: int) -> None:
             row = int(i // 64)
             surf.set_at((i % 64 * 2, row), palette[val & 0b1111])
             surf.set_at((i % 64 * 2 + 1, row), palette[(val & 0b11110000) >> 4])
+
+        # 0x8000	0xffff	General use / extended map (0.2.4+)
 
     memory[addr] = val
 
@@ -274,7 +310,7 @@ def poke4(addr: int, val: int) -> None:
     poke(addr + 3, whole >> 8 & 0xFF)
 
 
-def memcpy(dest_addr, source_addr, length):
+def memcpy(dest_addr: int, source_addr: int, length: int) -> None:
     """
     Copy len bytes of base ram from source to dest
     Sections can be overlapping
@@ -286,7 +322,7 @@ def memcpy(dest_addr, source_addr, length):
         poke(dest_addr + i, val)
 
 
-def flip():
+def flip() -> None:
     """
     Flip the back buffer to screen and wait for next frame
     Don't normally need to do this -- _draw() calls it for you.
@@ -327,7 +363,15 @@ def mset(x: int, y: int, v: int) -> None:
     map_sprites[x + y * 128] = v
 
 
-def map(cell_x, cell_y, sx, sy, cell_w=128, cell_h=32, layers=None):
+def map(
+    cell_x: int,
+    cell_y: int,
+    sx: int,
+    sy: int,
+    cell_w: int = 128,
+    cell_h: int = 32,
+    layers: int | None = None,
+) -> None:
     """
     Draw section of map (starting from cell_x, cell_y) at screen position sx, sy (pixels)
 
@@ -359,56 +403,78 @@ def map(cell_x, cell_y, sx, sy, cell_w=128, cell_h=32, layers=None):
                 spr(map_sprites[xi + yi * 128], sx, sy)
 
 
-def camera(x_offset=0, y_offset=0):
+def camera(x_offset: int = 0, y_offset: int = 0) -> tuple:
     """
     Set a screen offset of -x, -y for all drawing operations
         camera() to reset
     """
     global xo, yo
+    prev_state = (xo, yo)
     xo = -x_offset
     yo = -y_offset
+    return prev_state
 
 
-def clip(x=0, y=0, w=SCREEN_SIZE[0], h=SCREEN_SIZE[1]) -> tuple:
+def clip(
+    x: int = 0,
+    y: int = 0,
+    w: int = SCREEN_SIZE[0],
+    h: int = SCREEN_SIZE[1],
+    clip_previous=False,
+) -> tuple:
     """
     When the draw state has a clipping rectangle set, all draw operations will not affect any pixels in the
     graphics buffer outside of this rectangle. This is useful for reserving parts of the screen
 
     When called without arguments, the function resets the clipping region to be the entire screen and returns
     the previous state as 4 return values x, y, w, h (since PICO-8 0.2.0d).
+
+    camera(), cursor(), color(), pal(), palt(), fillp(), clip() return their previous state.
     """
+    prev_state = (
+        peek(CLIP_X1_PT),
+        peek(CLIP_Y1_PT),
+        peek(CLIP_X2_PT),
+        peek(CLIP_Y2_PT),
+    )
     poke(CLIP_X1_PT, x)
     poke(CLIP_Y1_PT, y)
     poke(CLIP_X2_PT, x + w)
     poke(CLIP_Y2_PT, y + h)
-    surf.set_clip((x, y, x + w, y + h))
-    return (x, y, w, h)
+    surf.set_clip((x, y, w, h))
+    return prev_state
 
 
-def circ(x, y, radius=4, col: int | None = None, _border=1):
+def circ(
+    x: int, y: int, radius: int = 4, col: int | None = None, _border: bool = True
+) -> None:
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
     if radius > 0:
         cel = surf.copy()
+        # if peek(24414) == 255:
         cel.fill((0, 0, 0, 0))
         is_off_color_visible = off_color_visible  # color() resets it
 
         area = pygame.draw.circle(cel, rgb(col), pos(x, y), ceil(radius), _border)
-
+        # surf.blit(cel, (0, 0))
+        # return
         draw_pattern(area, cel, is_off_color_visible)
 
 
-def circfill(x, y, r=4, col: int | None = None):
+def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
     """
-    circ(x, y, r, col, 0)
+    circ(x, y, r, col, False)
 
 
-def oval(x0, y0, x1, y1, col: int | None = None, _border=1):
+def oval(
+    x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border: bool = True
+) -> None:
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
     if x1 < x0:
         x0, x1 = x1, x0
@@ -462,12 +528,77 @@ def draw_pattern(
                     surf.set_at(location, on_clr)
 
 
-def ovalfill(x0, y0, x1, y1, col: int | None = None):
+# def draw_pattern(
+#     area: pygame.Rect,
+#     cel: pygame.Surface | None = None,
+#     is_off_color_visible: bool = True,
+# ) -> None:
+#     "Draws global fill_pattern. NOTE: pset bypasses this."
+#     if cel is None:
+#         cel = surf
+#     on_clr = palette[pen_color]
+#     off_clr = palette[off_color]
+#     xr = range(area.left, area.right)
+#     yr = range(area.top, area.bottom)
+#     # b = cel.get_view('a').raw
+#     # b = pygame.surfarray.pixels_alpha(cel)
+#     bitplane_mode = peek(24414)  # 0x5F5E
+#     read_mask = (bitplane_mode & 0xF0) >> 4
+#     write_mask = bitplane_mode & 0x0F
+#     if frame_count % 10000 == 0:
+#         printh(
+#             f"draw_pattern bitplane mode {bitplane_mode} read_mask {read_mask} write_mask {write_mask} frame {frame_count}"
+#         )
+#     for x in xr:
+#         xm = x % 4
+#         for y in yr:
+#             location = (x, y)
+#             cel_color = cel.get_at(location)
+#             if fill_pattern >> (15 - (xm + 4 * (y % 4))) & 1:
+#                 if is_off_color_visible:
+#                     surf.set_at(location, off_clr)
+#             else:
+#                 # Should be color 15:
+#                 if bitplane_mode == 255:
+#                     if cel_color.a == 0:
+#                         return
+#                 #     # else:
+#                 #     #     printh(f"YAY {cel_color.a}")
+#                 #     #     surf.set_at(location, on_clr)
+#                 #     #     return
+#                 # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
+#                 # dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
+
+#                 dst_col = pget(x, y)
+#                 new_dst_col = dst_col & ~write_mask | (
+#                     pen_color & write_mask & read_mask
+#                 )
+#                 if frame_count % 100 == 0:
+#                     printh(
+#                         f"pen_color {pen_color} dst_col {dst_col} write_mask {write_mask} => {new_dst_col}"
+#                     )
+#                 on_clr = palette[pen_color]  # palette[new_dst_col]
+#                 # dst_color = (pget(x, y) & ~write_mask) | (
+#                 #     pen_color & write_mask & read_mask
+#                 # )
+#                 # printh("DST:" + str(dst_color))
+#                 # on_clr = to_col(dst_color)
+#                 # printh("ON:" + str(on_clr))
+#                 surf.set_at(location, on_clr)
+
+
+def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
-    oval(x0, y0, x1, y1, col, 0)
+    oval(x0, y0, x1, y1, col, False)
 
 
-def line(x0, y0, x1=None, y1=None, col: int | None = None):
+def line(
+    x0: int,
+    y0: int,
+    x1: int | None = None,
+    y1: int | None = None,
+    col: int | None = None,
+) -> None:
     """Draw line. If x1,y1 are not given the end of the last drawn line is used"""
     global pen_x, pen_y
     if pen_x is None:
@@ -492,7 +623,7 @@ def line(x0, y0, x1=None, y1=None, col: int | None = None):
     draw_pattern(area, cel, is_off_color_visible)
 
 
-def rect(x0, y0, x1, y1, col: int | None = None, _border=1):
+def rect(x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border=1) -> None:
     """Draw a rectangle."""
     if x1 < x0:
         x0, x1 = x1, x0
@@ -516,12 +647,12 @@ def rect(x0, y0, x1, y1, col: int | None = None, _border=1):
     )
 
 
-def rectfill(x0, y0, x1, y1, col: int | None = None):
+def rectfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
     """Draw a filled rectangle."""
     rect(x0, y0, x1, y1, col, 0)
 
 
-def replace_screen_color(old_col, new_col):
+def replace_screen_color(old_col: int, new_col: int) -> None:
     "Replace screen color."
     img_copy = surf.copy()
     cls(new_col)
@@ -530,7 +661,7 @@ def replace_screen_color(old_col, new_col):
 
 
 @multimethod(int, int, int)
-def pal(old_col: int, new_col: int, remap_screen: int = 0):
+def pal(old_col: int, new_col: int, remap_screen: int = 0) -> None:
     """pal() swaps (NOT - neon_jellyfish.py) old_col for new_col for one of two (TODO) palette re-mappings"""
     global dark_mode
     dark_mode = remap_screen
@@ -543,19 +674,19 @@ def pal(old_col: int, new_col: int, remap_screen: int = 0):
 
 
 @multimethod(int, int)  # type: ignore
-def pal(old_col: int, new_col: int):  # noqa: F811
+def pal(old_col: int, new_col: int) -> None:  # noqa: F811
     """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
     pal(old_col, new_col, 0)
 
 
 @multimethod(int, float)  # type: ignore
-def pal(old_col: int, new_col: float):  # noqa: F811
+def pal(old_col: int, new_col: float) -> None:  # noqa: F811
     """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
     pal(old_col, flr(new_col), 0)
 
 
 @multimethod(Table, int)  # type: ignore
-def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
+def pal(tbl: Table, remap_screen: int = 0) -> None:  # noqa: F811
     """
     When the first parameter of pal is a table, colours are assigned (not swapped!) for each entry.
     For example, to re-map colour 12 and 14 to red:
@@ -571,27 +702,30 @@ def pal(tbl: Table, remap_screen: int = 0):  # noqa: F811
 
 
 @multimethod(list, int)  # type: ignore
-def pal(tbl: list, remap_screen: int = 0):  # noqa: F811
+def pal(tbl: list, remap_screen: int = 0) -> None:  # noqa: F811
     """0-based palette replacement."""
     for i, col in enumerate(tbl):
         pal(i, col, remap_screen)
 
 
 @multimethod()  # type: ignore
-def pal():  # noqa: F811
+def pal() -> dict:  # noqa: F811
     """Resets to system defaults (including transparency values and fill pattern)"""
     global dark_mode, palette
     dark_mode = 0
+    prev_state = palette
     palette = PALETTE.copy()
     fillp()
+    return prev_state
 
 
-def palt(coli: int | None = None, transparent: bool | None = None):
+def palt(coli: int | None = None, transparent: bool | None = None) -> dict:
     """PALT(C, [T]) Set transparency for colour index to T (boolean)
     Transparency is observed by SPR(), SSPR(), MAP() AND TLINE()
 
     PALT() resets to default: all colours opaque except colour 0
     """
+    prev_state = palette.copy()
     if coli is None and transparent is None:
         for c in palette:  # noqa
             r, g, b, *_ = palette[c]
@@ -599,27 +733,38 @@ def palt(coli: int | None = None, transparent: bool | None = None):
     else:
         r, g, b, *_ = palette[coli]
         palette[coli] = (r, g, b, 0 if transparent else 255)
+    return prev_state
 
 
-def pos(x, y):
+def pos(x: int, y: int) -> tuple:
     """Returns floored and camera-offset x,y tuple.
     Setting out of bounds is possible, but getting is not; mod in callers for get_at.
     """
     return (flr(xo + x), flr(yo + y))
 
 
-def pget(x, y) -> int:
-    """Get the color of a pixel at x, y."""
+def pget(x: int, y: int) -> int:
+    """Get the palette color of a pixel at x, y.
+    >>> pget(-1, -1)
+    0
+    >>> pget(128, 128)
+    0
+    """
+    if x < 0 or y < 0 or x > 127 or y > 127:
+        return 0
     p = pos(x, y)
-    clr = surf.get_at((p[0] % SCREEN_SIZE[0], p[1] % SCREEN_SIZE[1]))
+    clr = surf.get_at((p[0], p[1]))[:3]
+    # XXX: Why not rgb2col?
+    # k129 v(17, 29, 53, 255)
+    # k128 v(41, 24, 20, 255)
     col = 0
     for k, v in list(palette.items())[::-1]:
-        if v == clr:
+        if v[:3] == clr[:3]:
             col = k
     return col
 
 
-def pset(x: int, y: int, col: int | None = None):
+def pset(x: int, y: int, col: int | None = None) -> None:
     """Set the color of a pixel at x, y."""
     color(col)
     on_clr = palette[pen_color]
@@ -639,7 +784,7 @@ def rgb2col(clr: tuple) -> int | None:
     return None
 
 
-def sget(x, y) -> int:
+def sget(x: int, y: int) -> int:
     """Get the color of a spritesheet pixel."""
     p = pos(x, y)
     clr = spritesheet.get_at((p[0] % SCREEN_SIZE[0], p[1] % SCREEN_SIZE[1]))
@@ -651,35 +796,39 @@ def sget(x, y) -> int:
     return col
 
 
-def sset(x, y, col=None):
+def sset(x: int, y: int, col=None) -> None:
     """Set the color of a spritesheet pixel."""
-    spritesheet.set_at(pos(x, y), rgb(col))
+    spritesheet.set_at(pos(x, y), palette[col])
 
 
-def fget(n: int, flag_index: int | None = None):
+def fget(n: int, flag_index: int | None = None) -> int:
     """Get sprite n flag_index (0..7; not 1-based like Table) value, or combined flags value."""
+    if n < 0 or n > 255:
+        return 0
     if flag_index is None:
         return sprite_flags[n]
     return sprite_flags[n] & (1 << flag_index)
 
 
-def fset(n: int, f: int | None = None, v: bool | None = None):
-    """
+def fset(n: int, f: int = 0, v: bool | None = None) -> None:
+    """Set sprite n flag bit value.
     >>> fset(2, 1+2+8)  # sets bits 0,1 and 3
     >>> fset(2, 4, True)  # sets bit 4
     >>> printh(fget(2))  # (1+2+8+16)
     27
     """
+    if n < 0 or n > 255:
+        return
     # global sprite_flags
     if v is None:  # f not provided. No function overloading in Python.
-        sprite_flags[n] = f
+        sprite_flags[n] = f % 256
     if v:
         sprite_flags[n] |= 1 << f
     else:
         sprite_flags[n] &= ~(1 << f)
 
 
-def get_char_img(n: int):
+def get_char_img(n: int) -> pygame.Surface:
     """Return Surface with character N image."""
     x = n % 16 * 8
     y = n // 16 * 8
@@ -739,7 +888,7 @@ def utf8_to_p8scii(s: str) -> str:
     return ps
 
 
-def print(s, x=None, y=None, col=None):
+def print(s, x=None, y=None, col=None) -> None:
     r"""TODO: https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
     For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
     """
@@ -820,23 +969,25 @@ def print(s, x=None, y=None, col=None):
         cursor_y += 6
 
 
-def scroll(dy: int):
+def scroll(dy: int) -> None:
     "Shift surface pixels by offset dy."
     surf_old = surf.copy()
     surf.fill((0, 0, 0))
     surf.blit(surf_old, (0, dy))
 
 
-def cursor(x, y, col=None):
+def cursor(x: int, y: int, col=None) -> tuple:
     """
     Set the cursor position and carriage return margin
     If col is specified, also set the current color.
     """
     global cursor_x, cursor_y, pen_color
+    prev_state = (cursor_x, cursor_y, pen_color)
     cursor_x = x
     cursor_y = y
     if col is not None:
         pen_color = col
+    return prev_state
 
 
 PALETTE = {
@@ -875,14 +1026,14 @@ PALETTE = {
 }
 
 
-def to_col(col=None) -> int:
-    "XXX: Return palette index?"
+def to_col(col: int | float | None = None) -> int:
+    """Take number and return palette index."""
     return flr(col) & (
         0x8F if dark_mode or peek(0x5F2E) else 0b1111
     )  # https://youtu.be/AsVzk6kCAJY?t=434
 
 
-def color(col=None):
+def color(col: int | float | None = None) -> int:
     """https://www.lexaloffle.com/pico-8.php?page=manual
     Set the current color to be used by drawing functions
     If col is not specified, the current color is set to 6?
@@ -920,13 +1071,14 @@ def color(col=None):
     return old_col
 
 
-def rgb(col):
-    "Return RGB from color index."
-    color(col)
+def rgb(col: int | None = None) -> tuple:
+    "Set pen color and return RGB from palette."
+    if col is not None:
+        color(col)
     return palette[pen_color]
 
 
-def cls(col=0):
+def cls(col: int = 0) -> None:
     """
     Clear the screen and reset the clipping rectangle. col defaults to 0 (black)
     cls() also sets the text cursor in the draw state to (0, 0).
@@ -1022,7 +1174,7 @@ def sspr(
     surf.blit(sprite, (dx, dy))
 
 
-def fillp(p: Union[int, str] = 0):
+def fillp(p: Union[int, str] = 0) -> int:
     """
     The PICO-8 fill pattern is a 4x4 2-colour tiled pattern observed by:
     circ() circfill() rect() rectfill() oval() ovalfill() pset() line()
@@ -1045,6 +1197,11 @@ def fillp(p: Union[int, str] = 0):
     This can be more neatly expressed in 16-bit binary: FILLP(0b0011001111001100)
     The default fill pattern is 0, which means a single solid colour is drawn.
 
+    >>> reset()
+    >>> fillp(-3855.25)
+    0
+    >>> fillp(-3855.25)
+    -3855.25
     >>> fillp(32768); rectfill(0, 0, 10, 10)
     >>> pget(0, 0)
     0
@@ -1083,11 +1240,12 @@ def fillp(p: Union[int, str] = 0):
     # s = f"{bin(p)[2:]:0>16}"
     # for i in range(0, 16, 4):
     #     printh(s[i : i + 4])
-
+    prev_state = fill_pattern
     fill_pattern = p
+    return prev_state
 
 
-def reset():
+def reset() -> None:
     """Reset the draw state, including palette, camera position, clipping and fill pattern."""
     global pen_color, off_color
     pen_color = 6
