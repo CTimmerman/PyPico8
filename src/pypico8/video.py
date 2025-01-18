@@ -258,6 +258,7 @@ def poke(addr: int, val: int = 0, *more) -> None:
             # 0x8000	0xffff	General use / extended map (0.2.4+)
 
         memory[addr] = val
+        addr += 1
 
 
 def poke2(addr: int, val: int) -> None:
