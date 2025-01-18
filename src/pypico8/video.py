@@ -240,7 +240,8 @@ def poke(addr: int, val: int = 0, *more) -> None:
             if (
                 addr == 24414
             ):  # 0x5F5E  # bitplane read (hi nibble) and write (lo nibble) masks.
-                printh(f"bitplane poke {val}")
+                # printh(f"bitplane poke {val}")
+                pass
         else:
             val = flr(val)
             if 0x6000 <= addr <= 0x7FFF:  # 24576 32767  Screen data (8k)*
@@ -508,7 +509,9 @@ def draw_pattern(
     yr = range(area.top, area.bottom)
     # b = cel.get_view('a').raw
     # b = pygame.surfarray.pixels_alpha(cel)
-    read_mask = write_mask = peek(24414)
+    bitplane_mode = peek(24414)  # 0x5F5E
+    read_mask = (bitplane_mode & 0xF0) >> 4
+    write_mask = bitplane_mode & 0x0F
     for x in xr:
         xm = x % 4
         for y in yr:
@@ -522,7 +525,7 @@ def draw_pattern(
                     if read_mask:
                         # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
                         # dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
-                        dst_color = to_col(cel.get_at(location))
+                        dst_color = pget(x, y)  #to_col(cel.get_at(location))
                         on_clr = palette[
                             (dst_color & ~write_mask)
                             | (pen_color & write_mask & read_mask)

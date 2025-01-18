@@ -1,8 +1,9 @@
 """Bitplane Explorer ported from https://www.lexaloffle.com/bbs/?tid=54214
-TODO: FIXME
+FIXME: Read mask 0; 0x00 should be black insteadof 0xFF.
 """
 
-from pypico8 import (  # noqa
+# pylint: disable=redefined-builtin
+from pypico8 import (
     btn,
     btnp,
     circ,
@@ -24,7 +25,7 @@ from pypico8 import (  # noqa
     sub,
     run,
     time,
-    tostr
+    tostr,
 )
 
 
@@ -142,6 +143,14 @@ end
     )
 )
 
+col: int = 0
+read: int = 0
+write: int = 0
+x: int = 0
+y: int = 0
+r: int = 0
+r0: int = 0
+
 
 def _init():
     global col, read, write, x, y, r0
@@ -164,6 +173,7 @@ def _init():
 
 def _draw():
     global col, r, r0, read, write, x, y
+
     cls()
 
     # draw palette
@@ -177,12 +187,12 @@ def _draw():
         dx, dy = axis(btnp())
         read += dx
         write -= dy
-        maskem = "\#0\^i"  # TODO: \# P0 : background color
+        maskem = r"\#0\^i"  # bg color 0 and invert bg and fg color.
         maskex = " ⬅️➡️⬆️⬇️"
     else:
         maskem = ""
-        maskex=" ❎"
-        #maskex = " 5"
+        maskex = " ❎"
+        # maskex = " 5"
     # }
     if btn(4):
         dx, dy = axis(btnp())
@@ -190,7 +200,7 @@ def _draw():
         r0 = mid(16, 96, r0)
         col -= dy
         col &= 0xF
-        colem = "\#0\^i"
+        colem = r"\#0\^i"
         colex = " ⬅️➡️⬆️⬇️"
     else:
         colem = ""
@@ -227,39 +237,56 @@ def _draw():
     cursor(0, 0)
     color(7)
     if btn(5):
-        print("            \#00xrw")
+        print("            \\#00xrw")
     else:
         print("")
     # }
     print(btnex, 0, 0)
     print(qf("poke(0x5f5e,%%)%", maskem, tobyte(val), maskex))
     print(qf("circfill(x,y,%%,%)%", colem, r0, col, colex))
+
+
 # }
 
 
 # >8
 # helpers
 def axis(b):
+    "Arrow button to direction."
     return b // 2 % 2 - b % 2, b // 8 % 2 - b // 4 % 2
+
+
 # }
-def tobyte(num):
+def tobyte(num: int) -> str:
+    """
+    >>> tobyte(244)
+    '0xF4'
+    """
     return "0x" + sub(tostr(num, 1), 5, 6)
+
+
 # }
 def approach(x, x1, dx):
+    "Return increment that doesn't exceed target value."
     dx = dx or 1
     return x < x1 and min(x + dx, x1) or max(x - dx, x1)
+
+
 # }
 
 
-def qf(fmt, *argv):
+def qf(fmt: str, *argv) -> str:
+    "Format string."
     parts = split(fmt, "%", False)
-    s = deli(parts, 1)
+    s = deli(parts, 1)  # type: ignore
     # printh(f"fmt\"{fmt}\" argv{argv} parts{parts}")
     for ix, pt in ipairs(parts):
         arg = select(ix, *argv)[1]
         s += tostr(arg) + pt
     # }
-    return s
+    return str(s)
+
+
 # }
 
 
