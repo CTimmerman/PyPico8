@@ -181,7 +181,9 @@ def poke(addr: int, val: int = 0, *more) -> None:
     for val in (val, *more):
         if 0 <= addr <= 0x1FFF:  # Spritesheet
             spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
-            spritesheet.set_at((addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111])
+            spritesheet.set_at(
+                (addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111]
+            )
         elif 0x2000 <= addr <= 0x2FFF:
             # https://pico-8.fandom.com/wiki/Memory#Memory_map
             pass
@@ -507,8 +509,6 @@ def draw_pattern(
     off_clr = palette[off_color]
     xr = range(area.left, area.right)
     yr = range(area.top, area.bottom)
-    # b = cel.get_view('a').raw
-    # b = pygame.surfarray.pixels_alpha(cel)
     bitplane_mode = peek(24414)  # 0x5F5E
     read_mask = (bitplane_mode & 0xF0) >> 4
     write_mask = bitplane_mode & 0x0F
@@ -517,79 +517,18 @@ def draw_pattern(
         for y in yr:
             location = (x, y)
             if cel.get_at(location)[3] != 0:
-                # if b[x][y] != 0:
                 if fill_pattern >> (15 - (xm + 4 * (y % 4))) & 1:
                     if is_off_color_visible:
                         surf.set_at(location, off_clr)
                 else:
                     if write_mask:
                         # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
-                        # dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
-                        dst_color = pget(x, y)  #to_col(cel.get_at(location))
+                        dst_color = pget(x, y)
                         on_clr = palette[
                             (dst_color & ~write_mask)
                             | (pen_color & write_mask & read_mask)
                         ]
                     surf.set_at(location, on_clr)
-
-
-# def draw_pattern(
-#     area: pygame.Rect,
-#     cel: pygame.Surface | None = None,
-#     is_off_color_visible: bool = True,
-# ) -> None:
-#     "Draws global fill_pattern. NOTE: pset bypasses this."
-#     if cel is None:
-#         cel = surf
-#     on_clr = palette[pen_color]
-#     off_clr = palette[off_color]
-#     xr = range(area.left, area.right)
-#     yr = range(area.top, area.bottom)
-#     # b = cel.get_view('a').raw
-#     # b = pygame.surfarray.pixels_alpha(cel)
-#     bitplane_mode = peek(24414)  # 0x5F5E
-#     read_mask = (bitplane_mode & 0xF0) >> 4
-#     write_mask = bitplane_mode & 0x0F
-#     if frame_count % 10000 == 0:
-#         printh(
-#             f"draw_pattern bitplane mode {bitplane_mode} read_mask {read_mask} write_mask {write_mask} frame {frame_count}"
-#         )
-#     for x in xr:
-#         xm = x % 4
-#         for y in yr:
-#             location = (x, y)
-#             cel_color = cel.get_at(location)
-#             if fill_pattern >> (15 - (xm + 4 * (y % 4))) & 1:
-#                 if is_off_color_visible:
-#                     surf.set_at(location, off_clr)
-#             else:
-#                 # Should be color 15:
-#                 if bitplane_mode == 255:
-#                     if cel_color.a == 0:
-#                         return
-#                 #     # else:
-#                 #     #     printh(f"YAY {cel_color.a}")
-#                 #     #     surf.set_at(location, on_clr)
-#                 #     #     return
-#                 # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
-#                 # dst_color = (dst_color & ~write_mask) | (src_color & write_mask & read_mask)
-
-#                 dst_col = pget(x, y)
-#                 new_dst_col = dst_col & ~write_mask | (
-#                     pen_color & write_mask & read_mask
-#                 )
-#                 if frame_count % 100 == 0:
-#                     printh(
-#                         f"pen_color {pen_color} dst_col {dst_col} write_mask {write_mask} => {new_dst_col}"
-#                     )
-#                 on_clr = palette[pen_color]  # palette[new_dst_col]
-#                 # dst_color = (pget(x, y) & ~write_mask) | (
-#                 #     pen_color & write_mask & read_mask
-#                 # )
-#                 # printh("DST:" + str(dst_color))
-#                 # on_clr = to_col(dst_color)
-#                 # printh("ON:" + str(on_clr))
-#                 surf.set_at(location, on_clr)
 
 
 def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
