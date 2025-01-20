@@ -56,7 +56,7 @@ fill_pattern: int = 0
 font_img: pygame.Surface
 spritesheet: pygame.Surface
 sprite_flags: list = []
-video_mode: int
+video_mode: int = 0
 
 
 def _init_video() -> None:
@@ -211,11 +211,10 @@ def poke(addr: int, val: int = 0, *more) -> None:
                 col = to_col(val)
                 printh(f"poking palette {addr - 24320} to {val} {col}: {palette[col]}")
                 palette[addr - 24320] = palette[col]
-                val = col
-            elif addr == 24364:  # video mode, 0x5F2C
+                val = col                
+            elif addr == 24364:
+                # video mode, 0x5F2C. https://www.reddit.com/r/pico8/comments/s4o8l6/comment/hstbjcf/
                 video_mode = val
-                if val == 3:
-                    SCREEN_SIZE = (64, 64)
             elif addr == 24365:
                 pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
             elif addr == 24367:
@@ -336,12 +335,59 @@ def flip() -> None:
     frame_count += 1
     screen.fill(0)
     # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
-    if video_mode == 7:
+
+    if video_mode == 1:
+        # horizontal stretch, 64x128 screen, left half of normal screen
+        #SCREEN_SIZE = (64, 128)
+        topleft = surf.subsurface(0, 0, 64, 128)
+        screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
+    elif video_mode == 2:
+        # vertical stretch, 128x64 screen, top half of normal screen
+        #SCREEN_SIZE = (128, 64)
+        topleft = surf.subsurface((0, 0, 128, 64))
+        screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
+    elif video_mode == 3:
+        # both stretch, 64x64 screen, top left quarter of normal screen
+        #SCREEN_SIZE = (64, 64)
+        topleft = surf.subsurface((0, 0, 64, 64))
+        screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
+    elif video_mode == 5:
+        # horizontal mirroring, left half copied and flipped to right half
+        #SCREEN_SIZE = (64, 64)
+        topleft = surf.subsurface((0, 0, 64, 128))
+        screen.blit(topleft, (0, 0))
+        screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
+    elif video_mode == 6:
+        # vertical mirroring, top half copied and flipped to bottom half
+        #SCREEN_SIZE = (64, 64)
+        topleft = surf.subsurface((0, 0, 128, 64))
+        screen.blit(topleft, (0, 0))
+        screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
+    elif video_mode == 7:
+        # both mirroring, top left quarter copied and flipped to other quarters
         topleft = surf.subsurface((0, 0, 64, 64))
         screen.blit(pygame.transform.flip(topleft, 0, 0), (0, 0))
         screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
         screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
         screen.blit(pygame.transform.flip(topleft, 1, 1), (64, 64))
+    elif video_mode == 129:
+        # horizontal flip
+        screen.blit(pygame.transform.flip(surf, 1, 0), (0, 0))
+    elif video_mode == 130:
+        # vertical flip
+        screen.blit(pygame.transform.flip(surf, 0, 1), (0, 0))
+    elif video_mode == 131:
+        # both flip
+        screen.blit(pygame.transform.flip(surf, 1, 1), (0, 0))
+    elif video_mode == 133:
+        # clockwise 90 degree rotation
+        screen.blit(pygame.transform.rotate(surf, -90), (0, 0))
+    elif video_mode == 134:
+        # 180 degree rotation (effectively equivalent to 131)
+        screen.blit(pygame.transform.rotate(surf, 180), (0, 0))
+    elif video_mode == 135:
+        # counterclockwise 90 degree rotation
+        screen.blit(pygame.transform.rotate(surf, 90), (0, 0))
     else:
         screen.blit(surf, (0, 0))
 
@@ -463,7 +509,7 @@ def circ(
         cel.fill((0, 0, 0, 0))
         is_off_color_visible = off_color_visible  # color() resets it
 
-        area = pygame.draw.circle(cel, rgb(col), pos(x, y), ceil(radius), _border)
+        area = pygame.draw.circle(cel, col2rgb(col), pos(x, y), ceil(radius), _border)
         # surf.blit(cel, (0, 0))
         # return
         draw_pattern(area, cel, is_off_color_visible)
@@ -491,7 +537,7 @@ def oval(
     is_off_color_visible = off_color_visible  # color() resets it
 
     area = pygame.draw.ellipse(
-        cel, rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+        cel, col2rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
 
     draw_pattern(area, cel, is_off_color_visible)
@@ -563,7 +609,7 @@ def line(
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     is_off_color_visible = off_color_visible
-    area = pygame.draw.line(cel, rgb(col), pos(x0, y0), pos(x1, y1))
+    area = pygame.draw.line(cel, col2rgb(col), pos(x0, y0), pos(x1, y1))
     draw_pattern(area, cel, is_off_color_visible)
 
 
@@ -584,7 +630,7 @@ def rect(x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border=1) 
 
     draw_pattern(
         pygame.draw.rect(
-            cel, rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+            cel, col2rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
         ),
         cel,
         is_off_color_visible,
@@ -600,21 +646,25 @@ def replace_screen_color(old_col: int, new_col: int) -> None:
     "Replace screen color."
     img_copy = surf.copy()
     cls(new_col)
-    img_copy.set_colorkey(rgb(old_col))
+    img_copy.set_colorkey(col2rgb(old_col))
     surf.blit(img_copy, (0, 0))
 
 
 @multimethod(int, int, int)
-def pal(old_col: int, new_col: int, remap_screen: int = 0) -> None:
-    """pal() swaps (NOT - neon_jellyfish.py) old_col for new_col for one of two (TODO) palette re-mappings"""
-    global dark_mode
-    dark_mode = remap_screen
+def pal(old_col: int, new_col: int, p: int = 0) -> None:
+    """pal() changes the draw state so all instances of a given color are replaced with a new color.
+    p: palette (0 for draw, 1 for display, 2 for secondary)
+    """
+    # global dark_mode
+    # dark_mode = p
     old_col = to_col(old_col)
     new_col = to_col(new_col)
-    if remap_screen:
+    if p == 0:
+        palette[old_col] = palette[new_col]
+    elif p == 1:
         replace_screen_color(old_col, new_col)
-
-    palette[old_col] = PALETTE[new_col]
+    elif p == 2:
+        poke(0x5f60 + old_col, new_col)
 
 
 @multimethod(int, int)  # type: ignore
@@ -694,18 +744,19 @@ def pget(x: int, y: int) -> int:
     >>> pget(128, 128)
     0
     """
+    # Good
+    p = pos(x, y)
+    x, y = p
     if x < 0 or y < 0 or x > 127 or y > 127:
         return 0
-    p = pos(x, y)
-    clr = surf.get_at((p[0], p[1]))[:3]
+
+    rgb = surf.get_at(p)[:3]
     # XXX: Why not rgb2col?
-    # k129 v(17, 29, 53, 255)
-    # k128 v(41, 24, 20, 255)
-    col = 0
-    for k, v in list(palette.items())[::-1]:
-        if v[:3] == clr[:3]:
-            col = k
-    return col
+    # for k, v in palette.items():
+    #     if v[:3] == rgb:
+    #         return k  # Bad at step -1, so good color is the first instance!
+    # return 0
+    return rgb2col(rgb)
 
 
 def pset(x: int, y: int, col: int | None = None) -> None:
@@ -720,24 +771,35 @@ def pset(x: int, y: int, col: int | None = None) -> None:
         surf.set_at(pos(x, y), on_clr)
 
 
-def rgb2col(clr: tuple) -> int | None:
-    "RGB tuple to color index."
+def rgb2col(rgb: tuple, dynamic_palette=True) -> int:
+    """RGB tuple to color index.
+    FIXME: isle_hopper, merry_xmas, neon_jellyfish
+    """
+    rgb = rgb[:3]
+    # #for k, v in PALETTE.items(): # break snek.py but needed by fake_sprite and neon_jellyfish!
+    # for k, v in list(palette.items())[::-1]:  # breaks snek.py
+    #     if v[:3] == rgb:
+    #         return k
+    # return 0
+    if dynamic_palette:
+        for k, v in palette.items():
+            if v[:3] == rgb:
+                return k  # Bad at step -1, so good color is the first instance!
+    # Needed by nice_tutorial, test_doctest?
     for k, v in PALETTE.items():
-        if v[:3] == clr[:3]:
-            return k
-    return None
+        if v[:3] == rgb:
+            return k  # ??? Bad at step -1, so good color is the first instance!
+    #printh(f"palette {palette}\nPALETTE {PALETTE}\nmiss {rgb}")
+    return 0
 
 
 def sget(x: int, y: int) -> int:
     """Get the color of a spritesheet pixel."""
     p = pos(x, y)
-    clr = spritesheet.get_at((p[0] % SCREEN_SIZE[0], p[1] % SCREEN_SIZE[1]))
-    col = 0
-    for k, v in PALETTE.items():
-        if v[:3] == clr[:3]:
-            col = k
-
-    return col
+    x, y = p
+    if x < 0 or y < 0 or x > 127 or y > 127:
+        return 0
+    return rgb2col(spritesheet.get_at(p)[:3])
 
 
 def sset(x: int, y: int, col=None) -> None:
@@ -857,7 +919,7 @@ def print(s, x=None, y=None, col=None) -> None:
         cursor_y = y
 
     bg_rgb = None
-    fg_rgb = rgb(col)
+    fg_rgb = col2rgb(col)
     for ln in s.split("\n"):  # noqa
         if y is None and cursor_y > 128 - 7:
             scroll(-7)
@@ -1015,11 +1077,11 @@ def color(col: int | float | None = None) -> int:
     return old_col
 
 
-def rgb(col: int | None = None) -> tuple:
+def col2rgb(col: int | None = None) -> tuple:
     "Set pen color and return RGB from palette."
     if col is not None:
-        color(col)
-    return palette[pen_color]
+        color(col)  # sets pen_color
+    return palette[pen_color] 
 
 
 def cls(col: int = 0) -> None:

@@ -62,20 +62,20 @@ def pico8_to_python(s):
         r"function\b\s*([^)]+)\)", r"def \1):\n    ", s
     )  # Note: Extra parameters are default None.
     s = s.replace("end", "# }")
-    # operators
-    s = s.replace("...", "*argv")
-    s = s.replace("..", "+")
-    s = s.replace("^", "**")
-    s = s.replace("/", "|div|")
-    s = s.replace("\\", "|divi|")
-    s = s.replace(">>", "|shr|")
-    s = re.sub(r"//\s*1\b", "#int()", s)
-    s = s.replace("~=", "!=")
-    s = re.sub(r",%([a-zA-Z0-9]+)", r",peek2(\1)", s)
     # comments
     s = re.sub(r"--\[\[(.*?)\]\]", r"'''\1'''", s, flags=re.DOTALL)
     s = re.sub(r"\[\[(.*?)\]\]", r'"""\1"""', s, flags=re.DOTALL)
     s = s.replace("--", "#")
+    # operators
+    s = s.replace("...", "*argv")
+    s = s.replace("..", "+")
+    s = re.sub(r"//\s*1\b", "#int()", s)
+    s = s.replace("~=", "!=")
+    s = s.replace(">>", "|shr|")
+    s = s.replace("/", "|div|")
+    s = re.sub(r"\\([^n])", r"|divi|\1", s)
+    s = s.replace("^", "**")
+    s = re.sub(r",%([a-zA-Z0-9]+)", r",peek2(\1)", s)
     # loops, whose variable is local to the loop (TODO). https://www.lexaloffle.com/bbs/?pid=51130#p
     s = re.sub(r"([0-9)\] ])\s*do\b", r"\1:", s)
     s = re.sub(

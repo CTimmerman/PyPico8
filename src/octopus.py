@@ -1,4 +1,5 @@
 """Octopus ported from https://twitter.com/picoter8/status/1330759076943376384
+Purple/blue tentacles in the dark.
 """
 from pypico8 import circfill, cls, cos, run, sin, t
 

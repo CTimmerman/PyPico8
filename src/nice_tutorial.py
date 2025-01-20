@@ -1,7 +1,7 @@
-"""Fake Sprite ported from https://twitter.com/YerisTR/status/1228768088277094400
-and https://twitter.com/MunroHoberman/status/1228829417499189248
+"""Nice Tutorial ported from https://x.com/MunroHoberman/status/1228829417499189248
 """
-import pypico8
+
+# pylint: disable = global-variable-undefined, missing-function-docstring, redefined-builtin
 from pypico8 import (
     Table,
     circfill,
@@ -10,6 +10,7 @@ from pypico8 import (
     memcpy,
     pal,
     pico8_to_python,
+    poke,
     print,
     printh,
     run,
@@ -41,32 +42,23 @@ flip()goto _"""
 def _init():
     global c, d, size, p
     cls()
-    print("NICE\nTUTORIAL")
+    print("nice\ntutorial")
     memcpy(0, 0x6000, 2048)  # copy screen to spritesheet.
     c = 4
     d = 6
     size = 5
     p = Table([1, 2, 8, 14, 15])
 
+    poke(24364, 0)
+
 
 def _update():
     pass
 
 
-def fake_sprite():
-    for y in range(0, 5):
-        for x in range(0, 25):
-            col = sget(x, y)
-            if col > 0:
-                xt = 30 + x * (size) + sin(t() + y / 10) * 3
-                yt = 85 + y * size
-                circfill(xt, yt, size - 1, p[y + 1])
-
-
 def _draw():
     """Rainbow zoom."""
     cls()
-    pypico8.video.surf.blit(pypico8.video.spritesheet, (0, 0))
     scale = sin(t() / 9) + 2
     # rainbow
     for i in range(1, 8 + 1):
@@ -85,8 +77,6 @@ def _draw():
                         c * scale,
                         d * scale,
                     )
-
-    fake_sprite()
 
 
 run(_init, _update, _draw)
