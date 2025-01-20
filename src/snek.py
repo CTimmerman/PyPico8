@@ -1,5 +1,6 @@
 """Snek ported from https://twitter.com/2DArray/status/1354223916013793284
 """
+
 from pypico8 import Table, circfill, cls, pal, pico8_to_python, printh, run, sin, t
 
 

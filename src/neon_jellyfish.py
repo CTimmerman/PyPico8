@@ -1,6 +1,7 @@
 """Neon Jellyfish ported from https://twitter.com/von_rostock/status/1335561342321881088
 TODO: fix colors
 """
+
 # pylint: disable=redefined-builtin
 from pypico8 import (
     Table,

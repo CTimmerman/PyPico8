@@ -1,5 +1,6 @@
 """Tides of Progress ported from https://twitter.com/MunroHoberman/status/1363231958772441089
 """
+
 # flake8:noqa
 from pypico8 import *
 
@@ -35,7 +36,7 @@ def _update():
 
 def _draw():
     global f
-    for _  in range(3000):
+    for _ in range(3000):
         e = t() / 8
         x = rnd(2)
         y = rnd(2)

@@ -1,5 +1,6 @@
 """Code Golf ported from https://twitter.com/MBoffin/status/1346539275131580417
 """
+
 from pypico8 import Table, circfill, cls, cos, div, line, rnd, run, sin, t
 
 '''

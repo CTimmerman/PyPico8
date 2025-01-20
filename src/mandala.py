@@ -1,5 +1,6 @@
 """Mandala ported from https://twitter.com/lexaloffle/status/1325757361215078401
 """
+
 from pypico8 import (
     cls,
     cos,

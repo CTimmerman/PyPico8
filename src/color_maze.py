@@ -1,5 +1,6 @@
 """Color Maze ported from https://twitter.com/ValerADHD/status/1331855383045025792
 """
+
 from pypico8 import (  # noqa
     chr,
     cls,

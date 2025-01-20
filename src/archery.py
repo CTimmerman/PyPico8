@@ -1,5 +1,7 @@
 """Archery ported from https://twitter.com/MunroHoberman/status/1361011664452259843
+Hold button to pull bow.
 """
+
 # pylint: disable=redefined-builtin
 from pypico8 import (
     cls,
