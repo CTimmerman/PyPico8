@@ -1,4 +1,5 @@
 """Pico8 string functions."""
+
 # pylint:disable = import-outside-toplevel, multiple-imports, redefined-builtin, wrong-import-position
 import builtins, os, pathlib, sys  # noqa: E401
 
@@ -80,9 +81,9 @@ def pico8_to_python(s):
     s = re.sub(r"([0-9)\] ])\s*do\b", r"\1:", s)
     s = re.sub(
         r"for (.*?)=(.+?),(.+?),(.+?):",
-        r'''\1 = \2\nwhile 1:
+        r"""\1 = \2\nwhile 1:
 if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round(\1 + \4, 4)
-''',
+""",
         s,
     )
     s = re.sub(
@@ -168,7 +169,7 @@ def ord(s, index=1) -> int:  # noqa
     return builtins.ord(c)
 
 
-def sub(s: str, pos0: int, pos1: int | None=None) -> str:
+def sub(s: str, pos0: int, pos1: int | None = None) -> str:
     """
     Grab a substring from string str, from pos0 up to and including pos1.
     When pos1 is not specified, the remainer of the string is returned.
@@ -188,7 +189,7 @@ def sub(s: str, pos0: int, pos1: int | None=None) -> str:
             pos1 += 1
             if pos1 >= 0:
                 pos1 = None
-    return s[pos0 : pos1]
+    return s[pos0:pos1]
 
 
 def split(s: str, separator=",", convert_numbers=True) -> Table:

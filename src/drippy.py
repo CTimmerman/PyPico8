@@ -1,6 +1,7 @@
 """Drippy demo ported from https://www.lexaloffle.com/bbs/?pid=22497#p
 2021-01-18 Cees Timmerman added lines.
 """
+
 from pypico8 import line, pget, pico8_to_python, printh, pset, rectfill, rnd, run, stat
 
 printh(
@@ -72,6 +73,9 @@ def _init():
     c = 8
 
 
+last_mouse_buttons = 0
+
+
 def _draw():
     global last_mouse_buttons
     # hide cursor?
@@ -87,7 +91,7 @@ def _draw():
             line(x, y, col=c)
         else:
             line(x, y, x, y, c)
-    
+
     last_mouse_buttons = mouse_buttons
 
     # spr(48, x + 2, y + 2)  # Where do they get their fancy sprites and how do they barely leave a trail?
@@ -101,9 +105,9 @@ def _update():
     c = c + 0.1
     if c >= 16:
         c = 8
-    
+
     # drip
-    for i in range(1, 100 + 1):
+    for _ in range(1, 100 + 1):
         x2 = rnd(128)
         y2 = rnd(128)
         col = pget(x2, y2)

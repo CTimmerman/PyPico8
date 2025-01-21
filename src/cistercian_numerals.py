@@ -1,6 +1,7 @@
 """Cistercian numerals ported from https://twitter.com/lexaloffle/status/1357029681703178241
 Each character can represent 1 to 9999. https://en.wikipedia.org/wiki/Cistercian_numerals
 """
+
 from pypico8 import (
     Table,
     cls,
@@ -57,9 +58,9 @@ def _draw():
             L(x, y, x, y + 9)
             for j in range(0, 3 + 1):
                 z = (j & 2) * 5
-                #L()
+                # L()
                 n, u, v = p[q % 10] or 0, 3 * (j & 1) * 2 - 3, 3 * (j & 2) - 3
-                for i in range(0, 2 + 1):
+                for _ in range(0, 2 + 1):
                     L(
                         x - u * (n & 8) / 8,
                         y - v * (n & 4) / 4 + z,

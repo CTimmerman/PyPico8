@@ -238,7 +238,7 @@ def deli(t: Table, i: int | None = None) -> Any | None:
     rv = None
     reindex = False
     for j, k in enumerate(list(t.keys())):
-        if j+1 == i:
+        if j + 1 == i:
             rv = t[k]
             if j + 1 == len(t):
                 del t[k]

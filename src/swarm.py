@@ -1,5 +1,6 @@
 """Swarm ported from https://twitter.com/MunroHoberman/status/1358777612206821376
 """
+
 from pypico8 import (
     Table,
     add,

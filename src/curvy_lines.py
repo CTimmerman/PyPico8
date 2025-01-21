@@ -1,5 +1,6 @@
 """Curvy Lines ported from https://twitter.com/picoter8/status/1344334600479404034
 """
+
 from pypico8 import camera, cls, line, run, sin, sqrt, t
 
 

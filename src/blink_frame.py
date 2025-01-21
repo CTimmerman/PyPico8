@@ -1,6 +1,7 @@
 """Blink Frame ported from https://pico-8.fandom.com/wiki/Pal
 Move code ported from https://www.lexaloffle.com/pico8_manual.txt#:~:text=interactive
 """
+
 from pypico8 import btn, circfill, cls, pal, run
 
 

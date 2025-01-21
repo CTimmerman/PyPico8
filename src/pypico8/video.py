@@ -150,7 +150,7 @@ def peek4(addr: int) -> int:
     """Read a 32-bit float.
     >>> a = 0x5000
     >>> poke4(a, -(1/512 + 1/4 + 42 + 256)); peek4(a)
-    -298.251953125
+    -298.252
     >>> v = 2**15; poke4(a, v); peek4(a)
     -32768.0
     >>> v = 2**15-1; poke4(a, v); peek4(a)
@@ -168,7 +168,7 @@ def peek4(addr: int) -> int:
     )
     if int(rv) & 2**15:
         rv = -0xFFFF + rv - 1
-    return rv
+    return round(rv, 4)
 
 
 def poke(addr: int, val: int = 0, *more) -> None:
@@ -177,7 +177,7 @@ def poke(addr: int, val: int = 0, *more) -> None:
     Legal addresses are 0x0..0x7fff
     Writing out of range causes a runtime error.
     """
-    global SCREEN_SIZE, video_mode
+    global video_mode
     for val in (val, *more):
         if 0 <= addr <= 0x1FFF:  # Spritesheet
             spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
@@ -211,7 +211,7 @@ def poke(addr: int, val: int = 0, *more) -> None:
                 col = to_col(val)
                 printh(f"poking palette {addr - 24320} to {val} {col}: {palette[col]}")
                 palette[addr - 24320] = palette[col]
-                val = col                
+                val = col
             elif addr == 24364:
                 # video mode, 0x5F2C. https://www.reddit.com/r/pico8/comments/s4o8l6/comment/hstbjcf/
                 video_mode = val
@@ -338,28 +338,23 @@ def flip() -> None:
 
     if video_mode == 1:
         # horizontal stretch, 64x128 screen, left half of normal screen
-        #SCREEN_SIZE = (64, 128)
         topleft = surf.subsurface(0, 0, 64, 128)
         screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
     elif video_mode == 2:
         # vertical stretch, 128x64 screen, top half of normal screen
-        #SCREEN_SIZE = (128, 64)
         topleft = surf.subsurface((0, 0, 128, 64))
         screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
     elif video_mode == 3:
         # both stretch, 64x64 screen, top left quarter of normal screen
-        #SCREEN_SIZE = (64, 64)
         topleft = surf.subsurface((0, 0, 64, 64))
         screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
     elif video_mode == 5:
         # horizontal mirroring, left half copied and flipped to right half
-        #SCREEN_SIZE = (64, 64)
         topleft = surf.subsurface((0, 0, 64, 128))
         screen.blit(topleft, (0, 0))
         screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
     elif video_mode == 6:
         # vertical mirroring, top half copied and flipped to bottom half
-        #SCREEN_SIZE = (64, 64)
         topleft = surf.subsurface((0, 0, 128, 64))
         screen.blit(topleft, (0, 0))
         screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
@@ -480,7 +475,18 @@ def clip(
     When called without arguments, the function resets the clipping region to be the entire screen and returns
     the previous state as 4 return values x, y, w, h (since PICO-8 0.2.0d).
 
+    When CLIP_PREVIOUS is true, clip the new clipping region by the old one.
+
     camera(), cursor(), color(), pal(), palt(), fillp(), clip() return their previous state.
+
+    >>> peek4(24352)  # Pico8 hides trailing zeroes.
+    -32640.0
+    >>> clip(10, 20, 30, 40)
+    (0, 0, 128, 128)
+    >>> clip(0, 0, 64, 64, 1)
+    (10, 20, 40, 60)
+    >>> peek4(24352)
+    15400.0783
     """
     prev_state = (
         peek(CLIP_X1_PT),
@@ -488,6 +494,13 @@ def clip(
         peek(CLIP_X2_PT),
         peek(CLIP_Y2_PT),
     )
+    if clip_previous:
+        ox, oy, ow, oh = prev_state
+        x = max(x, ox)
+        y = max(y, oy)
+        w = min(w, ow - ox)
+        h = min(h, oh - oy)
+
     poke(CLIP_X1_PT, x)
     poke(CLIP_Y1_PT, y)
     poke(CLIP_X2_PT, x + w)
@@ -663,8 +676,10 @@ def pal(old_col: int, new_col: int, p: int = 0) -> None:
         palette[old_col] = palette[new_col]
     elif p == 1:
         replace_screen_color(old_col, new_col)
+        # diamonds.py snek.py
+        palette[old_col] = palette[new_col]
     elif p == 2:
-        poke(0x5f60 + old_col, new_col)
+        poke(0x5F60 + old_col, new_col)
 
 
 @multimethod(int, int)  # type: ignore
@@ -692,14 +707,14 @@ def pal(tbl: Table, remap_screen: int = 0) -> None:  # noqa: F811
     PAL({1,1,5,5,5,6,7,13,6,7,7,6,13,6,7}, 1)
     """
     for i, col in enumerate(tbl):
-        pal(i + 1, col, remap_screen)
+        pal((i + 1 % 16), col, remap_screen)
 
 
 @multimethod(list, int)  # type: ignore
 def pal(tbl: list, remap_screen: int = 0) -> None:  # noqa: F811
     """0-based palette replacement."""
     for i, col in enumerate(tbl):
-        pal(i, col, remap_screen)
+        pal(i + 1, col, remap_screen)
 
 
 @multimethod()  # type: ignore
@@ -717,13 +732,18 @@ def palt(coli: int | None = None, transparent: bool | None = None) -> dict:
     """PALT(C, [T]) Set transparency for colour index to T (boolean)
     Transparency is observed by SPR(), SSPR(), MAP() AND TLINE()
 
+    When C is the only parameter, it is treated as a bitfield used to set all 16 values. For example: to set colours 0 and 1 as transparent:
+    PALT(0B1100000000000000)
+
     PALT() resets to default: all colours opaque except colour 0
     """
     prev_state = palette.copy()
     if coli is None and transparent is None:
-        for c in palette:  # noqa
-            r, g, b, *_ = palette[c]
-            palette[c] = (r, g, b, 255 if c > 0 else 0)
+        for c, clr in palette.items():
+            palette[c] = (*clr[:3], 255 if c > 0 else 0)
+    elif transparent is None:
+        for i in range(16):
+            palette[i] = (*palette[i][:3], 0 if coli & (i << (16 - i)) else 255)
     else:
         r, g, b, *_ = palette[coli]
         palette[coli] = (r, g, b, 0 if transparent else 255)
@@ -751,11 +771,6 @@ def pget(x: int, y: int) -> int:
         return 0
 
     rgb = surf.get_at(p)[:3]
-    # XXX: Why not rgb2col?
-    # for k, v in palette.items():
-    #     if v[:3] == rgb:
-    #         return k  # Bad at step -1, so good color is the first instance!
-    # return 0
     return rgb2col(rgb)
 
 
@@ -789,7 +804,7 @@ def rgb2col(rgb: tuple, dynamic_palette=True) -> int:
     for k, v in PALETTE.items():
         if v[:3] == rgb:
             return k  # ??? Bad at step -1, so good color is the first instance!
-    #printh(f"palette {palette}\nPALETTE {PALETTE}\nmiss {rgb}")
+    # printh(f"palette {palette}\nPALETTE {PALETTE}\nmiss {rgb}")
     return 0
 
 
@@ -1079,9 +1094,10 @@ def color(col: int | float | None = None) -> int:
 
 def col2rgb(col: int | None = None) -> tuple:
     "Set pen color and return RGB from palette."
+    global pen_color
     if col is not None:
         color(col)  # sets pen_color
-    return palette[pen_color] 
+    return palette[pen_color]
 
 
 def cls(col: int = 0) -> None:
@@ -1180,7 +1196,7 @@ def sspr(
     surf.blit(sprite, (dx, dy))
 
 
-def fillp(p: Union[int, str] = 0) -> int:
+def fillp(p: int | float | str = 0) -> int:
     """
     The PICO-8 fill pattern is a 4x4 2-colour tiled pattern observed by:
     circ() circfill() rect() rectfill() oval() ovalfill() pset() line()
@@ -1206,9 +1222,8 @@ def fillp(p: Union[int, str] = 0) -> int:
     >>> reset()
     >>> fillp(-3855.25)
     0
-    >>> fillp(-3855.25)
-    -3855.25
     >>> fillp(32768); rectfill(0, 0, 10, 10)
+    -3855.25
     >>> pget(0, 0)
     0
     >>> pget(1, 0)
@@ -1239,7 +1254,7 @@ def fillp(p: Union[int, str] = 0) -> int:
         p = tonum(p)
 
     # 65535 = full off color 16-bit pattern.
-    p &= 0b1111111111111111  # type: ignore
+    # p = int(p) & 0b1111111111111111  # type: ignore
 
     # pygame.image.save(fill_pattern, "fill_pattern.png")
     # printh(f"fillp {p}:")

@@ -1,5 +1,6 @@
 """Jenga ported from https://twitter.com/kometbomb/status/1360666863177449473
 """
+
 from pypico8 import (
     cls,
     cos,

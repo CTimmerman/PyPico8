@@ -1,5 +1,6 @@
 """Rogue Intelligence ported from https://twitter.com/MunroHoberman/status/1361314323012988938
 """
+
 # pylint: disable=redefined-builtin
 from pypico8 import (
     Table,

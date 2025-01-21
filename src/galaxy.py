@@ -1,5 +1,6 @@
 """Galaxy ported from https://twitter.com/2DArray/status/1357871341769289730
 """
+
 from pypico8 import (
     Table,
     atan2,

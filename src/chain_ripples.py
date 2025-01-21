@@ -1,5 +1,6 @@
 """Chain Ripples PICO-8 demo ported from https://twitter.com/picoter8/status/1329225930196332545
 """
+
 from pypico8 import cls, cos, rectfill, run, t
 
 

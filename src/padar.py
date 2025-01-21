@@ -1,5 +1,8 @@
 """Padar ported from https://munro.itch.io/padar
+Aim with arrow keys and fire with action keys (Z/X/C) before you get hit.
+FIXME
 """
+
 # flake8:noqa
 from pypico8 import *
 
@@ -67,11 +70,20 @@ def _update():
 def _draw():
     global size, entities, e, score
     pressed = btn()
-    speed = t() / 20
+    speed = t() / 20  # Why not 8?
     if rnd() > 0.98:
         add(entities, Table([int(rnd(8)) / 8, 50, -0.1]))
     if pressed > 16:
-        entities[1] = Table([atan2(pressed // 8 % 2 - pressed // 4 % 2, pressed // 2 % 2 - pressed % 2), 5, 2, 1])
+        entities[1] = Table(
+            [
+                atan2(
+                    pressed // 8 % 2 - pressed // 4 % 2, pressed // 2 % 2 - pressed % 2
+                ),
+                5,
+                2,
+                1,
+            ]
+        )
     for i in range(801):
         f = rnd()
         r = rnd(99)
@@ -82,7 +94,7 @@ def _draw():
     i = speed
     while i <= speed + 0.01:
         line(0, 0, sin(i) * size, cos(i) * size, 7)
-        i += 0.001
+        i = round(i + 0.001, 4)
 
     for f in all(entities):
         g = f[1]
@@ -103,8 +115,8 @@ def _draw():
                 score += 1
 
     print(score, -size, 58)
-    # if e > 0:
-    #     flip()
+    if e <= 0:
+        stop("dead")
 
 
 run(_init, _update, _draw)

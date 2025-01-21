@@ -1,9 +1,11 @@
 """GvR's function overloading emulation by multiple dispatch decorator."""
+
 registry: dict = {}
 
 
 class MultiMethod:
     """Overloaded function dictionary."""
+
     def __init__(self, name):
         self.name = name
         self.typemap = {}
@@ -29,6 +31,7 @@ class MultiMethod:
 
 def multimethod(*types):
     """Decorator to add types to function name to support overloads."""
+
     def register(function):
         name = function.__name__
         mm = registry.get(name)

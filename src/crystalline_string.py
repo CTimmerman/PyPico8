@@ -1,5 +1,6 @@
 """Crystalline String ported from https://twitter.com/lexaloffle/status/1362072813834620929
 """
+
 from pypico8 import *
 
 
@@ -54,7 +55,7 @@ def _draw():
     color(7)
     for a in all(q):
         line(a.x, a.y)
-        for j in range(1, 4 + 1):
+        for _ in range(1, 4 + 1):
             if int(a.x + a.u) & ~127 != 0:
                 a.u *= -1
             if int(a.y + a.v) & ~127 != 0:

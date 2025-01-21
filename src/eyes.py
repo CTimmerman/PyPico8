@@ -1,5 +1,6 @@
 """Eyes ported from https://twitter.com/lexaloffle/status/1340466318697324544
 """
+
 # fmt: off
 from pypico8 import atan2, circfill, cls, cos, pico8_to_python, poke, printh, rnd, run, sin, srand, stat
 # fmt: on
@@ -28,7 +29,7 @@ def _update():
 def _draw():
     cls(1)
     srand()
-    for i in range(1, 100):
+    for _ in range(1, 100):
         r, x, y = rnd(5) + 5, rnd(128), rnd(128)
         c(x, y, r + 1, 0)
         c(x, y, r, 7)

@@ -1,7 +1,8 @@
 """Mandala 2 ported from https://twitter.com/MunroHoberman/status/1339983792090570753
 """
+
 # fmt: off
-from pypico8 import Table, circ, cls, pal, poke, printh, pico8_to_python, cos, sin, t, run
+from pypico8 import Table, circ, pal, poke, printh, pico8_to_python, cos, sin, t, run
 # fmt: on
 
 printh(

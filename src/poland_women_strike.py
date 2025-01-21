@@ -1,6 +1,7 @@
 """All-Poland Women's Strike ported from https://twitter.com/von_rostock/status/1328125395858812934
 TODO: fix tatter
 """
+
 # pylint: disable=redefined-builtin
 from pypico8 import (
     cls,

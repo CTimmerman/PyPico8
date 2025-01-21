@@ -25,7 +25,7 @@ def _init():
     clip_y = peek(0x5F21)
     clip_w = peek(0x5F22) - clip_x
     clip_h = peek(0x5F23) - clip_y
-    printh(str(clip_x) + ' ' + str(clip_y) + ' ' + str(clip_w) + ' ' + str(clip_h))
+    printh(str(clip_x) + " " + str(clip_y) + " " + str(clip_w) + " " + str(clip_h))
 
 
 def _update():

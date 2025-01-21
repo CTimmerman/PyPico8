@@ -1,5 +1,6 @@
 """QR Trawling ported from https://twitter.com/MunroHoberman/status/1359165139258335238
 """
+
 from pypico8 import (  # noqa
     camera,
     cls,

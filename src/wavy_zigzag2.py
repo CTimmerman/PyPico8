@@ -1,15 +1,17 @@
 """Wavy Zigzag 2 ported from https://twitter.com/picoter8/status/1345625478061813761
 """
+
 from pypico8 import cls, cos, flr, line, run, sin, t
 
 
 def _init():
-    global n, m
-    n = 0
+    global m, n
     m = 0
+    n = 0
 
 
 def _draw():
+    global m, n
     cls()
     for i in range(-8, 136, 8):
         for j in range(-8, 136, 6):

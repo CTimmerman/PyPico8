@@ -1,5 +1,6 @@
 """Disco Squid ported from https://www.facebook.com/lexaloffle/videos/1919955864701580/
 """
+
 from pypico8 import circfill, cls, cos, rnd, run, sin, srand, t
 
 

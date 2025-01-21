@@ -1,5 +1,6 @@
 """Shivers ported from https://twitter.com/von_rostock/status/1339009642756796423
 """
+
 # pylint: disable=redefined-builtin
 from pypico8 import (
     Table,
@@ -60,7 +61,7 @@ def _draw():
             for L in range(1, 6):
                 g *= 2
                 h *= 2
-                k += 0.5 ** L * (s(s(g) + s(h)) + s(g * 2) + t() % 32 / (1 + j / 3)) / 2
+                k += 0.5**L * (s(s(g) + s(h)) + s(g * 2) + t() % 32 / (1 + j / 3)) / 2
 
             u += cos(k) / 2
             v -= s(k) / 2

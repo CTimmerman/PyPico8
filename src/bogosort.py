@@ -1,5 +1,6 @@
 """Bogosort ported from https://twitter.com/lexaloffle/status/1362393228918493188
 """
+
 from pypico8 import (  # noqa
     Table,
     add,

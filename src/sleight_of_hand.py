@@ -1,5 +1,6 @@
 """Sleight of Hand ported from https://twitter.com/MunroHoberman/status/1345134382810619913
 """
+
 from pypico8 import (
     Table,
     add,

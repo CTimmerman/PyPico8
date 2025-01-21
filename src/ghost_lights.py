@@ -1,5 +1,6 @@
 """Ghost Lights ported from https://twitter.com/Andy_Makes/status/1298999311254994951
 """
+
 from pypico8 import *
 
 
@@ -36,14 +37,14 @@ def _update():
 def _draw():
     global t
     t += 0.01
-    for i in range(0, 199 + 1):
+    for _ in range(0, 199 + 1):
         circ(r(128), r(128), 3, 0)
     z = 5
     while z >= 1:
         k = 1
         while k <= 2.7:
             x, y = 64 + sin(t * 0.9 + k) * 50, 64 + cos(t * k + k) * 50
-            for i in range(0, z * 20 + 1):
+            for _ in range(0, z * 20 + 1):
                 a = r(1)
                 p = (z / 5) ** 2
                 d = p * 25 + r(p * 10)
