@@ -1,5 +1,7 @@
 """GvR's function overloading emulation by multiple dispatch decorator."""
 
+import sys
+
 registry: dict = {}
 
 
@@ -33,6 +35,11 @@ def multimethod(*types):
     """Decorator to add types to function name to support overloads."""
 
     def register(function):
+        # https://github.com/mrocklin/multipledispatch/issues/96
+        # pylint: disable = protected-access
+        sys._getframe(1).f_globals.setdefault("__test__", {})[
+            function.__name__
+        ] = function
         name = function.__name__
         mm = registry.get(name)
         if mm is None:
