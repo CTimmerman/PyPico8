@@ -149,6 +149,9 @@ def tonum(s) -> int:
 
     try:
         return int(s, base)
+    except TypeError as ex:
+        # "TypeError: int() can't convert non-string with explicit base" is too vague.
+        raise TypeError(f"to_num got type {type(s)}") from ex
     except ValueError:
         return 0
 
