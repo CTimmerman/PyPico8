@@ -1,18 +1,7 @@
 """Globe ported from https://twitter.com/MunroHoberman/status/1335953892685860865
 """
 
-from pypico8 import (
-    Table,
-    add,
-    cls,
-    color,
-    cos,
-    line,
-    printh,
-    pico8_to_python,
-    run,
-    sin,
-)
+from pypico8 import *
 
 
 printh(
@@ -56,25 +45,18 @@ def _init():
             wut = Table(x=c * cos(j), y=sin(j) * c, z=cos(i))
             add(q, wut)
             add_count += 1
-            print(j)
             j = round(j + 0.05, 4)  # Too soon if not rounded!
-        # }
         i = round(i + 0.05, 4)
-    # }
-    print("Q size", len(q), add_count)
     color(7)
     s = 0.0125
 
 
-def _update():
-    pass
-
-
-def _draw():
+def _update60():
+    # for _ in range(4):
     cls()
-    for i in range(2, 881 + 1):
+    for i in range(2, 882):
         if i < 442:
-            f = q[(i * 21 % len(q) + i / 21 // 1) % len(q) + 1]
+            f = q[(i * 21 % len(q) + i / 21 // 1)]
             x = f.x - f.z * s
             z = f.z + x * s
             y = f.y - z * s
@@ -85,7 +67,6 @@ def _draw():
         else:
             f = q[(i - 441)]
         line(f.x * 50 + 63, f.y * 50 + 63)
-    # }
 
 
-run(_init, _update, _draw)
+run(_init, _update60)
