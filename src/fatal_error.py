@@ -1,12 +1,7 @@
 """Fatal Error ported from https://twitter.com/cbmakes/status/1348119427150188544
-"""
+TODO: Fix too-bright blue.
 
-from pypico8 import cls, pal, poke, print, rect, rectfill, rnd, run
-
-'''
-printh(
-    pico8_to_python(
-        r"""cls(13)
+cls(13)
 poke(0x5f2c,3)
 pal(1,140,1)
 r=rectfill
@@ -29,18 +24,15 @@ r(a,c,a+f,c+5,1)
 r(a+24,c+23,a+36,c+26,5)
 flip()
 goto _
-        """
-    )
-)
-'''
+"""
 
-poke(0x5F2C, 3)
+from pypico8 import cls, pal, poke, print, rect, rectfill, rnd, run
 
 
 def _init():
     global r, k, a, c, f, t
     cls(13)
-
+    poke(0x5F2C, 3)
     pal(1, 140, 1)
     r = rectfill
     k = rect
