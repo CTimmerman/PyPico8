@@ -21,14 +21,19 @@ import builtins, os, sys, time as py_time  # noqa: E401
 
 # fmt:off
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
-import pygame, pygame.freetype  # noqa: E401
+try:
+    import pygame, pygame.freetype  # noqa: E401
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.math import atan2, ceil, cos, div, divi, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
-from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
-from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
-from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
-from pypico8.video import  _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, sget, spr, sset, sspr, to_col  # noqa
+    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+    from pypico8.math import atan2, ceil, cos, div, divi, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
+    from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
+    from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
+    from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
+    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, fps, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, set_fps, sget, spr, sset, sspr, to_col  # noqa
+except ModuleNotFoundError as ex:
+    builtins.print(ex)
+    # So my PyGLet implementation can import this from the old folder next to the src folder.
+
 # fmt:on
 false = False
 true = True
@@ -150,7 +155,7 @@ def btnp(i=None, p=0):
 
 # ---------- Control flow ---------- #
 def init(_init=lambda: True):
-    "Initialize."
+    """Initialize."""
     _init_video()
     _init()
     flip()
@@ -159,20 +164,19 @@ def init(_init=lambda: True):
 begin = py_time.time()
 btnp_state = 0
 btnp_frame = 0
-fps = 30
 stopped = False
 running = False
 
 
 def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     """Run from the start of the program. Can be called from inside a program to reset program."""
-    global begin, fps, running, btnp_state, stopped
+    global begin, running, btnp_state, stopped
 
     begin = py_time.time()
     if _update.__name__ == "_update60":
-        fps = 60
+        set_fps(60)
     else:
-        fps = 30
+        set_fps(30)
 
     try:
         init(_init)
@@ -229,12 +233,12 @@ def stop(message=None):
 
 
 def t() -> float:
-    "Return seconds since cart start."
+    """Return seconds since cart start."""
     return py_time.time() - begin
 
 
 def time() -> float:
-    "Return seconds since cart start."
+    """Return seconds since cart start."""
     return t()
 
 
@@ -300,13 +304,3 @@ def stat(x):
         return note
 
     return 0
-
-
-if __name__ == "__main__":
-    # pylint: disable = exec-used
-    exec(
-        open(
-            os.path.join(os.path.dirname(__file__), "../fake_sprite.py"),
-            encoding="utf8",
-        ).read()
-    )
