@@ -17,7 +17,7 @@ BTN_DOWN = "⬇️"
 PROBLEMATIC_MULTI_CHAR_CHARS = (BTN_O, BTN_X, BTN_LEFT, BTN_RIGHT, BTN_UP, BTN_DOWN)
 
 
-def printh(s, filename=None, overwrite=False, save_to_desktop=False):
+def printh(s, filename=None, overwrite=False, save_to_desktop=False) -> None:
     """
     >>> filename = "pico8_printh_test.txt"
     >>> printh('pico8 printh test', filename, overwrite=True, save_to_desktop=True)
@@ -43,7 +43,7 @@ def printh(s, filename=None, overwrite=False, save_to_desktop=False):
         builtins.print(s)
 
 
-def pico8_to_python(s):
+def pico8_to_python(s: str) -> str:
     r"""Hackily translates PICO-8 to Python.
     >>> pico8_to_python('for i=0,30 do ?"웃"')
     'def _init():\n    global \nfor i in range(0, 30+1): print("웃")\nrun(_init, _update, _draw)'
@@ -119,7 +119,7 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     return s
 
 
-def tostr(val, use_hex=False) -> str:
+def tostr(val: int | float | str, use_hex: bool = False) -> str:
     """Value to string or hex string.
     >>> tostr(244)
     '244'
@@ -131,7 +131,7 @@ def tostr(val, use_hex=False) -> str:
     return str(val)
 
 
-def tonum(s) -> int:
+def tonum(s) -> int | float:
     """Converts a string representation of a decimal, hexadecimal,
     or binary number to a number value or None."""
     if type(s) in (int, float):
@@ -161,7 +161,7 @@ def chr(index) -> str:  # noqa
     return builtins.chr(flr(tonum(index) % 256))
 
 
-def ord(s, index=1) -> int:  # noqa
+def ord(s: str, index: int = 1) -> int:  # noqa
     """
     >>> ord("@")
     64
@@ -195,7 +195,7 @@ def sub(s: str, pos0: int, pos1: int | None = None) -> str:
     return s[pos0:pos1]
 
 
-def split(s: str, separator=",", convert_numbers=True) -> Table:
+def split(s: str, separator: str = ",", convert_numbers: bool = True) -> Table:
     """
     Split a string into a table of elements delimited by the given separator (defaults to ",").
     When convert_numbers is true, numerical tokens are stored as numbers (defaults to true).
