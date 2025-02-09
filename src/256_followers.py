@@ -33,11 +33,10 @@ flip()goto a
     )
 )
 
-poke(0x5F2C, 3)  # Set 64x64 screen size.
-
 
 def _init():
     global n, r
+    poke(0x5F2C, 3)  # Set 64x64 screen size.
     n = 0
     r = rnd
 

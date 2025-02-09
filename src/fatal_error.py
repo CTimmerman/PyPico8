@@ -58,8 +58,8 @@ def _draw():
     r(a, c, a + f, c + t, 6)
     k(a, c, a + f, c + t, 1)
     r(a, c, a + f, c + 5, 1)
-    print("- x", a + 28, c, 7)
-    print("error", a + 11, c + 10, 0)
+    print("- 𝘹", a + 28, c, 7)
+    print("𝘦𝘳𝘳𝘰𝘳", a + 11, c + 10, 0)
     r(a + 24, c + 23, a + 36, c + 26, 5)
 
 
