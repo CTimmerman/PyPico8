@@ -153,9 +153,19 @@ def tostr(val: int | float | str, use_hex: bool = False) -> str:
     return str(val)
 
 
-def tonum(s) -> int | float:
+def tonum(s) -> int | float | None:
     """Converts a string representation of a decimal, hexadecimal,
-    or binary number to a number value or None."""
+    or binary number to a number value or None.
+
+    >>> tonum("65.6")
+    65.6
+    >>> tonum("0x11")
+    17
+    >>> tonum("0b11")
+    3
+    >>> tonum("0b11.1")
+    3.5
+    """
     if type(s) in (int, float):
         return s
 
@@ -168,23 +178,34 @@ def tonum(s) -> int | float:
             base = 16
         elif "b" in s:
             base = 2
-
+        a = s.split(".")
+        if len(a) > 1:
+            if base == 10:
+                return float(s)
+            whole, part = a
+            return int(whole, base) + int(part, base) / base ** len(part)
     try:
         return int(s, base)
     except TypeError as ex:
         # "TypeError: int() can't convert non-string with explicit base" is too vague.
         raise TypeError(f"to_num got type {type(s)}") from ex
     except ValueError:
-        return 0
+        return None
 
 
-def chr(index) -> str:  # noqa
-    "Number string to char."
+def chr(index: int | float | str) -> str:  # noqa
+    """Number to p8nsi char.
+    >>> chr("65.6")
+    'a'
+    """
     return CHARS[flr(tonum(index) % 256)]
 
 
 def ord(s: str, index: int = 1) -> int:  # noqa
-    """Match source code char to Pico8 char in docs/pico-8_font_020.png."""
+    """Match source code char to Pico8 char in docs/pico-8_font_020.png.
+    >>> ord('a')
+    65
+    """
     # printh(f"Ord got s {s}, index {index} from {sys._getframe().f_back.f_code.co_name}")
     c = s[index - 1]
     if c == "?":
@@ -249,3 +270,9 @@ def split(s: str, separator: str = ",", convert_numbers: bool = True) -> Table:
         else:
             result.append(item)
     return Table(result)
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
