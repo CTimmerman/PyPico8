@@ -3,7 +3,7 @@
 """
 
 # pylint:disable = function-redefined, global-statement, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-function-args, too-many-lines, unused-import, wrong-import-position
-import base64, decimal, io, math, os, sys  # noqa: E401
+import base64, builtins, decimal, io, math, os, sys  # noqa: E401
 
 from emoji.tokenizer import tokenize
 
@@ -13,7 +13,7 @@ import pygame
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
-from pypico8.math import ceil, flr, shl, shr
+from pypico8.math import ceil, flr, rnd, shl, shr
 from pypico8.strings import (
     PROBLEMATIC_MULTI_CHAR_CHARS,
     chr,
@@ -149,8 +149,9 @@ def _init_video() -> None:
     replace_color(font_img, (255, 255, 255, 255), (194, 195, 199, 255))
     font_img.set_colorkey((0, 0, 0))
 
-    spritesheet = surf.copy()
-    poke(SPRITE_FLAGS_PT, *([0] * 256))
+    # spritesheet = surf.copy()
+    for i in range(0x3100):
+        mem[i] = 0
 
     characters = [get_char_img(i) for i in range(256)]
 
@@ -578,6 +579,12 @@ def memcpy(dest_addr: int, source_addr: int, length: int) -> None:
     """
     Copy len bytes of base ram from source to dest
     Sections can be overlapping
+
+    >>> for i in range(100): mem[i] = flr(rnd(256))
+    >>> memcpy(100, 0, 100)
+    >>> mem[0:100] == mem[100:200]
+    True
+    >>> for i in range(100): mem[i] = 0
     """
     vals = []
     for i in range(length):
@@ -1367,37 +1374,6 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
     )
 
 
-def sget(x: int = 0, y: int = 0) -> int:
-    """Get the color of a spritesheet pixel.
-    >>> sset(0, 0, 1)
-    >>> sget()
-    1
-    """
-    x, y = pos(x, y)  # XXX?
-    if x < 0 or y < 0 or x > 127 or y > 127:
-        return 0
-    # return rgb2col(spritesheet.get_at(p)[:3])
-    mx, hi = divmod(x, 2)
-    return mem[(SPRITE_SHEET_PT + y * 64 + mx) >> hi]
-
-
-def sset(x: int = 0, y: int = 0, col=None) -> None:
-    """Set the color of a spritesheet pixel.
-    Each 64-byte row contains 128 pixels. Each byte contains two adjacent
-    pixels, with the low 4 bits being the left/even pixel and the high 4
-    bits being the right/odd pixel."""
-
-    if col is None:
-        col = mem[DRAW_COLOR_PT] & 0x0F
-
-    mx, hi = divmod(x, 2)
-    addr = SPRITE_SHEET_PT + flr(y) * 64 + flr(mx)
-    if hi:
-        mem[addr] = (mem[addr] & 0x0F) | ((col & 0x0F) << 4)
-    else:
-        mem[addr] = (mem[addr] & 0xF0) | (col & 0x0F)
-
-
 def fget(n: int, flag_index: int | None = None) -> int:
     """Get sprite n flag_index (0..7; not 1-based like Table) value, or combined flags value."""
     if n < 0 or n > 255:
@@ -1443,12 +1419,14 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
     >>> print()
     >>> print("")
     0
-    >>> print("foo", 4)
+    >>> print("foo", 5)
     12
-    >>> print("foO", 4)
-    16
-    >>> mem[DRAW_COLOR_PT] & 0x0F
+    >>> print("O")
     4
+    >>> print("🅾️")
+    8
+    >>> mem[DRAW_COLOR_PT] & 0x0F
+    5
     """
     if s is None:
         return None
@@ -1462,8 +1440,8 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
         mem[CURSOR_X_PT] = x
         mem[CURSOR_Y_PT] = y
     else:
-        x = mem[CURSOR_X_PT]
-        y = mem[CURSOR_Y_PT]
+        x = mem[CURSOR_X_PT] = 0
+        y = mem[CURSOR_Y_PT] = 0
 
     s = str(s)
     if s.startswith("\\^@"):
@@ -1492,7 +1470,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
             scroll(-7)
             mem[CURSOR_Y_PT] -= 7
 
-        printh(f"printing {repr(ln)} @ {mem[CURSOR_X_PT]}, {mem[CURSOR_Y_PT]}")
+        debug(f"printing {repr(ln)} @ {mem[CURSOR_X_PT]}, {mem[CURSOR_Y_PT]}")
 
         tokens = list(c for c, _ in tokenize(ln, True))
         i = 0
@@ -1608,6 +1586,50 @@ def replace_color(
     return surface
 
 
+def sget(x: int = 0, y: int = 0) -> int:
+    """Get the color of a spritesheet pixel.
+    >>> sset(0, 0, 13)
+    >>> sget()
+    13
+    >>> sset(0, 0, 0)
+    """
+    x = flr(x)
+    y = flr(y)
+    if x < 0 or y < 0 or x > 127 or y > 127:
+        return 0
+
+    # return rgb2col(spritesheet.get_at(p)[:3])
+    mx, hi = divmod(x, 2)
+    return 0x0F & (mem[SPRITE_SHEET_PT + y * 64 + mx] >> int(4 * hi))
+
+
+def sset(x: int = 0, y: int = 0, col=None) -> None:
+    """Set the color of a spritesheet pixel.
+    Each 64-byte row contains 128 pixels. Each byte contains two adjacent
+    pixels, with the low 4 bits being the left/even pixel and the high 4
+    bits being the right/odd pixel."""
+
+    if col is None:
+        col = mem[DRAW_COLOR_PT] & 0x0F
+
+    mx, hi = divmod(x, 2)
+    addr = SPRITE_SHEET_PT + flr(y) * 64 + flr(mx)
+    if hi:
+        mem[addr] = (mem[addr] & 0x0F) | ((col & 0x0F) << 4)
+    else:
+        mem[addr] = (mem[addr] & 0xF0) | (col & 0x0F)
+
+
+def sprite_get(x: int = 0, y: int = 0, w: int = 16, h: int = 16) -> pygame.Surface:
+    sprite = pygame.Surface((w, h))
+
+    for iy in range(y, y + h):
+        for ix in range(x, x + w):
+            sprite.set_at((ix, iy), PALETTE[sget(ix, iy)])
+
+    return sprite
+
+
 def spr(
     n: int,
     x: int,
@@ -1623,9 +1645,27 @@ def spr(
     """
     sx = (n % 16) * 8
     sy = (n // 16) * 8
-    area = (sx, sy, 8 * w, 8 * h)
-    sprite = pygame.transform.flip(spritesheet.subsurface(area), flip_x, flip_y)
-    surf.blit(sprite, (x, y))
+    # area = (sx, sy, 8 * w, 8 * h)
+    sprite = sprite_get(sx, sy, 8 * w, 8 * h)
+
+    # spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
+    # spritesheet.set_at(
+    #     (addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111]
+    # )
+
+    sprite = pygame.transform.flip(sprite, flip_x, flip_y)
+    # surf.blit(sprite, (x, y))
+    draw_pattern((x, y, 8 * w, 8 * h), sprite)
+
+
+def show_surf(s: pygame.Surface):
+    builtins.print(f"vvv {s} vvv")
+    for y in range(s.get_height()):
+        for x in range(s.get_width()):
+            builtins.print(f"{','.join(f'{n:02x}' for n in s.get_at((x, y)))}", end="")
+        builtins.print()
+    builtins.print(f"^^^ {s} ^^^")
+    # 1 / 0
 
 
 def sspr(
@@ -1650,32 +1690,21 @@ def sspr(
         dw = sw
     if dh is None:
         dh = sh
-    sprite = pygame.transform.flip(
-        spritesheet.subsurface((sx, sy, sw, sh)), flip_x, flip_y
-    )
+    if dx is None:
+        dx = 0
+    if dy is None:
+        dy = 0
 
-    # r = surface.get_rect()
+    sprite = pygame.transform.flip(sprite_get(sx, sy, sw, sh), flip_x, flip_y)
+    show_surf(sprite)
 
-    # old_new = [
-    #     (old_color, PALETTE[key])
-    #     for key, old_color in PALETTE.items()
-    #     if old_color != PALETTE[key]
-    # ]
-
-    # for hi in range(r.h):
-    #     for wi in range(r.w):
-    #         clr_at = surface.get_at((wi, hi))[:3]
-    #         for old_color, new_color in old_new:
-    #             if clr_at == old_color:
-    #                 surface.set_at((wi, hi), new_color)
-
-    # sprite = adjust_color(pygame.transform.scale(sprite, (abs(flr(dw)), abs(flr(dh)))))
+    sprite = pygame.transform.scale(sprite, (abs(flr(dw)), abs(flr(dh))))
     sprite.set_colorkey((0, 0, 0))
 
-    # pygame.image.save(sprite, "debug_sspr.png")
+    # pygame.image.save(sprite, f"debug_sspr{sx},{sy},{sw},{sh}, d {dx},{dy},{dw},{dh}, f {flip_x},{flip_y}.png")
     # 1/0
 
-    printh(f"TODO: pset at {dx}, {dy}")
+    # printh(f"TODO: pset sprite {sprite} rect {sprite.get_rect()} at {dx}, {dy}")
     # surf.blit(sprite, (dx, dy))
     draw_pattern(sprite.get_rect(), sprite)
 

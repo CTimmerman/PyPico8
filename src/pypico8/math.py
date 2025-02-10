@@ -24,7 +24,13 @@ from pypico8.infix import Infix
 
 
 def flr(v: int | float | str | None = 0) -> int:
-    "Returns floored integer."
+    """Returns floored integer.
+
+    >>> flr("65.5")
+    65
+    >>> flr("-65.5")
+    -66
+    """
     return floor(float(v))  # type: ignore
 
 
@@ -49,7 +55,7 @@ def mid(x, y, z=0):
     return a[0]
 
 
-def cos(x):
+def cos(x) -> float:
     """Cosine of 0..1 instead of 0..pi*2
     Pico8: for x=-1,1,0.25 do print(""..x.." = "..cos(x)) end
     >>> for x in range(-4,5): print(f"{x/4} = {cos(x/4)}")
@@ -66,7 +72,7 @@ def cos(x):
     return round(math.cos(x * 2 * math.pi), 4)
 
 
-def sin(x):
+def sin(x) -> float:
     """Inverted sine of 0..1 instead of 0..pi*2
     Pico8: for x=-1,1,0.25 do print(""..x.." = "..sin(x)) end
     >>> for x in range(-4,5): print(f"{x/4} = {sin(x/4)}")
@@ -83,7 +89,7 @@ def sin(x):
     return round((1 - math.sin(x * 2 * math.pi)) - 1, 4)
 
 
-def atan2(dx, dy):
+def atan2(dx, dy) -> float:
     r"""
     Converts dx, dy into a clockwise angle >= 0 and < 1, aka [0, 1).
     for dy=1,-1,-1 do for dx=-1,1 do print(dx..", "..dy.." = "..atan2(dx,dy)) end end -- Lua/Pico8 version
@@ -93,7 +99,7 @@ def atan2(dx, dy):
      1, 1 = 0.875
     -1, 0 = 0.5
      0, 0 = 0.25
-     1, 0 = 0
+     1, 0 = 0.0
     -1,-1 = 0.375
      0,-1 = 0.25
      1,-1 = 0.125
@@ -104,13 +110,16 @@ def atan2(dx, dy):
         if dx == 0:
             return 0.25
         if dx > 0:
-            return 0
+            return 0.0
 
     return (math.atan2(dy, -dx) / math.pi + 1) / 2
 
 
 def rnd(x=1):
-    "Random number or item."
+    """Random number or item.
+    >>> rnd(1e9) != rnd(1e9)
+    True
+    """
     if isinstance(x, dict):
         return random.choice(tuple(x))
     return random.random() * x
@@ -141,24 +150,31 @@ def _shr(x, n):
 shr = Infix(_shr)
 
 
-def srand(x=0):
+def srand(x=0) -> None:
     "Seed random number generator."
     random.seed(x)
 
 
-def sgn(x):
+def sgn(x=0) -> int:
     """
     >>> sgn(0)
     1
+    >>> sgn(-0)
+    1
+    >>> sgn(-10)
+    -1
     """
     return int(math.copysign(1, x))
 
 
-def sqrt(x):
-    "Square root x."
+def sqrt(x) -> float:
+    """Square root x.
+    >>> sqrt(2)
+    1.4142
+    """
     if x < 0:
         return 0
-    return math.sqrt(x)
+    return round(math.sqrt(x), 4)
 
 
 def _div(a, b) -> float | int:

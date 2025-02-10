@@ -448,6 +448,7 @@ disable=raw-checker-failed,
         line-too-long,
         missing-function-docstring,
         missing-module-docstring,
+        pointless-statement,
         protected-access,
         redefined-argument-from-local,
         redefined-builtin,
@@ -459,6 +460,7 @@ disable=raw-checker-failed,
         too-many-statements,
         unused-wildcard-import,
         wildcard-import,
+        wrong-import-position,
         
 
 # Enable the message, report, category or checker with the given id(s). You can
