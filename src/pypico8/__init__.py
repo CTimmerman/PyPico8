@@ -14,6 +14,7 @@
 2021-02-09 v1.7 added pack, unpack. Fixed min, max, rnd, chr. Refactored.
 2021-02-14 v1.8 prt -> print, fillp.
 2025-01-04 v1.9 added deli, ipairs, select.
+2025-02-10 v1.9.1 fixed display memory, print, tonum.
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
@@ -39,6 +40,8 @@ false = False
 true = True
 
 # ---------- Input ---------- #
+DEVKIT_PT = 0x5F2D
+
 P0_LEFT = 0
 P0_RIGHT = 1
 P0_UP = 2
@@ -46,6 +49,31 @@ P0_DOWN = 3
 P0_O = 4
 P0_X = 5
 P0_PAUSE = 7
+PLAYER_KEYMAPS = (
+    {
+        80: 0,  # left
+        79: 1,  # right
+        82: 2,  # up
+        81: 3,  # down
+        29: 4,  # z
+        6: 4,  # c
+        17: 4,  # n
+        27: 5,  # x
+        25: 5,  # v
+        16: 5,  # m
+    },
+    {
+        22: 0,  # s
+        9: 1,  # f
+        8: 2,  # e
+        7: 3,  # d
+        225: 4,  # Lshift
+        43: 5,  # tab
+        26: 5,  # w
+        20: 5,  # q
+        4: 5,  # a
+    },
+)
 
 
 def btn(i=None, p=0):
@@ -66,35 +94,11 @@ def btn(i=None, p=0):
         Using a physical gamepad, certain combinations of buttons can be awkward
         (UP to jump/accelerate instead of [X] or [O]) or even impossible (LEFT + RIGHT)
     """
-    player_keymaps = (
-        {
-            80: 0,  # left
-            79: 1,  # right
-            82: 2,  # up
-            81: 3,  # down
-            29: 4,  # z
-            6: 4,  # c
-            17: 4,  # n
-            27: 5,  # x
-            25: 5,  # v
-            16: 5,  # m
-        },
-        {
-            22: 0,  # s
-            9: 1,  # f
-            8: 2,  # e
-            7: 3,  # d
-            225: 4,  # Lshift
-            43: 5,  # tab
-            26: 5,  # w
-            20: 5,  # q
-            4: 5,  # a
-        },
-    )
+
     pressed = list(nr for nr, isdown in enumerate(pygame.key.get_pressed()) if isdown)
     if i is None:
-        player_keymap = player_keymaps[0]
-        player_keymap.update(player_keymaps[1])
+        player_keymap = PLAYER_KEYMAPS[0]
+        player_keymap.update(PLAYER_KEYMAPS[1])
         bitfield = 1 if 80 in pressed else 0
         bitfield += 2 if 79 in pressed else 0
         bitfield += 4 if 82 in pressed else 0
@@ -116,7 +120,7 @@ def btn(i=None, p=0):
 
         return bitfield
 
-    player_keymap = player_keymaps[p]
+    player_keymap = PLAYER_KEYMAPS[p]
 
     button_pressed = False
     for key in pressed:
@@ -286,13 +290,14 @@ def stat(x):
         return btn() > 0
     if x == 31:
         return str(btn())
-    if x == 32:
-        return pygame.mouse.get_pos()[0]
-    if x == 33:
-        return pygame.mouse.get_pos()[1]
-    if x == 34:
-        primary, middle, secondary = pygame.mouse.get_pressed()
-        return 1 * primary + 2 * secondary + 4 * middle
+    if peek(DEVKIT_PT) == 1:
+        if x == 32:
+            return pygame.mouse.get_pos()[0]
+        if x == 33:
+            return pygame.mouse.get_pos()[1]
+        if x == 34:
+            primary, middle, secondary = pygame.mouse.get_pressed()
+            return 1 * primary + 2 * secondary + 4 * middle
 
     if x in range(16, 20):
         x += 4

@@ -149,11 +149,13 @@ def _init_video() -> None:
     replace_color(font_img, (255, 255, 255, 255), (194, 195, 199, 255))
     font_img.set_colorkey((0, 0, 0))
 
-    # spritesheet = surf.copy()
-    for i in range(0x3100):
-        mem[i] = 0
+    printh("SETTING SPRITESHEET")
+    spritesheet = surf.copy()
+    # for i in range(0x3100):
+    #     mem[i] = 0
 
     characters = [get_char_img(i) for i in range(256)]
+    printh("CHARACTERS INITIALIZED")
 
 
 # ---------- Memory ---------- #
@@ -343,17 +345,6 @@ def color(col: int | float | str = None) -> int:
     return old_col
 
 
-def col2rgb(col: int | None = None) -> tuple:
-    "Set pen color and return RGB from palette."
-    if col is not None:
-        debug(f"col2rgb setting color {col}")
-        color(col)  # sets DRAW_COLOR
-    debug(
-        f"col2rgb {mem[DRAW_COLOR_PT] & 0x0F} => {PALETTE[mem[DRAW_COLOR_PT] & 0x0F]}"
-    )
-    return PALETTE[mem[DRAW_COLOR_PT] & 0x0F]
-
-
 def cursor(x: int = 0, y: int = 0, col=None) -> int:
     """
     Set the cursor position and carriage return margin
@@ -407,6 +398,14 @@ def fillp(p: int | float | str = 0) -> float:
     The default fill pattern is 0, which means a single solid colour is drawn.
 
     Alternatively, you can set the pattern to make the on bits transparent (showing what is drawn underneath). To do this, add 0b0.1, or 0x0.8 if using hex, to the pattern value. Data is stored at [0x5F31 - 0x5F33].
+
+
+    https://x.com/lexaloffle/status/1359600870799806464
+    A new bit for fillp in #pico8 0.2.2: 0x0.4
+    e.g. fillp(♥ | 0.25)
+
+    When it's set, pixel values in spr/sspr/map/tline are mapped to 8-bit colour pairs starting at 0x5f60, and the fill pattern is observed when the high & low nibbles differ.
+
     >>> reset()
     >>> see = lambda: [mem[FILL_PATTERN_PT + i] for i in range(3)]
     >>> x = -1.0
@@ -740,9 +739,9 @@ def poke(addr: int, val: int = 0, *more) -> int:
     """
     for val in (val, *more):
         if 0 <= addr <= 0x1FFF:  # Spritesheet
-            # spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
+            # spritesheet.set_at((addr % 64 * 2, addr // 64), PALETTE[val & 0b1111])
             # spritesheet.set_at(
-            #     (addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111]
+            #     (addr % 64 * 2 + 1, addr // 64), PALETTE[val >> 4 & 0b1111]
             # )
             pass
         elif 0x2000 <= addr <= 0x2FFF:
@@ -882,12 +881,14 @@ def circ(
     if radius == 0:
         pset(x, y, col)
         return
+    if col is not None:
+        color(col)
 
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     area = pygame.draw.ellipse(
         cel,
-        col2rgb(col),
+        (255, 255, 255, 255),
         (pos(x - radius, y - radius), (2 * radius + 1, 2 * radius + 1)),
         _border,
     )
@@ -902,107 +903,6 @@ def circ(
     # raise Exception("DEBUG")
 
     draw_pattern(area, cel)
-
-
-def circ2(x: int, y: int, rad: int, col: int):
-    """https://github.com/renpy/pygame_sdl2/blob/87efd496cfc83d292558fb51343706b66b5a7bdd/src/SDL_gfxPrimitives.c#L3485
-    Draw filled circle with blending.
-
-    Note: Based on algorithms from sge library with modifications by A. Schiffler for
-    multiple-hline draw removal and other minor speedup changes.
-
-    :param int x: X coordinate of the center of the filled circle.
-    :param int y: Y coordinate of the center of the filled circle.
-    :param int rad: Radius in pixels of the filled circle.
-    :param int col: The color value of the filled circle to draw (0xRRGGBBAA).
-
-    Overdone comment but terrible variable naming! Fortunately ellipse() worked as intended.
-    """
-    cx = 0
-    cy = rad
-    ocx = 0xFFFF
-    ocy = 0xFFFF
-    df = 1 - rad
-    d_e = 3
-    d_se = -2 * rad + 5
-    xpcx = xmcx = xpcy = xmcy = 0
-    ypcy = ymcy = ypcx = ymcx = 0
-
-    # Sanity check radius
-    if rad < 0:
-        return
-
-    # Special case for rad=0 - draw a point
-    if rad == 0:
-        _pset(x, y, col)
-        return
-
-    # Get circle and clipping boundary and
-    # test if bounding box of circle is visible
-    x2 = x + rad
-    if x2 < mem[CLIP_X1_PT]:
-        return
-
-    x1 = x - rad
-    if x1 > mem[CLIP_X2_PT]:
-        return
-
-    y2 = y + rad
-    if y2 < mem[CLIP_Y1_PT]:
-        return
-
-    y1 = y - rad
-    if y1 > mem[CLIP_Y2_PT]:
-        return
-
-    # Draw
-    while 1:
-        xpcx = x + cx
-        xmcx = x - cx
-        xpcy = x + cy
-        xmcy = x - cy
-        if ocy != cy:
-            if cy > 0:
-                ypcy = y + cy
-                ymcy = y - cy
-                # lower part. FIXME: too small compared to Pico8 0.2.2c
-                line(xmcx, ypcy, xpcx, ypcy, col)
-                # upper part. FIXME: too small compared to Pico8 0.2.2c
-                line(xmcx, ymcy, xpcx, ymcy, col)
-            else:
-                line(xmcx, y, xpcx, y, col)
-
-            ocy = cy
-
-        if ocx != cx:
-            if cx != cy:
-                if cx > 0:
-                    ypcx = y + cx
-                    ymcx = y - cx
-                    # upper middle
-                    line(xmcy, ymcx, xpcy, ymcx, col)
-                    # lower middle
-                    line(xmcy, ypcx, xpcy, ypcx, col)
-                else:
-                    # center
-                    line(xmcy, y, xpcy, y, col)
-
-            ocx = cx
-
-        # Update
-        if df < 0:
-            df += d_e
-            d_e += 2
-            d_se += 2
-        else:
-            df += d_se
-            d_e += 2
-            d_se += 4
-            cy -= 1
-
-        cx += 1
-        if cx > cy:
-            break
 
 
 def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
@@ -1037,10 +937,15 @@ def line(
     else:
         poke2(PEN_Y_PT, y1)
 
+    if col is not None:
+        color(col)
+
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     # debug(f"line {pos(x0, y0)} to {pos(x1, y1)}")
-    draw_pattern(pygame.draw.line(cel, col2rgb(col), pos(x0, y0), pos(x1, y1)), cel)
+    draw_pattern(
+        pygame.draw.line(cel, (255, 255, 255, 255), pos(x0, y0), pos(x1, y1)), cel
+    )
 
 
 def oval(
@@ -1051,11 +956,12 @@ def oval(
         x0, x1 = x1, x0
     if y1 < y0:
         y0, y1 = y1, y0
-
+    if col is not None:
+        color(col)
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     area = pygame.draw.ellipse(
-        cel, col2rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+        cel, (255, 255, 255, 255), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
     draw_pattern(area, cel)
 
@@ -1071,6 +977,8 @@ def rect(x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border=1) 
         x0, x1 = x1, x0
     if y1 < y0:
         y0, y1 = y1, y0
+    if col is not None:
+        color(col)
 
     cel = surf.copy()
     # qr_trawling
@@ -1078,7 +986,10 @@ def rect(x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border=1) 
 
     draw_pattern(
         pygame.draw.rect(
-            cel, col2rgb(col), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
+            cel,
+            (255, 255, 255, 255),
+            (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)),
+            _border,
         ),
         cel,
     )
@@ -1344,9 +1255,10 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
         col = mem[DRAW_COLOR_PT]
     col = int(col)
 
-    bitplane_mode = peek(BITPLANE_PT)  # 0x5F5 / 24414
+    bitplane_mode = mem[BITPLANE_PT]  # 0x5F5 / 24414
     # off_color_visible = True
-    on_col = mem[DRAW_COLOR_PT] & 0x0F
+    # nice_tutorial.py
+    on_col = mem[DRAW_PALETTE_PT + (mem[DRAW_COLOR_PT] & 0x0F)]
 
     if use_pattern:
         if peek2(FILL_PATTERN_PT) >> (15 - ((x % 4) + 4 * (y % 4))) & 1:
@@ -1659,12 +1571,12 @@ def spr(
 
 
 def show_surf(s: pygame.Surface):
-    builtins.print(f"vvv {s} vvv")
+    builtins.print(f"show_surf {s} from {sys._getframe().f_back.f_code.co_name}:")
     for y in range(s.get_height()):
         for x in range(s.get_width()):
-            builtins.print(f"{','.join(f'{n:02x}' for n in s.get_at((x, y)))}", end="")
+            builtins.print(f"{','.join(f'{n:02x}' for n in s.get_at((x, y)))}", end=" ")
         builtins.print()
-    builtins.print(f"^^^ {s} ^^^")
+    builtins.print()
     # 1 / 0
 
 
@@ -1675,8 +1587,8 @@ def sspr(
     sh: int,
     dx: int,
     dy: int,
-    dw=None,
-    dh=None,
+    dw: int | float = None,
+    dh: int | float = None,
     flip_x=False,
     flip_y=False,
 ) -> None:
@@ -1695,18 +1607,29 @@ def sspr(
     if dy is None:
         dy = 0
 
+    printh(f"sspr({sx}, {sy}, {sw}, {sh}, {dx}, {dy}, {dw}, {dh}, {flip_x}, {flip_y})")
+
+    dh = abs(flr(dh))
+    dw = abs(flr(dw))
+
     sprite = pygame.transform.flip(sprite_get(sx, sy, sw, sh), flip_x, flip_y)
     show_surf(sprite)
 
-    sprite = pygame.transform.scale(sprite, (abs(flr(dw)), abs(flr(dh))))
-    sprite.set_colorkey((0, 0, 0))
+    sprite = pygame.transform.scale(sprite, (dw, dh))
+    # sprite.set_colorkey((0, 0, 0))
 
     # pygame.image.save(sprite, f"debug_sspr{sx},{sy},{sw},{sh}, d {dx},{dy},{dw},{dh}, f {flip_x},{flip_y}.png")
+    # pygame.image.save(spritesheet, f"debug_spritesheet.png")
     # 1/0
 
-    # printh(f"TODO: pset sprite {sprite} rect {sprite.get_rect()} at {dx}, {dy}")
     # surf.blit(sprite, (dx, dy))
-    draw_pattern(sprite.get_rect(), sprite)
+    # draw_pattern(pygame.Rect(dx, dy, dw, dh), sprite)
+    fg = mem[DRAW_COLOR_PT] & 0x0F
+    bg = (mem[DRAW_COLOR_PT] & 0xF0) >> 4
+    for y in range(dh):
+        for x in range(dw):
+            v = sprite.get_at((x, y))[0] % 16
+            pset(dx + x, dy + y, fg if v else bg)
 
 
 def twos_complement_to_signed(value: int, bits: int = 16) -> int:
@@ -1811,7 +1734,26 @@ def reset() -> None:
     flags = mem[PERSIST_PT]
     if not flags & 1:
         pal()
-        poke(FILL_PALETTE_PT, *([0] * 16))
+        poke(
+            FILL_PALETTE_PT,
+            0,
+            1,
+            18,
+            19,
+            36,
+            21,
+            214,
+            103,
+            72,
+            73,
+            154,
+            59,
+            220,
+            93,
+            142,
+            239,
+        )
+        printh(f"reset called {peek(FILL_PALETTE_PT + 6)}")
     if not flags & 2:
         poke(HIGH_COLOR_PT, *([0] * 32))
     if not flags & 4:

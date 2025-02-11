@@ -156,7 +156,7 @@ def srand(x=0) -> None:
 
 
 def sgn(x=0) -> int:
-    """
+    """Return sign of number.
     >>> sgn(0)
     1
     >>> sgn(-0)
