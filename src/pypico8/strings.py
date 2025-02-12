@@ -39,7 +39,9 @@ CHARS = [
 # fmt: on
 
 
-def printh(s, filename=None, overwrite=False, save_to_desktop=False) -> None:
+def printh(
+    s: str, filename: str = "", overwrite: bool = False, save_to_desktop: bool = False
+) -> None:
     """
     >>> filename = "pico8_printh_test.txt"
     >>> printh('pico8 printh test', filename, overwrite=True, save_to_desktop=True)
@@ -141,19 +143,46 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     return s
 
 
+def hex_fraction(decimal_number: float, precision: int = 4) -> str:
+    """Converts a decimal fraction to a string with a given precision.
+    >>> hex_fraction(0.5)
+    '8000'
+    >>> hex_fraction(255.5)
+    'FF8000'
+    """
+    hex_result = ""
+    fraction = decimal_number
+
+    for _ in range(precision):
+        fraction *= 16
+        digit = int(fraction)
+        hex_result += hex(digit)[2:].upper()
+        fraction -= digit
+
+    return hex_result
+
+
 def tostr(val: int | float | str, use_hex: bool = False) -> str:
     """Value to string or hex string.
     >>> tostr(244)
     '244'
     >>> tostr(244, 1)
     '0X00F4.0000'
+    >>> tostr(1.8, 1)
+    '0X0001.CCCC'
+    >>> tostr(1.5, 1)
+    '0X0001.8000'
     """
     if use_hex:
-        return f"0X{hex(val).upper()[2:]:>04}.0000"
+        whole, part = divmod(float(val), 1)
+        whole = int(whole)
+        if part:
+            return f"0X{hex(whole).upper()[2:]:>04}.{hex_fraction(part)}"
+        return f"0X{hex(whole).upper()[2:]:>04}.0000"
     return str(val)
 
 
-def tonum(s) -> int | float | None:
+def tonum(s: str | int | float) -> int | float | None:
     """Converts a string representation of a decimal, hexadecimal,
     or binary number to a number value or None.
 
@@ -165,9 +194,11 @@ def tonum(s) -> int | float | None:
     3
     >>> tonum("0b11.1")
     3.5
+    >>> tonum("0.5555555555555")
+    0.5556
     """
     if type(s) in (int, float):
-        return s
+        return s  # type: ignore
 
     if s is None:
         return 0
@@ -181,11 +212,11 @@ def tonum(s) -> int | float | None:
         a = s.split(".")
         if len(a) > 1:
             if base == 10:
-                return float(s)
+                return round(float(s), 4)
             whole, part = a
-            return int(whole, base) + int(part, base) / base ** len(part)
+            return round(int(whole, base) + int(part, base) / base ** len(part), 4)  # type: ignore
     try:
-        return int(s, base)
+        return int(s, base)  # type: ignore
     except TypeError as ex:
         # "TypeError: int() can't convert non-string with explicit base" is too vague.
         raise TypeError(f"to_num got type {type(s)}") from ex
@@ -198,7 +229,7 @@ def chr(index: int | float | str) -> str:  # noqa
     >>> chr("65.6")
     'a'
     """
-    return CHARS[flr(tonum(index) % 256)]
+    return CHARS[flr(tonum(index)) % 256]  # type: ignore
 
 
 def ord(s: str, index: int = 1) -> int:  # noqa
@@ -235,8 +266,8 @@ def sub(s: str, pos0: int, pos1: int | None = None) -> str:
     pos0 = flr(pos0) - (1 if pos0 >= 1 else 0)
     if pos1 is not None:
         pos1 = flr(pos1)
-        if pos1 < 0:
-            pos1 += 1
+        if pos1 < 0:  # type: ignore
+            pos1 += 1  # type: ignore
             if pos1 >= 0:
                 pos1 = None
     return s[pos0:pos1]
