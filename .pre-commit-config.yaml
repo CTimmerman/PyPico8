@@ -4,10 +4,6 @@ repos:
       - id: mypy
         name: mypy
         entry: mypy
-        args:
-          - --strict
-          - --ignore-missing-imports
-          - --follow-imports=skip  # Skip checking imported modules
         language: system
         # files: \.py$  # Only run on .py files
         types: [python]

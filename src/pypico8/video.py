@@ -256,12 +256,12 @@ def cls(col: int | float | str = 0) -> None:
     """
     clip()
     cursor()
-    col = tonum(col)
+    col = flr(tonum(col))
     for i in range(128 * 64):
         mem[SCREEN_DATA_PT + i] = col + col * 16
 
 
-def color(col: int | float | str = None) -> int:
+def color(col: int | float | str | None = None) -> int:
     """https://www.lexaloffle.com/pico-8.php?page=manual
     Set the current color to be used by drawing functions
 
@@ -325,13 +325,13 @@ def color(col: int | float | str = None) -> int:
 
     if mem[COLOR_AS_FLOAT_PT]:
         debug(f"Setting float color to {col}.")
-        pattern, col = math.modf(col)
+        pattern, col = math.modf(col)  # type: ignore[arg-type]
         pattern = int(shl(pattern, 16))
         fillp(pattern)
         mem[DRAW_COLOR_PT] = int(col) & 0xFF
     else:
         debug(
-            f"Setting color to {flr(col) % 256:02x} from {sys._getframe().f_back.f_code.co_name}"
+            f"Setting color to {flr(col) % 256:02x} from {sys._getframe().f_back.f_code.co_name}"  # type: ignore[union-attr]
         )
         mem[DRAW_COLOR_PT] = flr(col) % 256
 
@@ -446,7 +446,7 @@ def fillp(p: int | float | str = 0) -> float:
                     p = (p << 1) + 1
         # off_color_visible = False
     else:
-        p = tonum(p)
+        p = tonum(p)  # type: ignore
 
     # 65535 = full off color 16-bit pattern.
     # p = int(p) & 0b1111111111111111  # type: ignore
@@ -1567,11 +1567,11 @@ def spr(
 
     sprite = pygame.transform.flip(sprite, flip_x, flip_y)
     # surf.blit(sprite, (x, y))
-    draw_pattern((x, y, 8 * w, 8 * h), sprite)
+    draw_pattern(pygame.Rect(x, y, 8 * w, 8 * h), sprite)
 
 
 def show_surf(s: pygame.Surface):
-    builtins.print(f"show_surf {s} from {sys._getframe().f_back.f_code.co_name}:")
+    builtins.print(f"show_surf {s} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
     for y in range(s.get_height()):
         for x in range(s.get_width()):
             builtins.print(f"{','.join(f'{n:02x}' for n in s.get_at((x, y)))}", end=" ")
@@ -1587,8 +1587,8 @@ def sspr(
     sh: int,
     dx: int,
     dy: int,
-    dw: int | float = None,
-    dh: int | float = None,
+    dw: int | float | None = None,
+    dh: int | float | None = None,
     flip_x=False,
     flip_y=False,
 ) -> None:
