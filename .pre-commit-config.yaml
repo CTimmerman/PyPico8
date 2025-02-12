@@ -12,7 +12,7 @@ repos:
         # files: \.py$  # Only run on .py files
         types: [python]
         pass_filenames: true  # Only run on staged Python files (default)
-        fail_fast: false  # Stop on first failure
+        fail_fast: true  # Stop on first failure
 
       - id: black
         name: black
