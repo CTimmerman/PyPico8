@@ -1,18 +1,30 @@
 repos:
-- repo: local
-  hooks:
-    - id: black
-      name: black
-      entry: python -m black --check .
-      pass_filenames: false
-      language: system  # Don't create venv.
-    - id: pylint
-      name: pylint
-      entry: pylint
-      language: system
-      types: [python]
-      args:
-        [
-          "-rn", # Only display messages
-          "-sn", # Don't display the score
-        ]
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        args:
+          - --strict
+          - --ignore-missing-imports
+          - --follow-imports=skip  # Skip checking imported modules
+        language: system
+        # files: \.py$  # Only run on .py files
+        types: [python]
+        pass_filenames: true  # Only run on staged Python files (default)
+        fail_fast: false  # Stop on first failure
+
+      - id: black
+        name: black
+        entry: python -m black
+        language: system  # Don't create venv.
+        types: [python]
+
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+          - -rn  # Only display messages
+          - -sn  # Don't display the score
