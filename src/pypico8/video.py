@@ -112,7 +112,7 @@ off_color_visible: bool = True
 # palette: dict = {}
 surf: pygame.Surface
 
-characters: list = []
+characters: list[pygame.Surface] = []
 font_img: pygame.Surface
 spritesheet: pygame.Surface
 
@@ -149,13 +149,11 @@ def _init_video() -> None:
     replace_color(font_img, (255, 255, 255, 255), (194, 195, 199, 255))
     font_img.set_colorkey((0, 0, 0))
 
-    printh("SETTING SPRITESHEET")
     spritesheet = surf.copy()
     # for i in range(0x3100):
     #     mem[i] = 0
 
     characters = [get_char_img(i) for i in range(256)]
-    printh("CHARACTERS INITIALIZED")
 
 
 # ---------- Memory ---------- #
@@ -1434,6 +1432,16 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     char_height = 6
                     i += 3
                     continue
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\^:":
+                    # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
+                    ccn = int("".join(tokens[i + 3 : i + 3 + 16]), 16)
+                    for ccy in range(8):
+                        for ccx in range(8):
+                            if ccn & (1 << (ccy * 8 + ccx)):
+                                pset(x + ccx, y + 7 - ccy)
+                    mem[CURSOR_X_PT] += 9
+                    i += 3 + 16
+                    continue
 
             if custom_font:
                 printh("TODO: Custom font.")
@@ -1753,7 +1761,6 @@ def reset() -> None:
             142,
             239,
         )
-        printh(f"reset called {peek(FILL_PALETTE_PT + 6)}")
     if not flags & 2:
         poke(HIGH_COLOR_PT, *([0] * 32))
     if not flags & 4:
