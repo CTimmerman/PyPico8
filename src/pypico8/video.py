@@ -1062,6 +1062,71 @@ def pal(tbl: list, remap_screen: int = 0) -> None:  # noqa: F811
         pal(i + 1, col, remap_screen)
 
 
+@multimethod(int)  # type: ignore
+def pal(p: int) -> None:  # noqa: F811
+    """Reset draw (0), display (1), or secondary palette (2)."""
+    if p == 0:
+        poke(
+            DRAW_PALETTE_PT,
+            16,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+        )
+    elif p == 1:
+        poke(
+            SCREEN_PALETTE_PT,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+        )
+    elif p == 2:
+        poke(
+            FILL_PALETTE_PT,
+            0,
+            1,
+            18,
+            19,
+            36,
+            21,
+            214,
+            103,
+            72,
+            73,
+            154,
+            59,
+            220,
+            93,
+            142,
+            239,
+        )
+
+
 @multimethod()  # type: ignore
 def pal() -> int:  # noqa: F811
     """Resets draw palette and screen palette to system defaults (including transparency values and fill pattern)
@@ -1088,42 +1153,8 @@ def pal() -> int:  # noqa: F811
     0
     """
     mem[PERSIST_PT] = 0
-    poke(
-        DRAW_PALETTE_PT,
-        16,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-    )
-
+    pal(0)
+    pal(1)
     fillp()
     return 0
 
@@ -1442,6 +1473,18 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     mem[CURSOR_X_PT] += 9
                     i += 3 + 16
                     continue
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\^.":
+                    # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
+                    ccn = 0
+                    for raw_byte in tokens[i + 3 : i + 3 + 8]:
+                        ccn = (ccn << 8) + ord(raw_byte)
+                    for ccy in range(8):
+                        for ccx in range(8):
+                            if ccn & (1 << (ccy * 8 + ccx)):
+                                pset(x + ccx, y + 7 - ccy)
+                    mem[CURSOR_X_PT] += 9
+                    i += 3 + 16
+                    continue
 
             if custom_font:
                 printh("TODO: Custom font.")
@@ -1742,25 +1785,7 @@ def reset() -> None:
     flags = mem[PERSIST_PT]
     if not flags & 1:
         pal()
-        poke(
-            FILL_PALETTE_PT,
-            0,
-            1,
-            18,
-            19,
-            36,
-            21,
-            214,
-            103,
-            72,
-            73,
-            154,
-            59,
-            220,
-            93,
-            142,
-            239,
-        )
+        pal(2)
     if not flags & 2:
         poke(HIGH_COLOR_PT, *([0] * 32))
     if not flags & 4:
