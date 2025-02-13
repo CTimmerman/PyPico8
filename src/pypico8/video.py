@@ -43,6 +43,7 @@ CHAR_WIDTH_HI_PT = 0x5601  # 22017
 CHAR_HEIGHT_PT = 0x5602  # 22018
 CHAR_LEFT_PT = 0x5603  # 22019
 CHAR_TOP_PT = 0x5604  # 22020
+CUSTOM_FONT_PT = 0x5600  # Bytes 0 to 15 are used as defined above!
 DRAW_PALETTE_PT = 0x5F00  # 24320
 SCREEN_PALETTE_PT = 0x5F10  # 24336
 CLIP_X1_PT = 0x5F20  # 24352
@@ -1432,6 +1433,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
         char_height = 6
         while i < len(tokens):
             c = tokens[i]
+            debug(f"i {i} tokens {''.join(tokens[i:])}")
             if c == "\b":
                 x -= char_width
                 i += 1
@@ -1474,29 +1476,31 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     mem[DRAW_COLOR_PT] = (bg << 4) | fg
                     i += 3
                     continue
-                if "".join(tokens[i : i + 3]) == "\\^i":
+                if "".join(tokens[i : i + 3]) == r"\^i":
                     invert = True
                     i += 3
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == "\\^-i":
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == r"\^-i":
                     invert = False
                     i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\14":
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == r"\014":
+                    debug("custom font on")
                     custom_font = True
                     char_width = mem[CHAR_WIDTH_LO_PT]
                     char_width_hi = mem[CHAR_WIDTH_HI_PT]
                     char_height = mem[CHAR_HEIGHT_PT]
-                    i += 3
+                    i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\15":
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == r"\015":
+                    debug("custom font off")
                     custom_font = False
                     char_width = 4
                     char_width_hi = 8
                     char_height = 6
-                    i += 3
+                    i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\^:":
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^:":
                     # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
                     ccn = int("".join(tokens[i + 3 : i + 3 + 16]), 16)
                     for ccy in range(8):
@@ -1506,7 +1510,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     x += 9
                     i += 3 + 16
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\^.":
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^.":
                     # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
                     ccn = 0
                     for raw_byte in tokens[i + 3 : i + 3 + 8]:
@@ -1528,26 +1532,55 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     y = mem[CURSOR_Y_PT]
                     i += 3
                     continue
+                # \^h updates the home position to be the cursor's current position.
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^h":
+                    mem[CURSOR_X_PT] = x
+                    mem[CURSOR_Y_PT] = y
+                    i += 3
+                    continue
+                # \^j P0 P1 sets the cursor to an absolute (x, y) pixel position. Each parameter value is multiplied by 4.
+                if i + 4 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^j":
+                    x = int(tokens[i + 3], 16) * 4
+                    y = int(tokens[i + 4], 16) * 4
+                    i += 5
+                    continue
                 if i + 3 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^d":
                     # Wait for n frames between characters.
                     char_pause = ord(tokens[i + 3]) * 2
                     i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 2]) == "\\^":
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 2]) == r"\^":
                     # Wait for n frames.
                     flip()
                     pygame.time.wait(ord(tokens[i + 2]) * 20)
                     i += 3
                     continue
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 2]) == r"\0":
+                    c = chr(int("".join(tokens[i + 2 : i + 4])))
+                    debug(f"i {i} custom char {c}")
+                    i += 3
 
             if char_pause:
                 flip()
                 pygame.time.wait(char_pause)
 
-            if custom_font:
-                printh("TODO: Custom font.")
-
             o = ord(c)
+            if custom_font:
+                debug(f"rendering char {c} ord {o}")
+                CHAR_PT = CUSTOM_FONT_PT + o * 8
+                w = char_width if o < 128 else char_width_hi
+                ccn = 0
+                for ibyte in range(8):
+                    ccn = (ccn << 8) + mem[CHAR_PT + ibyte]
+                for ccy in range(char_height):
+                    for ccx in range(w):
+                        if ccn & (1 << (ccy * 8 + ccx)):
+                            pset(x + ccx, y + 7 - ccy)
+                debug(f"x {x}, y {y}")
+                x += w
+                i += 1
+                continue
+
             character = characters[o].copy()
             r = character.get_rect()
 
@@ -1645,7 +1678,8 @@ def sset(x: int = 0, y: int = 0, col=None) -> None:
 
 def sprite_get(x: int = 0, y: int = 0, w: int = 16, h: int = 16) -> pygame.Surface:
     sprite = pygame.Surface((w, h))
-
+    x = flr(x)
+    y = flr(y)
     for iy in range(y, y + h):
         for ix in range(x, x + w):
             sprite.set_at((ix, iy), PALETTE[sget(ix, iy)])
