@@ -1368,21 +1368,22 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
     8
     >>> mem[DRAW_COLOR_PT] & 0x0F
     5
+    # offset each word by +4 pixels vertically ("j" = 20, 20 - 16 = +4)
+    >>> print("my \|jawesome \|jgame")
     """
     if s is None:
         return None
 
-    if x is not None and y is None:
-        col = x
-        x = None
-
     if x is not None and y is not None:
-        x, y = pos(x, y)  # Do camera offset here? Not in archery.py
+        x, y = pos(x, y)  # XXX: Do camera offset here? Not in archery.py
         mem[CURSOR_X_PT] = x
         mem[CURSOR_Y_PT] = y
+    elif x is not None and y is None:
+        col = x
+        x = None
     else:
-        x = mem[CURSOR_X_PT] = 0
-        y = mem[CURSOR_Y_PT] = 0
+        x = mem[CURSOR_X_PT]
+        y = mem[CURSOR_Y_PT]
 
     s = str(s)
     if s.startswith("\\^@"):
@@ -1405,13 +1406,13 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
     fg = mem[DRAW_COLOR_PT] & 0x0F
     bg_rgb = None
     for ln in s.split("\n"):
-        mem[CURSOR_X_PT] = x
+        x = mem[CURSOR_X_PT]
 
-        if y is None and mem[CURSOR_Y_PT] > 128 - 7:
+        if y > 128 - 7:
             scroll(-7)
-            mem[CURSOR_Y_PT] -= 7
+            y -= 7
 
-        debug(f"printing {repr(ln)} @ {mem[CURSOR_X_PT]}, {mem[CURSOR_Y_PT]}")
+        debug(f"printing {repr(ln)} @ {x}, {y}")
 
         tokens = list(c for c, _ in tokenize(ln, True))
         i = 0
@@ -1422,12 +1423,35 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
         char_height = 6
         while i < len(tokens):
             c = tokens[i]
+            if c == "\b":
+                x -= char_width
+                i += 1
+                continue
+            if c == "\t":
+                x = (x & 0xF0) + (16 if x % 16 else 0)
+                i += 1
+                continue
+
             if c in "abcdefghijklmnopqrstuvwxyz":
                 c = c.upper()
             elif c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
                 c = c.lower()
 
             if c == "\\" and i + 2 < len(tokens):
+                if tokens[i + 1] == "-":
+                    # a to z = -16 to +19
+                    x += ord(tokens[i + 2]) - 74 + 20 - 16
+                    i += 3
+                    continue
+                if tokens[i + 1] == "|":
+                    y += ord(tokens[i + 2]) - 74 + 20 - 16
+                    i += 3
+                    continue
+                if tokens[i + 1] == "+":
+                    x += ord(tokens[i + 2]) - 74 + 20 - 16
+                    y += ord(tokens[i + 3]) - 74 + 20 - 16
+                    i += 4
+                    continue
                 if tokens[i + 1] == "#":
                     # Set background color for this print call only.
                     bg = int(tokens[i + 2], 16)
@@ -1470,7 +1494,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                         for ccx in range(8):
                             if ccn & (1 << (ccy * 8 + ccx)):
                                 pset(x + ccx, y + 7 - ccy)
-                    mem[CURSOR_X_PT] += 9
+                    x += 9
                     i += 3 + 16
                     continue
                 if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == "\\^.":
@@ -1482,7 +1506,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                         for ccx in range(8):
                             if ccn & (1 << (ccy * 8 + ccx)):
                                 pset(x + ccx, y + 7 - ccy)
-                    mem[CURSOR_X_PT] += 9
+                    x += 9
                     i += 3 + 16
                     continue
 
@@ -1498,24 +1522,26 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     clr_at = character.get_at((wi, hi))
                     if clr_at[:3] != (0, 0, 0):
                         _pset(
-                            mem[CURSOR_X_PT] - 1 + wi,
-                            mem[CURSOR_Y_PT] - 1 + hi,
+                            x - 1 + wi,
+                            y - 1 + hi,
                             bg if invert else fg,
                             False,
                         )
                     elif bg_rgb is not None:
                         _pset(
-                            mem[CURSOR_X_PT] - 1 + wi,
-                            mem[CURSOR_Y_PT] - 1 + hi,
+                            x - 1 + wi,
+                            y - 1 + hi,
                             fg if invert else bg,
                             False,
                         )
 
-            mem[CURSOR_X_PT] += char_width if o < 128 else char_width_hi
+            x += char_width if o < 128 else char_width_hi
             i += 1
 
-        mem[CURSOR_Y_PT] += char_height
-    return mem[CURSOR_X_PT]
+        y += char_height
+
+    mem[CURSOR_Y_PT] = y
+    return x
 
 
 def scroll(dy: int) -> None:
