@@ -3,7 +3,7 @@
 """
 
 # pylint:disable = function-redefined, global-statement, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-function-args, too-many-lines, unused-import, wrong-import-position
-import base64, builtins, decimal, io, math, os, sys  # noqa: E401
+import base64, builtins, decimal, io, math, os, re, sys  # noqa: E401
 
 from emoji.tokenizer import tokenize
 
@@ -254,6 +254,14 @@ def cls(col: int | float | str = 0) -> None:
     """
     clip()
     cursor()
+    _cls(col)
+
+
+def _cls(col: int | float | str = 0) -> None:
+    r"""Only clear the screen with color.
+    >>> print(r"\^c3Like this.")
+    >>> cls()
+    """
     col = flr(tonum(col))
     for i in range(128 * 64):
         mem[SCREEN_DATA_PT + i] = col + col * 16
@@ -1405,7 +1413,8 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
     bg = mem[DRAW_COLOR_PT] & 0xF0
     fg = mem[DRAW_COLOR_PT] & 0x0F
     bg_rgb = None
-    for ln in s.split("\n"):
+    char_pause = 0
+    for ln in re.split(r"(?<!\\)\\n|\n", s):
         x = mem[CURSOR_X_PT]
 
         if y > 128 - 7:
@@ -1509,6 +1518,31 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     x += 9
                     i += 3 + 16
                     continue
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^c":
+                    _cls(tokens[i + 3])
+                    x = y = 0
+                    i += 4
+                    continue
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^g":
+                    x = mem[CURSOR_X_PT]
+                    y = mem[CURSOR_Y_PT]
+                    i += 3
+                    continue
+                if i + 3 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^d":
+                    # Wait for n frames between characters.
+                    char_pause = ord(tokens[i + 3]) * 2
+                    i += 4
+                    continue
+                if i + 2 < len(tokens) and "".join(tokens[i : i + 2]) == "\\^":
+                    # Wait for n frames.
+                    flip()
+                    pygame.time.wait(ord(tokens[i + 2]) * 20)
+                    i += 3
+                    continue
+
+            if char_pause:
+                flip()
+                pygame.time.wait(char_pause)
 
             if custom_font:
                 printh("TODO: Custom font.")
