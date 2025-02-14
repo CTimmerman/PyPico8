@@ -261,6 +261,7 @@ def cls(col: int | float | str = 0) -> None:
 def _cls(col: int | float | str = 0) -> None:
     r"""Only clear the screen with color.
     >>> print(r"\^c3Like this.")
+    40
     >>> cls()
     """
     col = flr(tonum(col))
@@ -1360,7 +1361,12 @@ def get_char_img(n: int) -> pygame.Surface:
     return image
 
 
-def print(s=None, x=None, y=None, col=None) -> int | None:
+def print(
+    s: str | None = None,
+    x: int | None = None,
+    y: int | None = None,
+    col: int | None = None,
+) -> int | None:
     r"""Prints to screen, supporting control codes at https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
     For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
 
@@ -1377,8 +1383,11 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
     8
     >>> mem[DRAW_COLOR_PT] & 0x0F
     5
-    # offset each word by +4 pixels vertically ("j" = 20, 20 - 16 = +4)
+    >>> # offset each word by +4 pixels vertically ("j" = 20, 20 - 16 = +4)
     >>> print("my \|jawesome \|jgame")
+    60
+    >>> print("abc\0def")
+    12
     """
     if s is None:
         return None
@@ -1390,8 +1399,10 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
     elif x is not None and y is None:
         col = x
         x = None
-    else:
+
+    if x is None:
         x = mem[CURSOR_X_PT]
+    if y is None:
         y = mem[CURSOR_Y_PT]
 
     s = str(s)
@@ -1433,15 +1444,25 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
         char_height = 6
         while i < len(tokens):
             c = tokens[i]
-            debug(f"i {i} tokens {''.join(tokens[i:])}")
-            if c == "\b":
+            c2 = "".join(tokens[i : i + 2])
+            c3 = "".join(tokens[i : i + 3])
+            c4 = "".join(tokens[i : i + 4])
+            # printh(f"i {i} tokens {''.join(tokens[i:])}")
+            if c == "\b" or c2 == r"\b":
                 x -= char_width
-                i += 1
+                i += 2 if c == "\\" else 1
                 continue
-            if c == "\t":
+            if c == "\r" or c2 == r"\r":
+                x = mem[CURSOR_X_PT]
+                i += 2 if c == "\\" else 1
+                continue
+            if c == "\t" or c2 == r"\t":
                 x = (x & 0xF0) + (16 if x % 16 else 0)
-                i += 1
+                i += 2 if c == "\\" else 1
                 continue
+            if c == "\0":
+                mem[CURSOR_X_PT] = x
+                return x
 
             if c in "abcdefghijklmnopqrstuvwxyz":
                 c = c.upper()
@@ -1480,11 +1501,11 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     invert = True
                     i += 3
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == r"\^-i":
+                if i + 3 < len(tokens) and c4 == r"\^-i":
                     invert = False
                     i += 4
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == r"\014":
+                if i + 3 < len(tokens) and c4 == r"\014":
                     debug("custom font on")
                     custom_font = True
                     char_width = mem[CHAR_WIDTH_LO_PT]
@@ -1492,7 +1513,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     char_height = mem[CHAR_HEIGHT_PT]
                     i += 4
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 4]) == r"\015":
+                if i + 3 < len(tokens) and c4 == r"\015":
                     debug("custom font off")
                     custom_font = False
                     char_width = 4
@@ -1500,7 +1521,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     char_height = 6
                     i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^:":
+                if i + 2 < len(tokens) and c3 == r"\^:":
                     # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
                     ccn = int("".join(tokens[i + 3 : i + 3 + 16]), 16)
                     for ccy in range(8):
@@ -1510,7 +1531,7 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     x += 9
                     i += 3 + 16
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^.":
+                if i + 2 < len(tokens) and c3 == r"\^.":
                     # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
                     ccn = 0
                     for raw_byte in tokens[i + 3 : i + 3 + 8]:
@@ -1522,43 +1543,51 @@ def print(s=None, x=None, y=None, col=None) -> int | None:
                     x += 9
                     i += 3 + 16
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^c":
+                if i + 3 < len(tokens) and c3 == r"\^c":
                     _cls(tokens[i + 3])
                     x = y = 0
                     i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^g":
+                if i + 2 < len(tokens) and c3 == r"\^g":
                     x = mem[CURSOR_X_PT]
                     y = mem[CURSOR_Y_PT]
                     i += 3
                     continue
                 # \^h updates the home position to be the cursor's current position.
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^h":
+                if i + 2 < len(tokens) and c3 == r"\^h":
                     mem[CURSOR_X_PT] = x
                     mem[CURSOR_Y_PT] = y
                     i += 3
                     continue
                 # \^j P0 P1 sets the cursor to an absolute (x, y) pixel position. Each parameter value is multiplied by 4.
-                if i + 4 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^j":
+                if i + 4 < len(tokens) and c3 == r"\^j":
                     x = int(tokens[i + 3], 16) * 4
                     y = int(tokens[i + 4], 16) * 4
                     i += 5
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 3]) == r"\^d":
+                if i + 3 < len(tokens) and c3 == r"\^d":
                     # Wait for n frames between characters.
                     char_pause = ord(tokens[i + 3]) * 2
                     i += 4
                     continue
-                if i + 2 < len(tokens) and "".join(tokens[i : i + 2]) == r"\^":
+                if i + 2 < len(tokens) and c2 == r"\^":
                     # Wait for n frames.
                     flip()
                     pygame.time.wait(ord(tokens[i + 2]) * 20)
                     i += 3
                     continue
-                if i + 3 < len(tokens) and "".join(tokens[i : i + 2]) == r"\0":
-                    c = chr(int("".join(tokens[i + 2 : i + 4])))
-                    debug(f"i {i} custom char {c}")
-                    i += 3
+                if i + 4 <= len(tokens) and c2 == r"\*":
+                    tokens = [tokens[i + 3]] * int(tokens[i + 2]) + tokens[4:]
+                    continue
+                if i + 1 < len(tokens) and c2 == r"\0":
+                    try:
+                        c = chr(int("".join(tokens[i + 2 : i + 4])))
+                        debug(f"i {i} custom char {c}")
+                        i += 3
+                    except ValueError:
+                        """Handles r"\0"."""
+                        mem[CURSOR_X_PT] = x
+                        return x
 
             if char_pause:
                 flip()
