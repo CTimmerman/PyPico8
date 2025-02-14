@@ -366,13 +366,15 @@ def cursor(x: int = 0, y: int = 0, col=None) -> int:
 
 
 def draw_pattern(
-    area: pygame.Rect,
     cel: pygame.Surface | None = None,
+    area: pygame.Rect | None = None,
 ):
     """Draw area with 4x4 fill pattern in 16 bits at 0x5F31 with transparency option at 0x5F33. Pattern 0 is draw color 0x0F; 1 is 0xF0."""
 
     if cel is None:
         cel = surf
+    if area is None:
+        area = cel.get_bounding_rect()
     xr = range(area.left, area.right)
     yr = range(area.top, area.bottom)
     # debug(f"draw_pattern {mem[FILL_PATTERN_PT + 1]:02x} {mem[FILL_PATTERN_PT]:02x} area {area} from {sys._getframe().f_back.f_code.co_name}")
@@ -747,10 +749,12 @@ def poke(addr: int, val: int = 0, *more) -> int:
     """
     for val in (val, *more):
         if 0 <= addr <= 0x1FFF:  # Spritesheet
-            # spritesheet.set_at((addr % 64 * 2, addr // 64), PALETTE[val & 0b1111])
-            # spritesheet.set_at(
-            #     (addr % 64 * 2 + 1, addr // 64), PALETTE[val >> 4 & 0b1111]
-            # )
+            # x = addr % 64 * 2
+            # y = addr // 64
+            # spritesheet.set_at((x, y), PALETTE[val & 0b1111])
+            # spritesheet.set_at((x + 1, y), PALETTE[val >> 4 & 0b1111])
+            # if addr % 10 == 0:
+            #     printh(f"spritesheet @ {x},{y}=>{addr} to {val}")
             pass
         elif 0x2000 <= addr <= 0x2FFF:
             # https://pico-8.fandom.com/wiki/Memory#Memory_map
@@ -910,7 +914,7 @@ def circ(
     #         pygame.image.save(cel, fp, "png")
     # raise Exception("DEBUG")
 
-    draw_pattern(area, cel)
+    draw_pattern(cel, area)
 
 
 def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
@@ -952,7 +956,7 @@ def line(
     cel.fill((0, 0, 0, 0))
     # debug(f"line {pos(x0, y0)} to {pos(x1, y1)}")
     draw_pattern(
-        pygame.draw.line(cel, (255, 255, 255, 255), pos(x0, y0), pos(x1, y1)), cel
+        cel, pygame.draw.line(cel, (255, 255, 255, 255), pos(x0, y0), pos(x1, y1))
     )
 
 
@@ -971,7 +975,7 @@ def oval(
     area = pygame.draw.ellipse(
         cel, (255, 255, 255, 255), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
-    draw_pattern(area, cel)
+    draw_pattern(cel, area)
 
 
 def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
@@ -993,13 +997,13 @@ def rect(x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border=1) 
     cel.fill((0, 0, 0, 0))
 
     draw_pattern(
+        cel,
         pygame.draw.rect(
             cel,
             (255, 255, 255, 255),
             (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)),
             _border,
         ),
-        cel,
     )
     return 0
 
@@ -1642,9 +1646,8 @@ def print(
 
 def scroll(dy: int) -> None:
     """Shift surface pixels by offset dy."""
-    surf_old = surf.copy()
-    surf.fill((0, 0, 0))
-    surf.blit(surf_old, (0, dy))
+    scroll_addr = SCREEN_DATA_PT + 64 * abs(dy)
+    memcpy(SCREEN_DATA_PT, scroll_addr, 64 * 128)
 
 
 def to_col(col: int | float | None = None) -> int:
@@ -1709,18 +1712,18 @@ def sprite_get(x: int = 0, y: int = 0, w: int = 16, h: int = 16) -> pygame.Surfa
     sprite = pygame.Surface((w, h))
     x = flr(x)
     y = flr(y)
-    for iy in range(y, y + h):
-        for ix in range(x, x + w):
-            sprite.set_at((ix, iy), PALETTE[sget(ix, iy)])
+    for dh in range(h):
+        for dw in range(w):
+            sprite.set_at((dw, dh), PALETTE[sget(x + dw, y + dh)])
 
     return sprite
 
 
 def spr(
     n: int,
-    x: int,
-    y: int,
-    w: int = 1,
+    x: int = 0,
+    y: int = 0,
+    w: int = 1,  # w and h only work in pairs in Pico8 0.2.2c
     h: int = 1,
     flip_x: bool = False,
     flip_y: bool = False,
@@ -1731,17 +1734,20 @@ def spr(
     """
     sx = (n % 16) * 8
     sy = (n // 16) * 8
-    # area = (sx, sy, 8 * w, 8 * h)
-    sprite = sprite_get(sx, sy, 8 * w, 8 * h)
-
-    # spritesheet.set_at((addr % 64 * 2, addr // 64), palette[val & 0b1111])
-    # spritesheet.set_at(
-    #     (addr % 64 * 2 + 1, addr // 64), palette[val >> 4 & 0b1111]
-    # )
-
-    sprite = pygame.transform.flip(sprite, flip_x, flip_y)
-    # surf.blit(sprite, (x, y))
-    draw_pattern(pygame.Rect(x, y, 8 * w, 8 * h), sprite)
+    for dy in range(8 * h):
+        for dx in range(8 * w):
+            if flip_x:
+                tdx = 8 - dx
+            else:
+                tdx = dx
+            if flip_y:
+                tdy = 8 - dy
+            else:
+                tdy = dy
+            # printh(
+            #     f"_pset({x} + {tdx}, {y} + {tdy}, sget({sx} + {dx}, {sy} + {dy}) => {sget(sx + dx, sy + dy)})"
+            # )
+            _pset(x + tdx, y + tdy, sget(sx + dx, sy + dy), False)
 
 
 def show_surf(s: pygame.Surface):
