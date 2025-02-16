@@ -1297,12 +1297,6 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
     # off_color_visible = True
     # nice_tutorial.py
     on_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
-    if on_col & 16:
-        debug(f"Color {col} => {on_col} is transparent.")
-        # Transparent.
-        # FIXME: breaks fatal_error.py
-        return
-
     if use_pattern:
         if peek2(FILL_PATTERN_PT) >> (15 - ((x % 4) + 4 * (y % 4))) & 1:
             if off_color_visible:
@@ -1397,6 +1391,8 @@ def print(
     if s is None:
         return None
 
+    do_scroll = y is None
+
     if x is not None and y is not None:
         x, y = pos(x, y)  # archery.py
         mem[CURSOR_X_PT] = x
@@ -1434,7 +1430,7 @@ def print(
     for ln in re.split(r"(?<!\\)\\n|\n", s):
         x = mem[CURSOR_X_PT]
 
-        if y > 128 - 7:
+        if do_scroll and y > 128 - 7:
             scroll(-7)
             y -= 7
 
