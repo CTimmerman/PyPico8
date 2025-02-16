@@ -40,7 +40,7 @@ false = False
 true = True
 
 # ---------- Input ---------- #
-DEVKIT_PT = 0x5F2D
+DEVKIT_PT = 0x5F2D  # 24365
 
 P0_LEFT = 0
 P0_RIGHT = 1
@@ -210,6 +210,8 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                         running = False
                 elif event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.VIDEORESIZE:
+                    pygame.display.flip()
 
             if not stopped:
                 btnp_state = 0
