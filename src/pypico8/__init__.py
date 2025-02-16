@@ -30,7 +30,7 @@ try:
     from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
-    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, frame_count, fset, get_char_img, fps, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, set_fps, sget, spr, sset, sspr, to_col  # noqa
+    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, multimethod, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, sget, spr, sset, sspr, to_col  # noqa
 except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
@@ -75,8 +75,16 @@ PLAYER_KEYMAPS = (
     },
 )
 
+begin = py_time.time()
+btnp_state = 0
+btnp_frame = 0
+stopped = False
+running = False
+tick = 0
+buttons_pressed_since = [0] * 2 * 5  # 2 players, 5 buttons each.
 
-def btn(i=None, p=0):
+
+def btn(i: int | None = None, p: int = 0) -> int | bool:
     """
     get button i state for player p (default 0)
     i: 0..5: left right up down button_o button_x
@@ -97,8 +105,6 @@ def btn(i=None, p=0):
 
     pressed = list(nr for nr, isdown in enumerate(pygame.key.get_pressed()) if isdown)
     if i is None:
-        player_keymap = PLAYER_KEYMAPS[0]
-        player_keymap.update(PLAYER_KEYMAPS[1])
         bitfield = 1 if 80 in pressed else 0
         bitfield += 2 if 79 in pressed else 0
         bitfield += 4 if 82 in pressed else 0
@@ -130,7 +136,7 @@ def btn(i=None, p=0):
     return button_pressed
 
 
-def btnp(i=None, p=0):
+def btnp(i: int | None = None, p: int = 0) -> bool | int:
     """btnp is short for "Button Pressed"; Instead of being true when a button is held down,
     btnp returns true when a button is down AND it was not down the last frame. It also
     repeats after 15 frames, returning true every 4 frames after that (at 30fps -- double
@@ -146,41 +152,61 @@ def btnp(i=None, p=0):
     POKE(0x5F5D, DELAY) -- set the repeating delay.
 
     In both cases, 0 can be used for the default behaviour (delays 15 and 4)"""
-    global btnp_state, btnp_frame
-    current_state = btn(i, p)
-    if current_state != btnp_state:
-        btnp_state = current_state
-        btnp_frame = frame_count
-        # TODO: printh(f"frame: {btnp_frame}")
-        return current_state
+    pressed = btn(i, p)
+    if i is None:
+        return pressed
+    last_pressed_at = buttons_pressed_since[p * 5 + i]
+    if not pressed:
+        if last_pressed_at:
+            buttons_pressed_since[p * 5 + i] = 0
+        return False
 
+    d = tick - last_pressed_at
+
+    initial_delay = peek(0x5F5C) or 15
+    repeating_delay = peek(0x5F5D) or 4
+    fps = get_fps()
+    if fps == 60:
+        initial_delay *= 2
+        repeating_delay *= 2
+    if fps == 15:
+        initial_delay >>= 1
+        repeating_delay >>= 1
+
+    if last_pressed_at == 0:
+        printh(f"First at tick {tick} frame {get_frame_count()}")
+        buttons_pressed_since[p * 5 + i] = tick
+        return True
+
+    if d == initial_delay or (
+        d > initial_delay and d != 255 and ((d - initial_delay) % repeating_delay) == 0
+    ):
+        # Delay seems to be in ticks instead of frames in Pico8 0.2.2c. TODO
+        # At 15 FPS, True on 0, 7, 9, 11...
+        # At 30 FPS, True on 0, 15, 19, 23...
+        # At 60 FPS, True on 0, 30, 38, 46...
+        printh(f"Repeat at tick {tick} frame {get_frame_count()}")
+        return True
     return False
 
 
 # ---------- Control flow ---------- #
-def init(_init=lambda: True):
+def init(_init=lambda: True) -> None:
     """Initialize."""
     _init_video()
     _init()
     flip()
 
 
-begin = py_time.time()
-btnp_state = 0
-btnp_frame = 0
-stopped = False
-running = False
-
-
 def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     """Run from the start of the program. Can be called from inside a program to reset program."""
-    global begin, running, btnp_state, stopped
+    global begin, running, btnp_state, stopped, tick
 
     begin = py_time.time()
     if _update.__name__ == "_update60":
-        set_fps(60)
+        _set_fps(60)
     else:
-        set_fps(30)
+        _set_fps(30)
 
     try:
         init(_init)
@@ -214,8 +240,8 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                     pygame.display.flip()
 
             if not stopped:
-                btnp_state = 0
                 _update()
+                tick += 1
                 _draw()
                 flip()
     except ZeroDivisionError:
@@ -229,7 +255,7 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     pygame.quit()
 
 
-def stop(message=None):
+def stop(message: str | None = None) -> None:
     """Stop the cart and optionally print a message."""
     global stopped
     if message:
@@ -248,7 +274,7 @@ def time() -> float:
     return t()
 
 
-def stat(x):
+def stat(x: int) -> int | bool | str:
     """
     Get system status where x is:
 
@@ -287,7 +313,7 @@ def stat(x):
     110     Returns true when in frame-by-frame mode
     """
     if x == 7:
-        return fps
+        return get_fps()
     if x == 30:
         return btn() > 0
     if x == 31:

@@ -788,8 +788,6 @@ def poke(addr: int, val: int = 0, *more) -> int:
                 """
                 # debug(f"poking palette {addr - DRAW_PALETTE_PT} to {val}")
                 # pal(addr - DRAW_PALETTE_PT, val)
-            elif addr == 24365:
-                pass  # devkit_mode = val  # 1 allows stat for mouse and keyboard
             elif addr == 24367:
                 # pause. val 2 keeps music (TODO)
                 if val and mem[PAUSE_MENU_PT] == 1:
@@ -800,8 +798,6 @@ def poke(addr: int, val: int = 0, *more) -> int:
                         thread.do_work.clear()
                     elif val == 0:
                         thread.do_work.set()
-            elif addr == COLOR_AS_FLOAT_PT:
-                pass
         elif AUDIO_FX_PT <= addr <= 0x5F7F:  # 24384 24447
             # https://pico-8.fandom.com/wiki/Memory#Hardware_state
             if (
@@ -1298,10 +1294,14 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
         col = mem[DRAW_COLOR_PT]
     col = int(col)
 
-    bitplane_mode = mem[BITPLANE_PT]  # 0x5F5 / 24414
     # off_color_visible = True
     # nice_tutorial.py
-    on_col = mem[DRAW_PALETTE_PT + (mem[DRAW_COLOR_PT] & 0x0F)]
+    on_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
+    if on_col & 16:
+        debug(f"Color {col} => {on_col} is transparent.")
+        # Transparent.
+        # FIXME: breaks fatal_error.py
+        return
 
     if use_pattern:
         if peek2(FILL_PATTERN_PT) >> (15 - ((x % 4) + 4 * (y % 4))) & 1:
@@ -1309,6 +1309,7 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
                 off_col = (col & 0xF0) >> 4
                 col = off_col
         else:
+            bitplane_mode = mem[BITPLANE_PT]  # 0x5F5 / 24414
             if bitplane_mode != 255:
                 read_mask = (bitplane_mode & 0xF0) >> 4
                 write_mask = bitplane_mode & 0x0F
@@ -1397,7 +1398,7 @@ def print(
         return None
 
     if x is not None and y is not None:
-        x, y = pos(x, y)  # XXX: Do camera offset here? Not in archery.py
+        x, y = pos(x, y)  # archery.py
         mem[CURSOR_X_PT] = x
         mem[CURSOR_Y_PT] = y
     elif x is not None and y is None:
@@ -1473,7 +1474,7 @@ def print(
             elif c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
                 c = c.lower()
 
-            if c == "\\" and i + 2 < len(tokens):
+            if c == "\\" and i + 1 < len(tokens):
                 if tokens[i + 1] == "-":
                     # a to z = -16 to +19
                     x += ord(tokens[i + 2]) - 74 + 20 - 16
@@ -1674,7 +1675,7 @@ def replace_color(
     return surface
 
 
-def sget(x: int = 0, y: int = 0) -> int:
+def sget(x: int | float = 0, y: int | float = 0) -> int:
     """Get the color of a spritesheet pixel.
     >>> sset(0, 0, 13)
     >>> sget()
@@ -1787,29 +1788,70 @@ def sspr(
     if dy is None:
         dy = 0
 
-    printh(f"sspr({sx}, {sy}, {sw}, {sh}, {dx}, {dy}, {dw}, {dh}, {flip_x}, {flip_y})")
+    if dw < 0:
+        dw = abs(dw)
+        flip_x = not flip_x
+    if dh < 0:
+        dh = abs(dh)
+        flip_y = not flip_y
+
+    if flr(sw) == 0 or flr(sh) == 0 or flr(dw) == 0 or flr(dh) == 0:
+        return
+
+    # printh(
+    #     f"sspr(sx {sx:.2f}, sy {sy:.2f}, sw {sw}, sh {sh}, dx {dx:.2f}, dy {dy:.2f}, dw {dw:.2f}, dh {dh:.2f}, {flip_x}, {flip_y})"
+    # )
 
     dh = abs(flr(dh))
     dw = abs(flr(dw))
 
-    sprite = pygame.transform.flip(sprite_get(sx, sy, sw, sh), flip_x, flip_y)
-    show_surf(sprite)
+    rw = sw / dw
+    rh = sh / dh
 
-    sprite = pygame.transform.scale(sprite, (dw, dh))
+    # sprite = pygame.transform.flip(sprite_get(sx, sy, sw, sh), flip_x, flip_y)
+    # sprite = pygame.transform.scale(sprite, (dw, dh))
+    # sprite.set_at((0, 0), (255, 0, 0, 100))
     # sprite.set_colorkey((0, 0, 0))
 
+    # OK
     # pygame.image.save(sprite, f"debug_sspr{sx},{sy},{sw},{sh}, d {dx},{dy},{dw},{dh}, f {flip_x},{flip_y}.png")
     # pygame.image.save(spritesheet, f"debug_spritesheet.png")
     # 1/0
-
+    # show_surf(sprite)
     # surf.blit(sprite, (dx, dy))
-    # draw_pattern(pygame.Rect(dx, dy, dw, dh), sprite)
+
+    # for y in range(sh):
+    #     for x in range(sx):
+    #         c = sget(x, y)
+    #         builtins.print(f"{c if c else ' '}", end="")
+    #     builtins.print()
+    # return
+
     fg = mem[DRAW_COLOR_PT] & 0x0F
     bg = (mem[DRAW_COLOR_PT] & 0xF0) >> 4
     for y in range(dh):
         for x in range(dw):
-            v = sprite.get_at((x, y))[0] % 16
-            pset(dx + x, dy + y, fg if v else bg)
+            tx = (dw - 1 - x) if flip_x else x
+            ty = (dh - 1 - y) if flip_y else y
+            col = sget(sx + tx * rw, sy + ty * rh)
+            col2 = mem[DRAW_PALETTE_PT + col]
+            # col = mem[DRAW_PALETTE_PT + sget(sx + tx * rw, sy + ty * rh)]
+            # builtins.print(f"({x * rw: 2.0f},{y * rh:2.0f}c{col:2})", end="")
+            # builtins.print(f"{col:2} ", end="")
+            # rgba = sprite.get_at((x, y))
+            # printh(rgba)
+            # v = sum(rgba) % 16
+            if mem[FILL_PALETTE_PT] and fg != bg:
+                # builtins.print(f"f{fg:02}b{bg:02} ", end="")
+                _pset(flr(dx + tx), flr(dy + ty), bg if (col2 & 16) else fg)
+            else:
+                # builtins.print(
+                #     f"0v{v:02} {col} ", end=""
+                # )
+                # Draw if not transparent.
+                if not col2 & 16:
+                    _pset(flr(dx + tx), flr(dy + ty), col)  # v)
+        # builtins.print()
 
 
 def twos_complement_to_signed(value: int, bits: int = 16) -> int:
@@ -1929,7 +1971,15 @@ def reset() -> None:
     clip()
 
 
-def set_fps(n: int = 30):
+def get_fps():
+    return fps
+
+
+def get_frame_count():
+    return frame_count
+
+
+def _set_fps(n: int = 30):
     global fps
     fps = n
 
