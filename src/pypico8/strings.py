@@ -27,7 +27,7 @@ CHARS = [
     'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '[', '\\',']', '^', '_',  # 96
     '`', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',  # 112
     'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '{', '|', '}', '?', '○',  # 128
-    '█', '▒','🐱','⬇️','░', '✽','⚈', '♥', '⟐','웃','🏠','⬅️','😐', '♪','🅾️','◆',  # 144
+    '█', '▒','🐱','⬇️','░', '✽','⚈', '♥', '⟐','웃','⌂','⬅️','😐', '♪','🅾️','◆',  # 144
     '…','➡️','★','⧗','⬆️','ˇ','∧','❎','▤', '⦀','あ', 'い','う','え','お','か',  # 160
     'ぎ','く','け','こ','さ','し','す','せ', 'そ','た','ち','つ','て','と','な','に',  # 176
     'ぬ','ね','の','は','ひ','ふ','へ','ほ', 'ま','み','む','め','も','や','ゆ','よ',  # 192
@@ -242,17 +242,22 @@ def ord(s: str, index: int = 1) -> int:  # noqa
     >>> ord('a')
     65
     """
-    # printh(f"Ord got s {s}, index {index} from {sys._getframe().f_back.f_code.co_name}")
-    c = s[index - 1]
-    if c == "?":
+    if s == "?":
         return 63
-    if c == "☉" or s == "🅾️":
+    if s in CHARS:
+        return CHARS.index(s)
+    printh(f"Ord got s {s} len {len(s)} known {s in CHARS}, index {index} from {sys._getframe().f_back.f_code.co_name}")  # type: ignore[union-attr]
+    if len(s) > 1:
+        printh(f"Cutting down len {len(s)} {s}")
+        s = s[index - 1]
+        printh(f"new s {s}")
+    if s == "☉":  # from fillp in torus_knot
         return 142
-    n = builtins.ord(c)
+    n = builtins.ord(s)
     if 120354 <= n <= 120379:
         # Mathematical Sans-Serif Italic Small A-Z.
         return n - 120354 + 65  # Lowercase p8nsi A-Z.
-    return CHARS.index(c)
+    return CHARS.index(s)
 
 
 def sub(s: str, pos0: int, pos1: int | None = None) -> str:

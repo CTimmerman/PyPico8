@@ -10,6 +10,14 @@ repos:
         pass_filenames: true  # Only run on staged Python files (default)
         fail_fast: true  # Stop on first failure
 
+      - id: doctest
+        name: doctest
+        entry: python -m doctest
+        language: system
+        types_or:
+          - python
+          - markdown
+
       - id: black
         name: black
         entry: python -m black

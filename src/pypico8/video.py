@@ -492,11 +492,7 @@ def rgb(col: int) -> tuple:
         col = 128 + (col % 16)
     else:
         col %= 16
-    try:
-        return PALETTE[col]
-    except KeyError as ex:
-        printh(f"rgb unknown: {ex}")
-        return (0, 0, 0)
+    return PALETTE[col]
 
 
 def flip() -> None:
@@ -1973,7 +1969,7 @@ def reset() -> None:
     if not flags & 1:
         pal()
         pal(2)
-        printh("Reset fill palette.")
+        debug("Reset fill palette; moving_checkers shows 0?")
     if not flags & 2:
         poke(HIGH_COLOR_PT, *([0] * 32))
     if not flags & 4:

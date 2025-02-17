@@ -3,3 +3,5 @@ moving_checkers bg
 neon_jellyfish color
 ovals transparency
 padar gameplay
+sleight_of_hand
+rostock_genuary25
