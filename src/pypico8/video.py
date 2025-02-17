@@ -346,7 +346,7 @@ def color(col: int | float | str | None = None) -> int:
     # 64 fixes test_pset rectfill and center circle.
     # 32 only the center circle.
     # 16 breaks pattern
-    # != 16 works. Still leaves pixel cursor changign color.
+    # != 16 works. Still leaves pixel cursor changing color.
     off_color_visible = True  # int(col) & 16 != 16
     debug(f"Set off_color_visible to {off_color_visible} from {flr(col):08b}")
 
@@ -1024,15 +1024,16 @@ def pal(old_col: int, new_col: int, p: int = 0) -> int:
     """
     if p < 0 or p > 2:
         return 0
-    # mem[PERSIST_PT] = p
-    old_col = to_col(old_col)
-    new_col = to_col(new_col)
+
+    old_col = flr(old_col) & 0x0F
     pt = DRAW_PALETTE_PT
     if p == 1:
         pt = SCREEN_PALETTE_PT
     elif p == 2:
         pt = FILL_PALETTE_PT
-    rv = to_col(mem[pt + old_col])
+    else:
+        new_col = flr(new_col) & 0x0F
+    rv = mem[pt + old_col]
     mem[pt + old_col] = new_col
     return rv
 
@@ -1294,7 +1295,9 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
         col = mem[DRAW_COLOR_PT]
     col = int(col)
 
-    # off_color_visible = True
+    # off_color_visible = col & 16  # fractus good. ovals not.
+    # off_color_visible = mem[FILL_PATTERN_PT] & 16
+
     # nice_tutorial.py
     on_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
     if use_pattern:

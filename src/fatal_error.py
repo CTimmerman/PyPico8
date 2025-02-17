@@ -1,5 +1,4 @@
 """Fatal Error ported from https://twitter.com/cbmakes/status/1348119427150188544
-TODO: Fix too-bright blue.
 
 cls(13)
 poke(0x5f2c,3)
