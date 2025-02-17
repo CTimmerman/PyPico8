@@ -486,6 +486,19 @@ def fillp(p: int | float | str = 0) -> float:
     return prev_state
 
 
+def rgb(col: int) -> tuple:
+    col = uint8(col)
+    if col >= 128:
+        col = 128 + (col % 16)
+    else:
+        col %= 16
+    try:
+        return PALETTE[col]
+    except KeyError as ex:
+        printh(f"rgb unknown: {ex}")
+        return (0, 0, 0)
+
+
 def flip() -> None:
     """
     Flip the back buffer to screen and wait for next frame
@@ -523,8 +536,8 @@ def flip() -> None:
         # debug(f"x {x}, y {y}, pixels {pixels} so {col1} and {col2}")
         if addr > SCREEN_DATA_PT and addr % 64 == 0:
             y += 1
-        surf.set_at((x, y), PALETTE[mem[SCREEN_PALETTE_PT + col1] % 16])
-        surf.set_at((x + 1, y), PALETTE[mem[SCREEN_PALETTE_PT + col2] % 16])
+        surf.set_at((x, y), rgb(mem[SCREEN_PALETTE_PT + col1]))
+        surf.set_at((x + 1, y), rgb(mem[SCREEN_PALETTE_PT + col2]))
         x = (x + 2) % 128
 
     # https://www.reddit.com/r/pico8/comments/s4o8l6/comment/hstbjcf/
@@ -778,16 +791,7 @@ def poke(addr: int, val: int = 0, *more) -> int:
             pass
         elif DRAW_PALETTE_PT <= addr <= 0x5F3F:  # 24320 24383
             # https://pico-8.fandom.com/wiki/Memory#Draw_state
-            if DRAW_PALETTE_PT <= addr < DRAW_PALETTE_PT + 16:
-                """https://x.com/lexaloffle/status/1359600870799806464
-                A new bit for fillp in #pico8 0.2.2: 0x0.4
-                e.g. fillp(♥ | 0.25)
-
-                When it's set, pixel values in spr/sspr/map/tline are mapped to 8-bit colour pairs starting at 0x5f60, and the fill pattern is observed when the high & low nibbles differ.
-                """
-                # debug(f"poking palette {addr - DRAW_PALETTE_PT} to {val}")
-                # pal(addr - DRAW_PALETTE_PT, val)
-            elif addr == 24367:
+            if addr == 24367:
                 # pause. val 2 keeps music (TODO)
                 if val and mem[PAUSE_MENU_PT] == 1:
                     mem[PAUSE_MENU_PT] = 0
@@ -1969,6 +1973,7 @@ def reset() -> None:
     if not flags & 1:
         pal()
         pal(2)
+        printh("Reset fill palette.")
     if not flags & 2:
         poke(HIGH_COLOR_PT, *([0] * 32))
     if not flags & 4:
