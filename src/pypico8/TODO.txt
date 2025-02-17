@@ -1,7 +1,6 @@
 FIXME:
 moving_checkers bg
-neon_jellyfish color
+neon_jellyfish color (yellow)
 ovals transparency
-padar gameplay
-sleight_of_hand
-rostock_genuary25
+padar gameplay (projectiles end)
+rostock_genuary25 colors

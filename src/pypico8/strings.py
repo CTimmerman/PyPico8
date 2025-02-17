@@ -246,7 +246,7 @@ def ord(s: str, index: int = 1) -> int:  # noqa
         return 63
     if s in CHARS:
         return CHARS.index(s)
-    printh(f"Ord got s {s} len {len(s)} known {s in CHARS}, index {index} from {sys._getframe().f_back.f_code.co_name}")  # type: ignore[union-attr]
+    # printh(f"Ord got s {s} len {len(s)} known {s in CHARS}, index {index} from {sys._getframe().f_back.f_code.co_name}")  # type: ignore[union-attr]
     if len(s) > 1:
         printh(f"Cutting down len {len(s)} {s}")
         s = s[index - 1]
@@ -257,7 +257,8 @@ def ord(s: str, index: int = 1) -> int:  # noqa
     if 120354 <= n <= 120379:
         # Mathematical Sans-Serif Italic Small A-Z.
         return n - 120354 + 65  # Lowercase p8nsi A-Z.
-    return CHARS.index(s)
+    # printh(f"Returning ord {n}")
+    return n % 256
 
 
 def sub(s: str, pos0: int, pos1: int | None = None) -> str:
