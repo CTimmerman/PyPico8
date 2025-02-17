@@ -756,6 +756,9 @@ def poke(addr: int, val: int = 0, *more) -> int:
     Writing out of range causes a runtime error.
     """
     for val in (val, *more):
+        # if addr >= 0x5F60 and addr < 0x5F60 + 16:
+        #     printh(f"POKED FILL PALETTE {addr} {val} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
+
         if 0 <= addr <= 0x1FFF:  # Spritesheet
             # x = addr % 64 * 2
             # y = addr // 64
@@ -1969,9 +1972,8 @@ def reset() -> None:
     if not flags & 1:
         pal()
         pal(2)
-        debug("Reset fill palette; moving_checkers shows 0?")
     if not flags & 2:
-        poke(HIGH_COLOR_PT, *([0] * 32))
+        poke(HIGH_COLOR_PT, 0)
     if not flags & 4:
         poke(AUDIO_FX_PT, 0, 0, 0)
     if not flags & 8:
