@@ -11,7 +11,6 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.multiple_dispatch import multimethod
 from pypico8.audio import threads
 from pypico8.math import ceil, flr, rnd, shl, shr
 from pypico8.strings import (
@@ -524,8 +523,8 @@ def flip() -> None:
         # debug(f"x {x}, y {y}, pixels {pixels} so {col1} and {col2}")
         if addr > SCREEN_DATA_PT and addr % 64 == 0:
             y += 1
-        surf.set_at((x, y), PALETTE[mem[SCREEN_PALETTE_PT + col1]])
-        surf.set_at((x + 1, y), PALETTE[mem[SCREEN_PALETTE_PT + col2]])
+        surf.set_at((x, y), PALETTE[mem[SCREEN_PALETTE_PT + col1] % 16])
+        surf.set_at((x + 1, y), PALETTE[mem[SCREEN_PALETTE_PT + col2] % 16])
         x = (x + 2) % 128
 
     # https://www.reddit.com/r/pico8/comments/s4o8l6/comment/hstbjcf/
@@ -1009,142 +1008,15 @@ def rectfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> int:
     return rect(x0, y0, x1, y1, col, 0)
 
 
-# def replace_screen_color(old_col: int, new_col: int) -> None:
-#     "Replace screen color."
-#     img_copy = surf.copy()
-#     cls(new_col)
-#     img_copy.set_colorkey(col2rgb(old_col))
-#     surf.blit(img_copy, (0, 0))
+def pal(*args) -> int | None:
+    """pal(old_col, new_col, p) changes the draw state so all instances of a given color are replaced with a new color. p: palette (0 for draw, 1 for display, 2 for secondary)
 
-
-@multimethod(int, int, int)
-def pal(old_col: int, new_col: int, p: int = 0) -> int:
-    """pal() changes the draw state so all instances of a given color are replaced with a new color.
-    p: palette (0 for draw, 1 for display, 2 for secondary)
-    """
-    if p < 0 or p > 2:
-        return 0
-
-    old_col = flr(old_col) & 0x0F
-    pt = DRAW_PALETTE_PT
-    if p == 1:
-        pt = SCREEN_PALETTE_PT
-    elif p == 2:
-        pt = FILL_PALETTE_PT
-    else:
-        new_col = flr(new_col) & 0x0F
-    rv = mem[pt + old_col]
-    mem[pt + old_col] = new_col
-    return rv
-
-
-@multimethod(int, int)  # type: ignore
-def pal(old_col: int, new_col: int) -> int:  # noqa: F811
-    """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
-    return pal(old_col, new_col, 0)
-
-
-@multimethod(int, float)  # type: ignore
-def pal(old_col: int, new_col: float) -> int:  # noqa: F811
-    """pal() swaps colour c0 for c1 for one of two palette re-mappings"""
-    return pal(old_col, flr(new_col), 0)
-
-
-@multimethod(Table, int)  # type: ignore
-def pal(tbl: Table, remap_screen: int = 0) -> None:  # noqa: F811
-    """
-    When the first parameter of pal is a table, colours are assigned (not swapped!) for each entry.
-    For example, to re-map colour 12 and 14 to red:
-
-    PAL({12: 9, 14: 8})
-
-    Or to re-colour the whole screen shades of gray (including everything that is already drawn):
-
-    PAL({1,1,5,5,5,6,7,13,6,7,7,6,13,6,7}, 1)
-    """
-    for i, col in enumerate(tbl):
-        pal((i + 1 % 16), col, remap_screen)
-
-
-@multimethod(list, int)  # type: ignore
-def pal(tbl: list, remap_screen: int = 0) -> None:  # noqa: F811
-    """0-based palette replacement."""
-    for i, col in enumerate(tbl):
-        pal(i + 1, col, remap_screen)
-
-
-@multimethod(int)  # type: ignore
-def pal(p: int) -> None:  # noqa: F811
-    """Reset draw (0), display (1), or secondary palette (2)."""
-    if p == 0:
-        poke(
-            DRAW_PALETTE_PT,
-            16,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-            13,
-            14,
-            15,
-        )
-    elif p == 1:
-        poke(
-            SCREEN_PALETTE_PT,
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-            13,
-            14,
-            15,
-        )
-    elif p == 2:
-        poke(
-            FILL_PALETTE_PT,
-            0,
-            1,
-            18,
-            19,
-            36,
-            21,
-            214,
-            103,
-            72,
-            73,
-            154,
-            59,
-            220,
-            93,
-            142,
-            239,
-        )
-
-
-@multimethod()  # type: ignore
-def pal() -> int:  # noqa: F811
-    """Resets draw palette and screen palette to system defaults (including transparency values and fill pattern)
+    pal() resets draw palette and screen palette to system defaults (including transparency values and fill pattern)
 
     pal(0, 9, 1)
     for a=0,2^15-1,1 do if peek(a) == 9 or a >= 24300 and a <= 24351 then print(a..": "..peek(a)) end end
 
+    Doctests for all pal functions here because it only finds the last multimethod one:
     >>> def seek(x):
     ...   for a in range(0, 2**15-1):
     ...     if mem[a] == x:
@@ -1152,7 +1024,7 @@ def pal() -> int:  # noqa: F811
     ...
     >>> pal()
     0
-    >>> peek(DRAW_PALETTE_PT)
+    >>> peek(DRAW_PALETTE_PT) # 24320
     16
     >>> pal(0, 9)
     0
@@ -1162,12 +1034,138 @@ def pal() -> int:  # noqa: F811
     0x5f19
     >>> pal(0, 9, 1)
     0
+    >>> seek(9)
+    0x5f00
+    0x5f09
+    0x5f10
+    0x5f19
+    >>> [pal(1, 340.5, 1) for _ in range(2)]
+    [1, 84]
+    >>> pal(0, 9, 0)
+    9
+    >>> pal()
+    0
     """
-    mem[PERSIST_PT] = 0
-    pal(0)
-    pal(1)
-    fillp()
-    return 0
+
+    if len(args) == 0:
+        """pal() resets first 2 palettes to defaults."""
+        mem[PERSIST_PT] = 0
+        fillp()
+        pal(0)
+        pal(1)
+        return 0
+    if len(args) == 1:
+        p = args[0]
+        """Reset draw (0), display (1), or secondary palette (2)."""
+        if p == 0:
+            poke(
+                DRAW_PALETTE_PT,
+                16,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+            )
+        elif p == 1:
+            poke(
+                SCREEN_PALETTE_PT,
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+            )
+        elif p == 2:
+            poke(
+                FILL_PALETTE_PT,
+                0,
+                1,
+                18,
+                19,
+                36,
+                21,
+                214,
+                103,
+                72,
+                73,
+                154,
+                59,
+                220,
+                93,
+                142,
+                239,
+            )
+        return 0
+    if len(args) == 2:
+        a = args[0]
+        b = args[1]
+        if isinstance(a, (float, int)):
+            return pal(a, b, 0)
+        if isinstance(a, list):
+            # @multimethod(list, int)  # type: ignore
+            # def pal(tbl: list, remap_screen: int = 0) -> None:  # noqa: F811
+            """0-based palette replacement."""
+            for i, col in enumerate(a):
+                pal(i + 1, col, b)
+            return None
+        if isinstance(a, Table):
+            # @multimethod(Table, int)  # type: ignore
+            # def pal(tbl: Table, remap_screen: int = 0) -> None:  # noqa: F811
+            """
+            When the first parameter of pal is a table, colours are assigned (not swapped!) for each entry.
+            For example, to re-map colour 12 and 14 to red:
+
+            PAL({12: 9, 14: 8})
+
+            Or to re-colour the whole screen shades of gray (including everything that is already drawn):
+
+            PAL({1,1,5,5,5,6,7,13,6,7,7,6,13,6,7}, 1)
+            """
+            for i, col in enumerate(a):
+                pal((i + 1 % 16), col, b)
+            return None
+
+    p = args[2]
+    if p < 0 or p > 2:
+        return 0
+
+    old_col = uint4(args[0])
+    new_col = args[1]
+
+    pt = DRAW_PALETTE_PT
+    if p == 1:
+        pt = SCREEN_PALETTE_PT
+    elif p == 2:
+        pt = FILL_PALETTE_PT
+    else:
+        new_col = uint4(new_col)
+    rv = mem[pt + old_col]
+    if p == 0:
+        rv = uint4(rv)
+    mem[pt + old_col] = uint8(new_col)
+    return rv
 
 
 def palt(coli: int | None = None, transparent: bool | None = None) -> int | bool:
@@ -1650,9 +1648,24 @@ def scroll(dy: int) -> None:
     memcpy(SCREEN_DATA_PT, scroll_addr, 64 * 128)
 
 
-def to_col(col: int | float | None = None) -> int:
-    """Take number and return palette index."""
-    return flr(col) & 0x0F
+def uint4(col: int | float | None = None) -> int:
+    """Take number and return palette index.
+    >>> uint4(-1)
+    15
+    >>> uint4(-1.5)
+    14
+    """
+    return flr(col) % 16
+
+
+def uint8(col: int | float | None = None) -> int:
+    """Take number and return palette index.
+    >>> uint8(-1)
+    255
+    >>> uint8(-1.5)
+    254
+    """
+    return flr(col) % 256
     # (0x8F if mem[PERSIST_PT] else 0x0F) # https://youtu.be/AsVzk6kCAJY?t=434
 
 

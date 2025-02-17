@@ -1,0 +1,5 @@
+FIXME:
+moving_checkers bg
+neon_jellyfish color
+ovals transparency
+padar gameplay
