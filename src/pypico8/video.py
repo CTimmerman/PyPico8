@@ -347,7 +347,9 @@ def color(col: int | float | str | None = None) -> int:
     # 16 breaks pattern
     # != 16 works. Still leaves pixel cursor changing color.
     off_color_visible = True  # int(col) & 16 != 16
-    debug(f"Set off_color_visible to {off_color_visible} from {flr(col):08b}")
+    debug(
+        f"color set off_color_visible to {off_color_visible} from col bin {flr(col):08b}"
+    )
 
     return old_col
 
@@ -601,7 +603,7 @@ def memcpy(dest_addr: int, source_addr: int, length: int) -> None:
     >>> memcpy(100, 0, 100)
     >>> mem[0:100] == mem[100:200]
     True
-    >>> for i in range(100): mem[i] = 0
+    >>> for i in range(200): mem[i] = 0
     """
     vals = []
     for i in range(length):
@@ -756,6 +758,8 @@ def poke(addr: int, val: int = 0, *more) -> int:
     Writing out of range causes a runtime error.
     """
     for val in (val, *more):
+        # if val == 9 and addr >= 0 and addr < 200:
+        #     printh(f"POKED {addr} {val} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
         # if addr >= 0x5F60 and addr < 0x5F60 + 16:
         #     printh(f"POKED FILL PALETTE {addr} {val} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
 
@@ -981,34 +985,43 @@ def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None
     oval(x0, y0, x1, y1, col, False)
 
 
-def rect(x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border=1) -> int:
-    """Draw a rectangle."""
+def rect(*args, _border_only=True) -> int:
+    """Draw a rectangle. x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border_only=True
+    Col None => 0 but No col => draw color!!!"""
+    x0 = flr(args[0])
+    y0 = flr(args[1])
+    x1 = flr(args[2])
+    y1 = flr(args[3])
     if x1 < x0:
         x0, x1 = x1, x0
     if y1 < y0:
         y0, y1 = y1, y0
-    if col is not None:
-        color(col)
 
-    cel = surf.copy()
-    # qr_trawling
-    cel.fill((0, 0, 0, 0))
+    debug(f"rect called with {len(args)} args: {args}")
 
-    draw_pattern(
-        cel,
-        pygame.draw.rect(
-            cel,
-            (255, 255, 255, 255),
-            (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)),
-            _border,
-        ),
-    )
+    if len(args) > 4:
+        col = args[4]
+        # moving_checkers.py
+        if isinstance(col, (float, int)):
+            color(col)
+        else:
+            col = 0
+    else:
+        debug("Col from draw col")
+        col = None
+
+    debug(f"rect({x0},{y0} {x1},{y1} {col} {_border_only})")
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            if not _border_only or y == y0 or y == y1 or x == x0 or x == x1:
+                _pset(x, y, col)
+
     return 0
 
 
-def rectfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> int:
+def rectfill(*args) -> int:
     """Draw a filled rectangle."""
-    return rect(x0, y0, x1, y1, col, 0)
+    return rect(*args, _border_only=False)
 
 
 def pal(*args) -> int | None:
@@ -1294,13 +1307,15 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
 
     if col is None:
         col = mem[DRAW_COLOR_PT]
-    col = int(col)
+    col = flr(col)
 
     # off_color_visible = col & 16  # fractus good. ovals not.
     # off_color_visible = mem[FILL_PATTERN_PT] & 16
 
     # nice_tutorial.py
     on_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
+    debug(f"col {col} => on_col {col}")
+
     if use_pattern:
         if peek2(FILL_PATTERN_PT) >> (15 - ((x % 4) + 4 * (y % 4))) & 1:
             if off_color_visible:
@@ -1323,9 +1338,7 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
     else:
         mem[addr] = (mem[addr] & 0xF0) | (col & 0x0F)
 
-    debug(
-        f"pset x {x} y {y} addr {addr} to {mem[addr]:02x}, col {col} RGB {PALETTE[mem[addr] & 0x0F]} vis {off_color_visible}"
-    )
+    debug(f"pset {x},{y} @ {addr} to 0x{mem[addr]:02x}, vis {off_color_visible}")
 
 
 def fget(n: int, flag_index: int | None = None) -> int:

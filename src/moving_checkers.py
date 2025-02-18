@@ -1,5 +1,4 @@
-"""Squares & Circles ported from https://twitter.com/kadoyan/status/1359150102728876041
-"""
+"""Squares & Circles ported from https://twitter.com/kadoyan/status/1359150102728876041"""
 
 # pylint: disable = global-statement, invalid-name
 from pypico8 import (
@@ -63,7 +62,7 @@ def _draw():
         rectfill(x, y, x + r, y + r, ct[L % 2 + n % 2])  # or color [0, 3][(L + n) % 2]
 
     circfill(63, 63, 40, 7)  # logo white
-    logo(0, 38, 0)  # logo black
+    logo(0, 38, -2)  # logo black
     logo(8, 40, 0)  # logo pink
 
 
