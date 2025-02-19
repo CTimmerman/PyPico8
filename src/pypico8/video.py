@@ -988,10 +988,8 @@ def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None
 def rect(*args, _border_only=True) -> int:
     """Draw a rectangle. x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border_only=True
     Col None => 0 but No col => draw color!!!"""
-    x0 = flr(args[0])
-    y0 = flr(args[1])
-    x1 = flr(args[2])
-    y1 = flr(args[3])
+    x0, y0 = pos(args[0], args[1])
+    x1, y1 = pos(args[2], args[3])
     if x1 < x0:
         x0, x1 = x1, x0
     if y1 < y0:
