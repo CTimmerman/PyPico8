@@ -1,6 +1,4 @@
-"""Ovals ported from https://www.lexaloffle.com/bbs/?tid=38665
-TODO: Fix character patterns.
-"""
+"""Ovals ported from https://www.lexaloffle.com/bbs/?tid=38665"""
 
 # flake8:noqa
 from pypico8 import *

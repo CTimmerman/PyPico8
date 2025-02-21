@@ -71,7 +71,6 @@ FILL_PALETTE_PT = 0x5F60  # 24416
 SCREEN_DATA_PT = 0x6000  # 24576
 GENERAL_USE_PT = 0x8000  # 32768. Pico8 0.2.4+
 
-
 PALETTE = {
     0: (0, 0, 0),
     1: (29, 43, 83),
@@ -107,11 +106,37 @@ PALETTE = {
     143: (255, 157, 129),
 }
 
+# ord 128 + 53
+PATTERNS = {
+    "█": 0.5,
+    "▒": 23130.5,
+    "🐱": 20767.5,
+    "⬇️": 3,
+    "░": 32125.5,
+    "✽": -18402.5,
+    "●": -1632.5,
+    "♥": 20927.5,
+    "☉": -19008.5,
+    "웃": -26208.5,
+    "⌂": -20192.5,
+    "⬅️": 0,
+    "😐": -24351.5,
+    "♪": -25792.5,
+    "🅾️": 4,
+    "◆": -20032.5,
+    "…": -2560.5,
+    "➡️": 1,
+    "★": -20128.5,
+    "⧗": 6943.5,
+    "⬆️": 2,
+    "ˇ": -2624.5,
+    "∧": 31455.5,
+    "❎": 5,
+    "▤": 3855.5,
+    "▥": 21845.5,
+}
 
-off_color_visible: bool = True
-# palette: dict = {}
 surf: pygame.Surface
-
 characters: list[pygame.Surface] = []
 font_img: pygame.Surface
 spritesheet: pygame.Surface
@@ -322,7 +347,6 @@ def color(col: int | float | str | None = None) -> int:
     >>> poke(0x5F34, 0)
     0
     """
-    global off_color_visible
     old_col = mem[DRAW_COLOR_PT] & 0xFF
 
     if col is None:
@@ -346,10 +370,8 @@ def color(col: int | float | str | None = None) -> int:
     # 32 only the center circle.
     # 16 breaks pattern
     # != 16 works. Still leaves pixel cursor changing color.
-    off_color_visible = True  # int(col) & 16 != 16
-    debug(
-        f"color set off_color_visible to {off_color_visible} from col bin {flr(col):08b}"
-    )
+    on_color_trans = True  # int(col) & 16 != 16
+    debug(f"color set on_color_trans to {on_color_trans} from col bin {flr(col):08b}")
 
     return old_col
 
@@ -366,27 +388,8 @@ def cursor(x: int = 0, y: int = 0, col=None) -> int:
     return 0
 
 
-def draw_pattern(
-    cel: pygame.Surface | None = None,
-    area: pygame.Rect | None = None,
-):
-    """Draw area with 4x4 fill pattern in 16 bits at 0x5F31 with transparency option at 0x5F33. Pattern 0 is draw color 0x0F; 1 is 0xF0."""
-
-    if cel is None:
-        cel = surf
-    if area is None:
-        area = cel.get_bounding_rect()
-    xr = range(area.left, area.right)
-    yr = range(area.top, area.bottom)
-    # debug(f"draw_pattern {mem[FILL_PATTERN_PT + 1]:02x} {mem[FILL_PATTERN_PT]:02x} area {area} from {sys._getframe().f_back.f_code.co_name}")
-    for y in yr:
-        for x in xr:
-            if cel.get_at((x, y))[3] != 0:
-                _pset(x, y)
-
-
 def fillp(p: int | float | str = 0) -> float:
-    """
+    r"""
     The PICO-8 fill pattern is a 4x4 2-colour tiled pattern observed by:
     circ() circfill() rect() rectfill() oval() ovalfill() pset() line()
 
@@ -409,7 +412,6 @@ def fillp(p: int | float | str = 0) -> float:
     The default fill pattern is 0, which means a single solid colour is drawn.
 
     Alternatively, you can set the pattern to make the on bits transparent (showing what is drawn underneath). To do this, add 0b0.1, or 0x0.8 if using hex, to the pattern value. Data is stored at [0x5F31 - 0x5F33].
-
 
     https://x.com/lexaloffle/status/1359600870799806464
     A new bit for fillp in #pico8 0.2.2: 0x0.4
@@ -439,35 +441,23 @@ def fillp(p: int | float | str = 0) -> float:
     >>> fillp(32768); see()
     -3855.5
     [0, 128, 0]
-    >>> _ = fillp()  # Clear pattern to not mess up other tests.
+    >>> fillp("…"); see()
+    -32768.0
+    [255, 245, 1]
+    >>> fillp("♪"); fillp("♪"); see()
+    -2560.5
+    -25792.5
+    [63, 155, 1]
+    >>> fillp("a"); see()
+    -25792.5
+    [0, 0, 0]
+    >>> # s-like pattern. 0 is draw color from cli with positive number 25782 (0b0110010011000000) and negative number -6976 (0b1110010011000000)
+    >>> p = -25793; printh("\n".join(re.findall("(....)", f"{p & 0xFFFF:016b}")))
+    1001
+    1011
+    0011
+    1111
     """
-    global off_color_visible
-
-    if isinstance(p, str):  # ovals.py
-        index = ord(p)
-        character = characters[index].copy()
-        # r = character.get_rect()
-        p = 0
-        for hi in range(4):
-            for wi in range(4):
-                clr_at = character.get_at((wi, hi))
-                if clr_at[:3] != (0, 0, 0):
-                    p = (p << 1) + 0
-                else:
-                    p = (p << 1) + 1
-        # off_color_visible = False
-    else:
-        p = tonum(p)  # type: ignore
-
-    # 65535 = full off color 16-bit pattern.
-    # p = int(p) & 0b1111111111111111  # type: ignore
-
-    # pygame.image.save(peek2(FILL_PATTERN_PT), "fill_pattern.png")
-    # debug(f"fillp {p}:")
-    # s = f"{bin(p)[2:]:0>16}"
-    # for i in range(0, 16, 4):
-    #     debug(s[i : i + 4])
-    # https://pico-8.fandom.com/wiki/Fillp
 
     b = peek(FILL_PATTERN_PT + 2)
     d = 0.0
@@ -477,14 +467,32 @@ def fillp(p: int | float | str = 0) -> float:
         d += 0.25
     prev_state = peek2(FILL_PATTERN_PT) + d
 
-    part, whole = math.modf(p)
-    if p < 0 and part:
+    if isinstance(p, str):  # ovals.py
+        p = PATTERNS.get(p, 0)
+    else:
+        p = tonum(p)  # type: ignore
+
+    # 65535 = full off color 16-bit pattern.
+    # p = int(p) & 0xFFFF  # type: ignore
+
+    # pygame.image.save(peek2(FILL_PATTERN_PT), "fill_pattern.png")
+    # debug(f"fillp {p}:")
+    # s = f"{bin(p)[2:]:0>16}"
+    # for i in range(0, 16, 4):
+    #     debug(s[i : i + 4])
+    # https://pico-8.fandom.com/wiki/Fillp
+
+    part, whole = math.modf(p)  # type: ignore
+    if p < 0 and part:  # type: ignore
         whole -= 1
     poke2(FILL_PATTERN_PT, whole)
 
     n = flr(part * 8)
     n = ((n & 1) << 2) | (n & 2) | ((n & 4) >> 2)
     poke(FILL_PATTERN_PT + 2, n)
+    debug(
+        f"fillp mem {[mem[FILL_PATTERN_PT + i] for i in range(3)]} peek2 {peek2(FILL_PATTERN_PT)}"
+    )
     return prev_state
 
 
@@ -916,7 +924,7 @@ def circ(
     #         pygame.image.save(cel, fp, "png")
     # raise Exception("DEBUG")
 
-    draw_pattern(cel, area)
+    _pset_cel(cel, area)
 
 
 def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
@@ -957,7 +965,7 @@ def line(
     cel = surf.copy()
     cel.fill((0, 0, 0, 0))
     # debug(f"line {pos(x0, y0)} to {pos(x1, y1)}")
-    draw_pattern(
+    _pset_cel(
         cel, pygame.draw.line(cel, (255, 255, 255, 255), pos(x0, y0), pos(x1, y1))
     )
 
@@ -977,7 +985,7 @@ def oval(
     area = pygame.draw.ellipse(
         cel, (255, 255, 255, 255), (pos(x0, y0), (x1 - x0 + 1, y1 - y0 + 1)), _border
     )
-    draw_pattern(cel, area)
+    _pset_cel(cel, area)
 
 
 def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
@@ -1299,6 +1307,8 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
     Each byte contains two adjacent pixels,
     with the lo 4 bits being the left/even pixel
     and the hi 4 bits being the right/odd pixel.
+
+    Uses 4x4 fill pattern in 16 bits at 0x5F31 with transparency option at 0x5F33. Pattern 0 (on color) is draw color 0x0F; 1 (off color) is 0xF0.
     """
     if x < 0 or y < 0 or x > 127 or y > 127:
         return
@@ -1307,18 +1317,20 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
         col = mem[DRAW_COLOR_PT]
     col = flr(col)
 
-    # off_color_visible = col & 16  # fractus good. ovals not.
-    # off_color_visible = mem[FILL_PATTERN_PT] & 16
-
-    # nice_tutorial.py
-    on_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
-    debug(f"col {col} => on_col {col}")
+    on_color_trans = peek(FILL_PATTERN_PT + 2) & 1
+    use_fill_palette = peek(FILL_PATTERN_PT + 2) & 2
+    # When it's set, pixel values in spr/sspr/map/tline are mapped to 8-bit colour pairs starting at 0x5f60, and the fill pattern is observed when the high & low nibbles differ.
+    if use_fill_palette:
+        lo_col = mem[FILL_PALETTE_PT + (col & 0x0F)]
+    else:
+        lo_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
+    debug(f"col {col} => lo_col {col}")
 
     if use_pattern:
         if peek2(FILL_PATTERN_PT) >> (15 - ((x % 4) + 4 * (y % 4))) & 1:
-            if off_color_visible:
-                off_col = (col & 0xF0) >> 4
-                col = off_col
+            if on_color_trans:
+                return
+            col = (col & 0xF0) >> 4
         else:
             bitplane_mode = mem[BITPLANE_PT]  # 0x5F5 / 24414
             if bitplane_mode != 255:
@@ -1326,8 +1338,8 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
                 write_mask = bitplane_mode & 0x0F
                 # https://www.lexaloffle.com/bbs/?tid=54215#:~:text=%3E%200x5f5e%20/-,24414,-%3E%20Allows%20PICO%2D8
                 dst_color = pget(x, y)
-                on_col = (dst_color & ~write_mask) | (on_col & write_mask & read_mask)
-            col = on_col
+                lo_col = (dst_color & ~write_mask) | (lo_col & write_mask & read_mask)
+            col = lo_col
 
     ax, hi = divmod(x, 2)
     addr = int(SCREEN_DATA_PT + y * 64 + ax)
@@ -1336,7 +1348,25 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
     else:
         mem[addr] = (mem[addr] & 0xF0) | (col & 0x0F)
 
-    debug(f"pset {x},{y} @ {addr} to 0x{mem[addr]:02x}, vis {off_color_visible}")
+    debug(f"pset {x},{y} @ {addr} to 0x{mem[addr]:02x}, vis {on_color_trans}")
+
+
+def _pset_cel(
+    cel: pygame.Surface | None = None,
+    area: pygame.Rect | None = None,
+):
+    """Draw nontransparent area of a surface."""
+    if cel is None:
+        cel = surf
+    if area is None:
+        area = cel.get_bounding_rect()
+    xr = range(area.left, area.right)
+    yr = range(area.top, area.bottom)
+    # debug(f"_pset_cel {mem[FILL_PATTERN_PT + 1]:02x} {mem[FILL_PATTERN_PT]:02x} area {area} from {sys._getframe().f_back.f_code.co_name}")
+    for y in yr:
+        for x in xr:
+            if cel.get_at((x, y))[3] != 0:
+                _pset(x, y)
 
 
 def fget(n: int, flag_index: int | None = None) -> int:

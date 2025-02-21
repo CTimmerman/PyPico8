@@ -1,5 +1,4 @@
 FIXME:
 neon_jellyfish color (yellow)
-ovals transparency
 padar gameplay (projectiles end)
 rostock_genuary25 colors
