@@ -1,4 +1,4 @@
-"""Spoonfeed, by Cees Timmerman, 2025-02-18.
+"""Spoonfeeder, by Cees Timmerman, 2025-02-18.
 
 Usage: python spoonfeeder.py "doctest" "file1" "file2" etc.
 
