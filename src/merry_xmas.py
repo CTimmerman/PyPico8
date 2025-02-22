@@ -38,7 +38,7 @@ def _draw():
     cls(1)
 
     def e(x, y, r, d):
-        d, x, y, r, s, a = d - 1, x, y, r, r // 2, t() / 6
+        d, s, a = d - 1, r // 2, t() / 6
         if d % 2 == 0:
             a = -a
         v = (r + s) * 1.2
@@ -54,4 +54,5 @@ def _draw():
     print("merry xmas", 45, 62, 7)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

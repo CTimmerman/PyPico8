@@ -256,10 +256,10 @@ def tobyte(num: int) -> str:
     return "0x" + sub(tostr(num, 1), 5, 6)
 
 
-def approach(x, x1, dx):
+def approach(xv, x1, dx):
     "Return increment that doesn't exceed target value."
     dx = dx or 1
-    return x < x1 and min(x + dx, x1) or max(x - dx, x1)
+    return xv < x1 and min(xv + dx, x1) or max(xv - dx, x1)
 
 
 def qf(fmt: str, *argv) -> str:
@@ -278,4 +278,5 @@ def _update():
     pass
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

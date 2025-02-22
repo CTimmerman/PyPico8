@@ -71,7 +71,7 @@ def printh(
 def pico8_to_python(s: str) -> str:
     r"""Hackily translates PICO-8 to Python.
     >>> pico8_to_python('for i=0,30 do ?"웃"')
-    'def _init():\n    global \nfor i in range(0, 30+1): print("웃")\nrun(_init, _update, _draw)'
+    'def _init():\n    global \nfor i in range(0, 30+1): print("웃")\n\nif __name__ == "__main__":\n    run(_init, _update, _draw)\n'
     """
     import re  # noqa
 
@@ -137,10 +137,7 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     s = s.replace("::_::", "\n\n\ndef _update(): pass\n\n\ndef _draw():\n    global \n")
     s = s.replace("goto _", "return")
     s = s.replace("def update():\n", "def update():\n    global ")
-    if "_update60" in s:
-        s += "\nrun(_init, _update60, _draw)"
-    else:
-        s += "\nrun(_init, _update, _draw)"
+    s += f"""\n\nif __name__ == "__main__":\n    run(_init, _update{"60" if "_update60" in s else ""}, _draw)\n"""
     return s
 
 
@@ -163,7 +160,7 @@ def hex_fraction(decimal_number: float, precision: int = 4) -> str:
     return hex_result
 
 
-def tostr(val: int | float | str, use_hex: bool = False) -> str:
+def tostr(val: int | float | str, use_hex: int | bool = False) -> str:
     """Value to string or hex string.
     >>> tostr(244)
     '244'

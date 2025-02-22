@@ -30,4 +30,5 @@ def _draw():
             m = v
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

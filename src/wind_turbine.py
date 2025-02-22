@@ -58,4 +58,5 @@ def _draw():
     rectfill(0, 125, 127, 127, 11)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

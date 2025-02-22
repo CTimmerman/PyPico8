@@ -61,4 +61,5 @@ def _draw():
     add(d, delete(d, e(d)), e(len(d)) + 1)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

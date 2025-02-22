@@ -50,4 +50,5 @@ def _draw():
     print("t🅾️rus\nkn🅾️t", 9, 9)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

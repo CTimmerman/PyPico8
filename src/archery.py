@@ -109,4 +109,5 @@ def _draw():
     camera(-63, z - 99)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

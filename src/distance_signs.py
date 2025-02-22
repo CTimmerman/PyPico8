@@ -74,4 +74,5 @@ def _draw():
         circ(x % 128, y % 128, 1, min(7, n * m * 2 + c))
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

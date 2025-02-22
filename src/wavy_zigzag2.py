@@ -24,4 +24,5 @@ def _draw():
             m = j
 
 
-run(_init, _draw=_draw)
+if __name__ == "__main__":
+    run(_init, _draw=_draw)

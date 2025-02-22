@@ -36,4 +36,5 @@ def _draw():
             i += 0.1 / c
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

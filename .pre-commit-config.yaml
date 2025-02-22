@@ -4,15 +4,16 @@ repos:
       - id: mypy
         name: mypy
         entry: mypy
+        fail_fast: true  # Stop on first failure
         language: system
         # files: \.py$  # Only run on .py files
         types: [python]
         pass_filenames: true  # Only run on staged Python files (default)
-        fail_fast: true  # Stop on first failure
 
       - id: doctest
         name: doctest
-        entry: python -X utf8 -m doctest
+        entry: python src/pypico8/spoonfeeder.py "python -X utf8 -m doctest"
+        fail_fast: true
         language: system
         types_or:
           - python

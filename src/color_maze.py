@@ -83,4 +83,5 @@ def _draw():
                 d += 0.25
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

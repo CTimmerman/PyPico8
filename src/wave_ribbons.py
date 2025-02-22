@@ -51,4 +51,5 @@ def _draw():
                 line(c, y, c - 20, y + 20, k)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

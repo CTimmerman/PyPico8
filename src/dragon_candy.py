@@ -65,4 +65,5 @@ def _draw():
             c += 1
 
 
-run(_init, _draw=_draw)
+if __name__ == "__main__":
+    run(_init, _draw=_draw)

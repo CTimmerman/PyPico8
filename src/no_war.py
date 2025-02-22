@@ -59,4 +59,5 @@ def _draw():
         sspr(i, 0, 1, 7, q + i * 2, y - ((i * 2 - 30) ** 2 - 900) / (sin(q) + 8) / g, 2, 14)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

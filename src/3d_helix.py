@@ -59,4 +59,5 @@ def _draw():
     print(r, 34, 50, 7)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

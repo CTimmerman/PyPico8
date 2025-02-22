@@ -66,4 +66,5 @@ def _draw():
     print("pico-8 0.2.1", 40, 62, 13)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

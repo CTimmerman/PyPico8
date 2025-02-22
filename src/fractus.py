@@ -63,4 +63,5 @@ def _draw():
     u(63, 63, 0.25, 32, 59)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

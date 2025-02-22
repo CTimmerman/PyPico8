@@ -70,4 +70,5 @@ def _draw():
         v(63, 63, 29, i / 4 + L)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

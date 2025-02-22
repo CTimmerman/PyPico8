@@ -67,4 +67,5 @@ def _draw():
     line(x - 1, y)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

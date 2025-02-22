@@ -62,4 +62,5 @@ def _draw():
     r(a + 24, c + 23, a + 36, c + 26, 5)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

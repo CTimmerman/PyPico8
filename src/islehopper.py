@@ -141,4 +141,5 @@ def _draw():
     d = round(d + (w - 64) / _ / _ * 4, 4)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

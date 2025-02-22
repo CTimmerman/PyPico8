@@ -60,4 +60,5 @@ def _draw():
         pset(u, v, p + 0.5 + (c - p) / 2)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

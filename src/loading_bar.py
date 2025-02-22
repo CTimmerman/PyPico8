@@ -44,8 +44,8 @@ def _init():
     p = 0
 
 
-def d(p):
-    f(t[5 - flr(p * 5)])
+def d(pv):
+    f(t[5 - flr(pv * 5)])
 
 
 def _update():
@@ -69,4 +69,5 @@ def _draw():
     print(pr, x - 9, 76, 7)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

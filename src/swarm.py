@@ -61,4 +61,5 @@ def _draw():
         w(f.x, f.y, 7)
 
 
-run(_init, _update, _draw)
+if __name__ == "__main__":
+    run(_init, _update, _draw)

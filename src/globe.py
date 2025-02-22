@@ -69,4 +69,5 @@ def _update60():
         line(f.x * 50 + 63, f.y * 50 + 63)
 
 
-run(_init, _update60)
+if __name__ == "__main__":
+    run(_init, _update60)
