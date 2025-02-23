@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """Pico8 string functions."""
 
 # pylint:disable = import-outside-toplevel, multiple-imports, redefined-builtin, wrong-import-position
 import builtins, os, pathlib, sys  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.math import flr
+from pypico8.math import flr, hex_fraction, _round4
 from pypico8.table import Table
 
 
@@ -107,7 +106,7 @@ def pico8_to_python(s: str) -> str:
     s = re.sub(
         r"for (.*?)=(.+?),(.+?),(.+?):",
         r"""\1 = \2\nwhile 1:
-if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round(\1 + \4, 4)
+if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = _round4(\1 + \4)
 """,
         s,
     )
@@ -139,25 +138,6 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     s = s.replace("def update():\n", "def update():\n    global ")
     s += f"""\n\nif __name__ == "__main__":\n    run(_init, _update{"60" if "_update60" in s else ""}, _draw)\n"""
     return s
-
-
-def hex_fraction(decimal_number: float, precision: int = 4) -> str:
-    """Converts a decimal fraction to a string with a given precision.
-    >>> hex_fraction(0.5)
-    '8000'
-    >>> hex_fraction(255.5)
-    'FF8000'
-    """
-    hex_result = ""
-    fraction = decimal_number
-
-    for _ in range(precision):
-        fraction *= 16
-        digit = int(fraction)
-        hex_result += hex(digit)[2:].upper()
-        fraction -= digit
-
-    return hex_result
 
 
 def tostr(val: int | float | str, use_hex: int | bool = False) -> str:
@@ -193,7 +173,7 @@ def tonum(s: str | int | float) -> int | float | None:
     >>> tonum("0b11.1")
     3.5
     >>> tonum("0.5555555555555")
-    0.5556
+    0.5555
     """
     if type(s) in (int, float):
         return s  # type: ignore
@@ -210,9 +190,9 @@ def tonum(s: str | int | float) -> int | float | None:
         a = s.split(".")
         if len(a) > 1:
             if base == 10:
-                return round(float(s), 4)
+                return _round4(float(s))
             whole, part = a
-            return round(int(whole, base) + int(part, base) / base ** len(part), 4)  # type: ignore
+            return _round4(int(whole, base) + int(part, base) / base ** len(part))  # type: ignore
     try:
         return int(s, base)  # type: ignore
     except TypeError as ex:

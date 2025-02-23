@@ -26,7 +26,7 @@ try:
     import pygame, pygame.freetype  # noqa: E401
 
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    from pypico8.math import atan2, ceil, cos, div, divi, flr, max, mid, min, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
+    from pypico8.math import atan2, ceil, cos, div, divi, flr, max, mid, min, _round4, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
     from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
