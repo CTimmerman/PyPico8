@@ -1150,7 +1150,7 @@ def pal(*args) -> int | None:
             # def pal(tbl: list, remap_screen: int = 0) -> None:  # noqa: F811
             """0-based palette replacement."""
             for i, col in enumerate(a):
-                pal(i + 1, col, b)
+                pal(i, col, b)
             return None
         if isinstance(a, Table):
             # @multimethod(Table, int)  # type: ignore
