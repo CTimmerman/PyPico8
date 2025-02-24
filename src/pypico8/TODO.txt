@@ -1,5 +1,4 @@
 FIXME:
-islehopper initial bird orientation
 music
 padar gameplay (projectiles end)
 rostock_genuary25 colors

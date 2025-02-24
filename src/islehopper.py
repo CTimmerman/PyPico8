@@ -85,8 +85,6 @@ def _init():
         for i in range(1, 9 + 1):
             circfill(a, b, r, i)
             r = round4(r - rnd(4))
-        # }
-    # }
     memcpy(0, 24576, 8192)  # screen data to sprite sheet
 
 
@@ -110,19 +108,14 @@ def _draw():
             if s < p:
                 line(i, p, i, s, h)
                 p = s
-        # }
-    # }
     b = btn()
     w += b // 2 % 2 - b % 2
     e += b // 8 % 2 - b // 4 % 2
     x = round4(x + cos(d) / 4)
     y = round4(y + sin(d) / 8)
     # rotation
-    printh(f"r {r} += {atan2(w - 64, e - _) - 0.25}")
-    r = round4(r + (atan2(w - 64, e - _) - 0.25))
+    r = round4((atan2(w - 64, e - _) - 0.25))
     m = t()
-    printh(f"r {r}")
-    # 1/0
     for f in range(e, e + 2 + 1):
         j = sin(m) / 16
         line(w + cos(r - j) * 16, e + sin(r - j) * 16, w, f, 13)
