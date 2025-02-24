@@ -4,7 +4,7 @@
 import builtins, os, pathlib, sys  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.math import flr, hex_fraction, _round4
+from pypico8.math import flr, hex_fraction, round4
 from pypico8.table import Table
 
 
@@ -106,7 +106,7 @@ def pico8_to_python(s: str) -> str:
     s = re.sub(
         r"for (.*?)=(.+?),(.+?),(.+?):",
         r"""\1 = \2\nwhile 1:
-if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = _round4(\1 + \4)
+if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round4(\1 + \4)
 """,
         s,
     )
@@ -190,9 +190,9 @@ def tonum(s: str | int | float) -> int | float | None:
         a = s.split(".")
         if len(a) > 1:
             if base == 10:
-                return _round4(float(s))
+                return round4(float(s))
             whole, part = a
-            return _round4(int(whole, base) + int(part, base) / base ** len(part))  # type: ignore
+            return round4(int(whole, base) + int(part, base) / base ** len(part))  # type: ignore
     try:
         return int(s, base)  # type: ignore
     except TypeError as ex:

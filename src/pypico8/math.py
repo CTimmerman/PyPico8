@@ -105,49 +105,49 @@ def mid(x: float | int, y: float | int, z: float | int = 0) -> float | int:
     return a[0]
 
 
-def _round4(n: float) -> float | int:
+def round4(n: float) -> float | int:
     """Custom rounding function that always rounds down.
-    >>> _round4(-0.0001)
+    >>> round4(-0.0001)
     -0.0
-    >>> _round4(-0.00011)
+    >>> round4(-0.00011)
     -0.0001
-    >>> _round4(-0.000153)
+    >>> round4(-0.000153)
     -0.0002
-    >>> _round4(2.00009)
+    >>> round4(2.00009)
     2
-    >>> _round4(0.00009)
+    >>> round4(0.00009)
     0
-    >>> _round4(0.00019)
+    >>> round4(0.00019)
     0.0002
-    >>> _round4(0.00016)
+    >>> round4(0.00016)
     0.0002
-    >>> _round4(0.00015)
+    >>> round4(0.00015)
     0.0001
-    >>> _round4(0.00069)
+    >>> round4(0.00069)
     0.0007
-    >>> _round4(0.00099)
+    >>> round4(0.00099)
     0.001
-    >>> _round4(0.9999)
+    >>> round4(0.9999)
     0.9999
-    >>> _round4(0.99991)
+    >>> round4(0.99991)
     1
-    >>> _round4(0.99981)
+    >>> round4(0.99981)
     0.9998
-    >>> _round4(0.025757)
+    >>> round4(0.025757)
     0.0258
-    >>> _round4(-0.025757)
+    >>> round4(-0.025757)
     -0.0258
-    >>> _round4(-0.025756)
+    >>> round4(-0.025756)
     -0.0257
-    >>> _round4(0.025756)
+    >>> round4(0.025756)
     0.0257
-    >>> _round4(-0.025756836)
+    >>> round4(-0.025756836)
     -0.0258
-    >>> _round4(-0.0257568359)
+    >>> round4(-0.0257568359)
     -0.0257
-    >>> _round4(0.025756836)
+    >>> round4(0.025756836)
     0.0258
-    >>> _round4(0.0257568359)
+    >>> round4(0.0257568359)
     0.0257
     """
     if n < 0:
@@ -171,7 +171,7 @@ def rnd(x: float | int = 1) -> float:
     """
     if isinstance(x, dict):
         return random.choice(tuple(x))
-    return _round4(random.random() * x)
+    return round4(random.random() * x)
 
 
 def _shl(x: float | int, n: int = 0) -> float | int:
@@ -251,16 +251,24 @@ def atan2(dx: float | int, dy: float | int) -> float:
     -1,-1 = 0.375
      0,-1 = 0.25
      1,-1 = 0.125
+    >>> atan2(1, 10)  # XXX: Pico8 0.2.2c rounds 0.7658538 to 0.7658 and 0.7658539 to 0.7659.
+    0.7659
     """
+    if dx == 0:
+        if dy < 0:
+            return 0.25
+        if dy == 0:
+            return 0.25
+        if dy > 0:
+            return 0.75
+
     if dy == 0:
         if dx < 0:
             return 0.5
-        if dx == 0:
-            return 0.25
         if dx > 0:
             return 0.0
 
-    return (math.atan2(dy, -dx) / math.pi + 1) / 2
+    return round4((math.atan2(dy, -dx) / math.pi + 1) / 2)
 
 
 def cos(x: float | int) -> float | int:
@@ -281,7 +289,7 @@ def cos(x: float | int) -> float | int:
     >>> cos(0.0082)
     0.9987
     """
-    rv = _round4(math.cos(x * 2 * math.pi))
+    rv = round4(math.cos(x * 2 * math.pi))
     if rv == 0:
         return 0
     return rv
@@ -312,7 +320,7 @@ def sin(x: float | int) -> float:
     # >>> sin(0.0001)
     # -0.0008
     """
-    rv = _round4(math.sin((1 - x) * _round4(2 * math.pi)))
+    rv = round4(math.sin((1 - x) * round4(2 * math.pi)))
     # Don't return -0.0
     if rv == 0:
         return 0
@@ -323,4 +331,4 @@ if __name__ == "__main__":
     import doctest
 
     doctest.testmod()
-    # doctest.run_docstring_examples(_round4, globals())
+    # doctest.run_docstring_examples(round4, globals())

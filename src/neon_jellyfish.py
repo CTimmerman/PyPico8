@@ -16,7 +16,7 @@ from pypico8 import (
     pal,
     pget,
     pset,
-    _round4,
+    round4,
     run,
     sin,
     t,
@@ -33,10 +33,10 @@ def _draw():
     b = 0
     while b <= 1:
         pal(int(b * 16), (Table([-15, 1, -4, 12, 6, 7]))[b * 7 // 1] or 0, 1)
-        g = _round4(g + 0.004 + cos(b - m) * b / 69)
-        r = _round4(r + cos(g))
-        h = _round4(h - sin(g))
-        L = _round4(1 + b // 0.96 * 4)
+        g = round4(g + 0.004 + cos(b - m) * b / 69)
+        r = round4(r + cos(g))
+        h = round4(h - sin(g))
+        L = round4(1 + b // 0.96 * 4)
         a = 0
         while a <= 1:
             u = 64 + r * cos(a)
@@ -46,8 +46,8 @@ def _draw():
                 v = p + b * 99
             col = pget(u, v) + L
             pset(u, v, col)
-            a = _round4(a + 0.02 - b / 99)
-        b = _round4(b + 0.02)
+            a = round4(a + 0.02 - b / 99)
+        b = round4(b + 0.02)
 
 
 if __name__ == "__main__":

@@ -1,24 +1,7 @@
 """Islehopper ported from https://twitter.com/ValerADHD/status/1325129814454439936
 """
 
-from pypico8 import (
-    _round4,
-    atan2,
-    btn,
-    circfill,
-    cls,
-    cos,
-    line,
-    pal,
-    pico8_to_python,
-    printh,
-    memcpy,
-    sget,
-    sin,
-    rnd,
-    run,
-    t,
-)
+from pypico8 import *
 
 
 printh(
@@ -81,28 +64,30 @@ flip()goto _
 
 
 def _init():
-    global _, x, q, y, u, d, z, w, e
+    global _, x, y, d, z, w, e
     pal(([1, 15, 143, 138, 11, 139, 3, 131, 132, 5, 6, 7, 7, 7, 12]), 1)
     cls()
+    # map size
     _ = 127
+    # position
     x = 32
-    q = cos
     y = 32
-    u = sin
-    d = 0
-    z = 8
-    w = 64
-    e = 64
+    d = 0  # direction
+    z = 8  # bird altitude
+    w = 64  # bird x
+    e = 64  # bird y
     for i in range(0, 30 + 1):
+        # random place
         a = rnd(_)
         b = rnd(_)
+        # random height
         r = rnd(9)
         for i in range(1, 9 + 1):
             circfill(a, b, r, i)
-            r = _round4(r - rnd(4))
+            r = round4(r - rnd(4))
         # }
     # }
-    memcpy(0, 6 << 12, 8192)
+    memcpy(0, 24576, 8192)  # screen data to sprite sheet
 
 
 def _update():
@@ -110,17 +95,17 @@ def _update():
 
 
 def _draw():
-    global _, n, x, q, y, u, d, z, w, e
+    global _, n, x, y, d, z, w, e
     cls(14)
     for i in range(0, _ + 1):
         a = x
         b = y
-        r = d + (i / 256) - 0.25
+        r = round4(d + (i / 256) - 0.25)
         p = _
         for j in range(1, 24 + 1):
-            a = _round4(a + q(r))
-            b = _round4(b + u(r))
-            h = sget(int(a) & _, int(b) & _)
+            a = round4(a + cos(r))
+            b = round4(b + sin(r))
+            h = sget(flr(a) & _, flr(b) & _)
             s = sin(t() / 8) * 4 + 64 - (h - z) * 64 / j
             if s < p:
                 line(i, p, i, s, h)
@@ -130,16 +115,20 @@ def _draw():
     b = btn()
     w += b // 2 % 2 - b % 2
     e += b // 8 % 2 - b // 4 % 2
-    x = _round4(x + q(d) / 4)
-    y = _round4(y + u(d) / 8)
-    r = _round4(r + atan2(w - 64, e - _) - 0.25)
+    x = round4(x + cos(d) / 4)
+    y = round4(y + sin(d) / 8)
+    # rotation
+    printh(f"r {r} += {atan2(w - 64, e - _) - 0.25}")
+    r = round4(r + (atan2(w - 64, e - _) - 0.25))
     m = t()
+    printh(f"r {r}")
+    # 1/0
     for f in range(e, e + 2 + 1):
-        j = u(m) / 16
-        line(w + q(r - j) * 16, e + u(r - j) * 16, w, f, 13)
-        line(w + q(r + 0.5 + j) * 16, e + u(r + 0.5 + j) * 16)
+        j = sin(m) / 16
+        line(w + cos(r - j) * 16, e + sin(r - j) * 16, w, f, 13)
+        line(w + cos(r + 0.5 + j) * 16, e + sin(r + 0.5 + j) * 16)
     # }
-    d = _round4(d + (w - 64) / _ / _ * 4)
+    d = round4(d + (w - 64) / _ / _ * 4)
 
 
 if __name__ == "__main__":
