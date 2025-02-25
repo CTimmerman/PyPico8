@@ -23,14 +23,12 @@ def _draw():
 
     print(r"\^1\^c0\^!5f11▒⬇️3⬅️;⌂:♥")
     for k in all(p):
-        # printh(f"k {k}")
         pset(k[1], k[2], min(pget(k[1], k[2]) + 1 + max(k[3]), 8))
         k[3] -= 1
         k[1] -= k[5]
         k[2] += k[4]
 
     for _ in range(1, 80 + 1):
-        printh(len(p))
         if len(p) > 128 * 8:
             p = p[1:]
             # deli(p, 1)  # Slow!
