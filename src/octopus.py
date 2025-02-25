@@ -32,4 +32,5 @@ def _draw():
             circfill(x, y, q, 1)
 
 
-run(_draw=_draw)
+if __name__ == "__main__":
+    run(_draw=_draw)

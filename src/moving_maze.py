@@ -21,4 +21,5 @@ def _draw():
                 line(x + u, y + v - i, x - u, y - v - i, i > 2 and 7 or 2)
 
 
-run(_draw=_draw)
+if __name__ == "__main__":
+    run(_draw=_draw)

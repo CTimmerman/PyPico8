@@ -16,4 +16,5 @@ def _draw():
                 rectfill(i, j + m, i + 1, j + 3 + m, 7)
 
 
-run(_draw=_draw)
+if __name__ == "__main__":
+    run(_draw=_draw)

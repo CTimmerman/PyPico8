@@ -75,4 +75,5 @@ def _draw():
     flip()
 
 
-run(_draw=_draw)
+if __name__ == "__main__":
+    run(_draw=_draw)

@@ -30,8 +30,10 @@ def _draw():
         k[2] += k[4]
 
     for _ in range(1, 80 + 1):
+        printh(len(p))
         if len(p) > 128 * 8:
-            deli(p, 1)
+            p = p[1:]
+            # deli(p, 1)  # Slow!
         u = cos(a) | div | 2
         v = sin(a) | div | 2
         x = (x + u) % 127
@@ -47,4 +49,5 @@ def _draw():
             h = 30
 
 
-run(_draw=_draw)
+if __name__ == "__main__":
+    run(_draw=_draw)

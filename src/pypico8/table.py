@@ -87,6 +87,15 @@ class Table(dict):
         >>> t[10]
         'ten'
         """
+        if isinstance(index, slice):
+            start = index.start or 0
+            stop = index.stop or len(self)
+            step = index.step or 1
+            rv = []
+            keys = list(self.keys())
+            for i in range(start, stop, step):
+                rv.append(self.get(keys[i]))
+            return Table(rv)
         if index in dict.__iter__(self):
             return dict.__getitem__(self, index)
 
@@ -235,6 +244,18 @@ def deli(t: Table, i: int | None = None) -> Any | None:
         except IndexError:
             return None
 
+    # No pointer to reassign! Python is a toy language.
+    # keys = list(t.keys())
+    # rv = t.get(keys[i])
+
+    # keys = keys[:i] + keys[i+1:]
+    # t2 = []
+    # for k in keys:
+    #     t2.append(t.get(k))
+    # t = Table(t2)
+
+    # return rv
+
     rv = None
     reindex = False
     for j, k in enumerate(list(t.keys())):
@@ -295,7 +316,9 @@ def unpack(tbl, start=1, stop=None) -> list:
 
 
 def select(start, *array):
-    """Lua select from array.
+    """Lua select from array. https://pico-8.fandom.com/wiki/Select
+    Pico8 0.2.2c returns only the index value though, at a messed up location.
+
     >>> select(1, "a", "b", "c")
     ('a', 'b', 'c')
     >>> select(2, "a", "b", "c")
@@ -307,4 +330,4 @@ def select(start, *array):
     """
     if start == "#":
         return len(array)
-    return Table(array[start - 1 :])
+    return array[start - 1 :]

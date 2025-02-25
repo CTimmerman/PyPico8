@@ -66,4 +66,5 @@ def _draw():
     logo(8, 40, 0)  # logo pink
 
 
-run(_draw=_draw)
+if __name__ == "__main__":
+    run(_draw=_draw)
