@@ -1686,10 +1686,23 @@ def print(
     return x
 
 
-def scroll(dy: int) -> None:
-    """Shift surface pixels by offset dy."""
-    scroll_addr = SCREEN_DATA_PT + 64 * abs(dy)
-    memcpy(SCREEN_DATA_PT, scroll_addr, 64 * 128)
+def scroll(dy: int = 7) -> None:
+    """Shift surface pixels by offset dy.
+    >>> cls()
+    >>> pset(0, 127, 10)
+    0
+    >>> scroll(7)
+    >>> pget(0, 120)
+    10
+    >>> pget(0, 127)
+    0
+    >>> cls()
+    """
+    dy = min(int(abs(dy)), 128)
+    scroll_to = SCREEN_DATA_PT + 64 * dy
+    memcpy(SCREEN_DATA_PT, scroll_to, GENERAL_USE_PT - scroll_to)
+    for addr in range(GENERAL_USE_PT - 64 * dy, GENERAL_USE_PT):
+        mem[addr] = 0
 
 
 def uint4(col: int | float | None = None) -> int:
