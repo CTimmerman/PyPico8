@@ -1324,7 +1324,6 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
         lo_col = mem[FILL_PALETTE_PT + (col & 0x0F)]
     else:
         lo_col = mem[DRAW_PALETTE_PT + (col & 0x0F)]
-    debug(f"col {col} => lo_col {col}")
 
     if use_pattern:
         if peek2(FILL_PATTERN_PT) >> (15 - ((x % 4) + 4 * (y % 4))) & 1:
@@ -1348,7 +1347,7 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
     else:
         mem[addr] = (mem[addr] & 0xF0) | (col & 0x0F)
 
-    debug(f"pset {x},{y} @ {addr} to 0x{mem[addr]:02x}, vis {on_color_trans}")
+    # debug(f"pset {x},{y} @ {addr} to 0x{mem[addr]:02x}, vis {on_color_trans}")
 
 
 def _pset_cel(
@@ -1451,20 +1450,6 @@ def print(
     if y is None:
         y = mem[CURSOR_Y_PT]
 
-    s = str(s)
-    if s.startswith("\\^@"):
-        addr = int(s[3:7], 16)
-        n = int(s[7:11], 16)
-        for i in range(n):
-            poke(addr + i, ord(s[11 + i]))
-        return None
-    # spark.py uses 0x5f11 aka 24337 to set the palette.
-    if s.startswith("\\^!"):
-        addr = int(s[3:7], 16)
-        for i, c in enumerate(s[7:]):
-            poke(addr + i, ord(c))
-        return None
-
     if col is not None:
         color(col)
 
@@ -1472,6 +1457,7 @@ def print(
     fg = mem[DRAW_COLOR_PT] & 0x0F
     bg_rgb = None
     char_pause = 0
+    s = str(s)
     for ln in re.split(r"(?<!\\)\\n|\n", s):
         x = mem[CURSOR_X_PT]
 
@@ -1490,68 +1476,82 @@ def print(
         char_height = 6
         while i < len(tokens):
             c = tokens[i]
-            c2 = "".join(tokens[i : i + 2])
-            c3 = "".join(tokens[i : i + 3])
-            c4 = "".join(tokens[i : i + 4])
-            # printh(f"i {i} tokens {''.join(tokens[i:])}")
-            if c == "\b" or c2 == r"\b":
+            c1 = "".join(tokens[i + 1 : i + 2])
+            c2 = "".join(tokens[i + 1 : i + 3])
+            c3 = "".join(tokens[i + 1 : i + 4])
+            debug(f"x {x} y {0} i {i} tokens {''.join(tokens[i:])}")
+            if c == "\b" or c == "\\" and c1 == "b":
                 x -= char_width
                 i += 2 if c == "\\" else 1
                 continue
-            if c == "\r" or c2 == r"\r":
+            if c == "\r" or c == "\\" and c1 == "r":
                 x = mem[CURSOR_X_PT]
                 i += 2 if c == "\\" else 1
                 continue
-            if c == "\t" or c2 == r"\t":
+            if c == "\t" or c == "\\" and c1 == "t":
                 x = (x & 0xF0) + (16 if x % 16 else 0)
                 i += 2 if c == "\\" else 1
                 continue
             if c == "\0":
                 mem[CURSOR_X_PT] = x
                 return x
-
             if c in "abcdefghijklmnopqrstuvwxyz":
                 c = c.upper()
             elif c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
                 c = c.lower()
 
             if c == "\\" and i + 1 < len(tokens):
-                if tokens[i + 1] == "-":
+                if c1 == "-":
                     # a to z = -16 to +19
                     x += ord(tokens[i + 2]) - 74 + 20 - 16
                     i += 3
                     continue
-                if tokens[i + 1] == "|":
+                if c1 == "|":
                     y += ord(tokens[i + 2]) - 74 + 20 - 16
                     i += 3
                     continue
-                if tokens[i + 1] == "+":
+                if c1 == "+":
                     x += ord(tokens[i + 2]) - 74 + 20 - 16
                     y += ord(tokens[i + 3]) - 74 + 20 - 16
                     i += 4
                     continue
-                if tokens[i + 1] == "#":
+                if c1 == "#":
                     # Set background color for this print call only.
                     bg = int(tokens[i + 2], 16)
                     mem[DRAW_COLOR_PT] = (bg << 4) | fg
                     bg_rgb = PALETTE[bg]
                     i += 3
                     continue
-                if tokens[i + 1] == "f":
+                if c1 == "f":
+                    if i + 2 >= len(tokens):
+                        return x
                     # Set foreground color.
                     fg = int(tokens[i + 2], 16)
                     mem[DRAW_COLOR_PT] = (bg << 4) | fg
                     i += 3
                     continue
-                if "".join(tokens[i : i + 3]) == r"\^i":
+                if c2 == "^@":
+                    # Poke n bytes to memory.
+                    addr = int("".join(tokens[i + 3 : i + 7]), 16)
+                    n = int("".join(tokens[i + 7 : i + 11]), 16)
+                    for j in range(n):
+                        poke(addr + j, ord(tokens[i + 11 + i]))
+                    return None
+                if c2 == "^!" and i + 7 < len(tokens):
+                    # Set palette til end of string. See spark.py
+                    addr = int("".join(tokens[i + 3 : i + 7]), 16)
+                    for j, c in enumerate(tokens[i + 7 :]):
+                        poke(addr + j, ord(c))
+                    return None
+                if c2 == "^i":
                     invert = True
                     i += 3
                     continue
-                if i + 3 < len(tokens) and c4 == r"\^-i":
+                if c3 == "^-i":
                     invert = False
                     i += 4
                     continue
-                if i + 3 < len(tokens) and c4 == r"\014":
+                if c3 == "014":
                     debug("custom font on")
                     custom_font = True
                     char_width = mem[CHAR_WIDTH_LO_PT]
@@ -1559,7 +1559,7 @@ def print(
                     char_height = mem[CHAR_HEIGHT_PT]
                     i += 4
                     continue
-                if i + 3 < len(tokens) and c4 == r"\015":
+                if c3 == "015":
                     debug("custom font off")
                     custom_font = False
                     char_width = 4
@@ -1567,7 +1567,7 @@ def print(
                     char_height = 6
                     i += 4
                     continue
-                if i + 2 < len(tokens) and c3 == r"\^:":
+                if c2 == "^:" and i + 19 < len(tokens):
                     # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
                     ccn = int("".join(tokens[i + 3 : i + 3 + 16]), 16)
                     for ccy in range(8):
@@ -1575,9 +1575,9 @@ def print(
                             if ccn & (1 << (ccy * 8 + ccx)):
                                 pset(x + ccx, y + 7 - ccy)
                     x += 9
-                    i += 3 + 16
+                    i += 19
                     continue
-                if i + 2 < len(tokens) and c3 == r"\^.":
+                if c2 == "^." and i + 11 < len(tokens):
                     # https://pico-8.fandom.com/wiki/P8SCII_Control_Codes#Drawing_one-off_characters
                     ccn = 0
                     for raw_byte in tokens[i + 3 : i + 3 + 8]:
@@ -1587,45 +1587,45 @@ def print(
                             if ccn & (1 << (ccy * 8 + ccx)):
                                 pset(x + ccx, y + 7 - ccy)
                     x += 9
-                    i += 3 + 16
+                    i += 11
                     continue
-                if i + 3 < len(tokens) and c3 == r"\^c":
+                if c2 == "^c" and i + 3 < len(tokens):
                     _cls(tokens[i + 3])
                     x = y = 0
                     i += 4
                     continue
-                if i + 2 < len(tokens) and c3 == r"\^g":
+                if c2 == "^g":
                     x = mem[CURSOR_X_PT]
                     y = mem[CURSOR_Y_PT]
                     i += 3
                     continue
                 # \^h updates the home position to be the cursor's current position.
-                if i + 2 < len(tokens) and c3 == r"\^h":
+                if c2 == "^h":
                     mem[CURSOR_X_PT] = x
                     mem[CURSOR_Y_PT] = y
                     i += 3
                     continue
                 # \^j P0 P1 sets the cursor to an absolute (x, y) pixel position. Each parameter value is multiplied by 4.
-                if i + 4 < len(tokens) and c3 == r"\^j":
+                if c2 == "^j" and i + 4 < len(tokens):
                     x = int(tokens[i + 3], 16) * 4
                     y = int(tokens[i + 4], 16) * 4
                     i += 5
                     continue
-                if i + 3 < len(tokens) and c3 == r"\^d":
+                if c2 == "^d" and i + 3 < len(tokens):
                     # Wait for n frames between characters.
                     char_pause = ord(tokens[i + 3]) * 2
                     i += 4
                     continue
-                if i + 2 < len(tokens) and c2 == r"\^":
+                if c1 == "^" and i + 2 < len(tokens):
                     # Wait for n frames.
                     flip()
-                    pygame.time.wait(ord(tokens[i + 2]) * 20)
+                    pygame.time.wait(int(tokens[i + 2]) * 20)
                     i += 3
                     continue
-                if i + 4 <= len(tokens) and c2 == r"\*":
+                if c1 == "*" and i + 4 <= len(tokens):
                     tokens = [tokens[i + 3]] * int(tokens[i + 2]) + tokens[4:]
                     continue
-                if i + 1 < len(tokens) and c2 == r"\0":
+                if c1 == "0":
                     try:
                         c = chr(int("".join(tokens[i + 2 : i + 4])))
                         debug(f"i {i} custom char {c}")
