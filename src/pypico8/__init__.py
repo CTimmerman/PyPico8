@@ -15,6 +15,7 @@
 2021-02-14 v1.8 prt -> print, fillp.
 2025-01-04 v1.9 added deli, ipairs, select.
 2025-02-10 v1.9.1 fixed display memory, print, tonum.
+2025-03-01 v1.10 CLI.
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
@@ -30,18 +31,15 @@ try:
     from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
-    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, sget, spr, sset, sspr  # noqa
+    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
 except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
-
 # fmt:on
+
 false = False
 true = True
-
-# ---------- Input ---------- #
 DEVKIT_PT = 0x5F2D  # 24365
-
 P0_LEFT = 0
 P0_RIGHT = 1
 P0_UP = 2
@@ -78,6 +76,11 @@ PLAYER_KEYMAPS = (
 begin = py_time.time()
 btnp_state = 0
 btnp_frame = 0
+command = ""
+command_history: list = []
+command_mode = False
+command_y = 0
+cursor_x = 0
 stopped = False
 running = False
 tick = 0
@@ -190,7 +193,6 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
     return False
 
 
-# ---------- Control flow ---------- #
 def init(_init=lambda: True) -> None:
     """Initialize."""
     _init_video()
@@ -198,9 +200,23 @@ def init(_init=lambda: True) -> None:
     flip()
 
 
+def erase_command() -> None:
+    s = r"\#1\f1" + (" " * (len(command) + 3))
+    print(s, 0, command_y, _wrap=True)
+
+
+def escape_command() -> str:
+    return (
+        command[:cursor_x].replace("\\", "\\\\")
+        + rf"\#{8 if (t() * 10 % 8) < 4 else 0}{command[cursor_x:cursor_x+1] or ' '}\#0"
+        + (command[cursor_x + 1 :].replace("\\", "\\\\"))
+        + ""
+    )
+
+
 def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     """Run from the start of the program. Can be called from inside a program to reset program."""
-    global begin, running, btnp_state, stopped, tick
+    global begin, command, command_mode, command_y, cursor_x, running, btnp_state, key, stopped, tick
 
     begin = py_time.time()
     if _update.__name__ == "_update60":
@@ -220,6 +236,79 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
         running = True
         pause_start = 0
         while running:
+            if command_mode:
+                erase_command()
+                # printh(f"{escaped_command} curx: {cursor_x} peekx: {peek(0x5F26)}")
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_LEFT:
+                            cursor_x = max(cursor_x - 1, 0)
+                        elif event.key == pygame.K_RIGHT:
+                            cursor_x = min(cursor_x + 1, len(command))
+                        elif event.key == pygame.K_UP:
+                            if not command and command_history:
+                                command = command_history[-1]
+                            elif command not in command_history:
+                                command_history.append(command)
+                            else:
+                                command = command_history[
+                                    max(command_history.index(command) - 1, -1)
+                                ]
+                            cursor_x = len(command)
+                        elif event.key == pygame.K_DOWN:
+                            try:
+                                ci = min(
+                                    command_history.index(command) + 1,
+                                    len(command_history) - 1,
+                                )
+                                command = command_history[ci]
+                                cursor_x = len(command)
+                            except ValueError:
+                                pass
+                        elif event.key == pygame.K_RETURN:
+                            if command and command not in command_history:
+                                command_history.append(command)
+
+                            escaped_command = escape_command().replace(r"\#8", "")
+                            print(
+                                rf"\#0\f7> {escaped_command}", 0, command_y, _wrap=True
+                            )
+                            try:
+                                exec(command)
+                            except Exception as ex:
+                                print(rf"\#0\fe{ex}", _wrap=True)
+                            command = ""
+                            command_y = peek(0x5F27)
+                            if command_y > 120:
+                                scroll(6)
+                                command_y -= 6
+                            continue
+                        elif event.key == pygame.K_BACKSPACE:
+                            command = command[: cursor_x - 1] + command[cursor_x:]
+                            cursor_x -= 1
+                        elif event.key == pygame.K_DELETE:
+                            command = command[:cursor_x] + command[cursor_x + 1 :]
+                        elif event.key == pygame.K_ESCAPE:
+                            command = ""
+                            cursor_x = 0
+                        else:
+                            command = (
+                                command[:cursor_x] + event.unicode + command[cursor_x:]
+                            )
+                            cursor_x += 1
+                    elif event.type == pygame.QUIT:
+                        running = False
+                    elif event.type == pygame.VIDEORESIZE:
+                        pygame.display.flip()
+
+                escaped_command = escape_command()
+                print(rf"\#0\f7> {escaped_command}", 0, command_y, _wrap=True)
+                command_y -= scroll()
+                # rect(cursor_x * 4, command_y,cursor_x * 4 + 4, command_y + 7, 0)
+                flip()
+                pygame.time.wait(200)
+                continue
+
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
                     if event.key in (pygame.K_BREAK, pygame.K_p, pygame.K_RETURN):
@@ -233,7 +322,9 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                             caption = pygame.display.get_caption()[0]
                             pygame.display.set_caption(caption[: -len(" PAUSED")])
                     elif event.key == pygame.K_ESCAPE:
-                        running = False
+                        stopped = True
+                        camera(0, 0)
+                        command_mode = True
                 elif event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.VIDEORESIZE:
@@ -244,6 +335,7 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                 tick += 1
                 _draw()
                 flip()
+
     except ZeroDivisionError:
         builtins.print("Use div(a, b) instead.", file=sys.stderr)
         raise

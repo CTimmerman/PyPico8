@@ -140,6 +140,7 @@ surf: pygame.Surface
 characters: list[pygame.Surface] = []
 font_img: pygame.Surface
 spritesheet: pygame.Surface
+scrolled: int = 0
 
 
 def debug(s):
@@ -1398,8 +1399,9 @@ def get_char_img(n: int) -> pygame.Surface:
     """Return Surface with character N image."""
     x = n % 16 * 8
     y = n // 16 * 8
-    area = (x, y, 8, 5)
-    image = pygame.Surface((9, 7), pygame.SRCALPHA).convert_alpha()
+    w = 9 if n >= 128 else 5
+    area = (x, y, w, 5)
+    image = pygame.Surface((w, 7), pygame.SRCALPHA).convert_alpha()
     image.blit(font_img, (1, 1), area)
     return image
 
@@ -1409,6 +1411,7 @@ def print(
     x: int | None = None,
     y: int | None = None,
     col: int | None = None,
+    _wrap=False,
 ) -> int | None:
     r"""Prints to screen, supporting control codes at https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
     For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
@@ -1427,16 +1430,20 @@ def print(
     >>> mem[DRAW_COLOR_PT] & 0x0F
     5
     >>> # offset each word by +4 pixels vertically ("j" = 20, 20 - 16 = +4)
-    >>> print("my \|jawesome \|jgame")
+    >>> print(r"my \|jawesome \|jgame")
     60
     >>> print("abc\0def")
     12
+    >>> print("")
+    12
+    >>> print(r"\#8 \#0", 0, 0)
+    4
     """
     if s is None:
         return None
 
     do_scroll = y is None
-
+    scroll(0)  # Reset scrolled count.
     if x is not None and y is not None:
         x, y = pos(x, y)  # archery.py
         mem[CURSOR_X_PT] = x
@@ -1461,12 +1468,11 @@ def print(
     for ln in re.split(r"(?<!\\)\\n|\n", s):
         x = mem[CURSOR_X_PT]
 
-        if do_scroll and y > 128 - 7:
-            scroll(-7)
-            y -= 7
+        if (do_scroll or _wrap) and y > 121:
+            scroll(6)
+            y = 121
 
         debug(f"printing {repr(ln)} @ {x}, {y}")
-
         tokens = list(c for c, _ in tokenize(ln, True))
         i = 0
         invert = False
@@ -1501,6 +1507,8 @@ def print(
                 c = c.lower()
 
             if c == "\\" and i + 1 < len(tokens):
+                if c1 == "\\":
+                    i += 1
                 if c1 == "-":
                     # a to z = -16 to +19
                     x += ord(tokens[i + 2]) - 74 + 20 - 16
@@ -1516,6 +1524,8 @@ def print(
                     i += 4
                     continue
                 if c1 == "#":
+                    if i + 2 >= len(tokens):
+                        return x
                     # Set background color for this print call only.
                     bg = int(tokens[i + 2], 16)
                     mem[DRAW_COLOR_PT] = (bg << 4) | fg
@@ -1639,6 +1649,13 @@ def print(
                 flip()
                 pygame.time.wait(char_pause)
 
+            if _wrap and x >= 127:
+                x = 0
+                y += char_height
+                if (do_scroll or _wrap) and y > 121:
+                    scroll(6)
+                    y = 121  # There's at least one line printed before.
+
             o = ord(c)
             if custom_font:
                 debug(f"rendering char {c} ord {o}")
@@ -1676,33 +1693,40 @@ def print(
                             fg if invert else bg,
                             False,
                         )
-
             x += char_width if o < 128 else char_width_hi
             i += 1
 
         y += char_height
 
-    mem[CURSOR_Y_PT] = y
+    mem[CURSOR_Y_PT] = y & 0xFF
     return x
 
 
-def scroll(dy: int = 7) -> None:
+def scroll(dy: int = 0) -> int:
     """Shift surface pixels by offset dy.
     >>> cls()
     >>> pset(0, 127, 10)
     0
     >>> scroll(7)
+    7
     >>> pget(0, 120)
     10
     >>> pget(0, 127)
     0
     >>> cls()
     """
+    global scrolled
+    if dy == 0:
+        rv = scrolled
+        scrolled = 0
+        return rv
     dy = min(int(abs(dy)), 128)
+    scrolled += dy
     scroll_to = SCREEN_DATA_PT + 64 * dy
     memcpy(SCREEN_DATA_PT, scroll_to, GENERAL_USE_PT - scroll_to)
     for addr in range(GENERAL_USE_PT - 64 * dy, GENERAL_USE_PT):
         mem[addr] = 0
+    return scrolled
 
 
 def uint4(col: int | float | None = None) -> int:
