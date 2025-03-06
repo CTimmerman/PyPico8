@@ -1,10 +1,4 @@
-"""Spark ported from Ported from https://x.com/von_rostock/status/1854655683381109129"""
-
-from pypico8 import *
-
-printh(
-    pico8_to_python(
-        r"""
+r"""Spark ported from https://x.com/von_rostock/status/1854655683381109129
 r=rnd
 ::_::
 ?"\^!5f11▒1😐<7"
@@ -29,9 +23,9 @@ for d=0,1,.0004do
     end
 end
 goto _
-        """
-    )
-)
+"""
+
+from pypico8 import *
 
 
 def _draw():
