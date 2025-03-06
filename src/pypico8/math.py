@@ -12,7 +12,7 @@ from math import (
 import os, sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.infix import Infix
+from pypico8.infix import InfixDiv, InfixShift
 
 
 def _div(a: float | int, b: float | int) -> float | int:
@@ -30,7 +30,7 @@ def _div(a: float | int, b: float | int) -> float | int:
     return a / b
 
 
-div = Infix(_div)
+div = InfixDiv(_div)
 
 
 def _divi(a: float | int, b: float | int) -> int:
@@ -47,7 +47,7 @@ def _divi(a: float | int, b: float | int) -> int:
     return math.floor(a / b)
 
 
-divi = Infix(_divi)
+divi = InfixDiv(_divi)
 
 
 def flr(v: int | float | str | None = 0) -> int:
@@ -106,7 +106,7 @@ def mid(x: float | int, y: float | int, z: float | int = 0) -> float | int:
 
 
 def round4(n: float) -> float | int:
-    """Custom rounding function that always rounds down.
+    """Emulate PICO-8's rounding.
     >>> round4(-0.0001)
     -0.0
     >>> round4(-0.00011)
@@ -171,35 +171,47 @@ def rnd(x: float | int = 1) -> float:
     """
     if isinstance(x, dict):
         return random.choice(tuple(x))
+    if x < 0:
+        return round4(random.random() * 65535 - 65535 / 2 - x)
     return round4(random.random() * x)
 
 
 def _shl(x: float | int, n: int = 0) -> float | int:
     """Shift left n bits (zeros come in from the right)
+    16 bits after the dot, rounded to 13.
     >>> shl(0.5, 1)
-    1.0
+    1
     >>> shl(0.1, 1)
     0.2
+    >>> 0.0005 * 2**10
+    0.512
+    >>> 0.0005 <<shl>> 10
+    0.5
+    >>> 0.0001 <<shl>> 10
+    0.0938
     """
-    return x * 2**n
+    rv = floor(x * 2**16) * 2**n / 2**16
+    return round4(rv)
 
 
-shl = Infix(_shl)
+shl = InfixShift(_shl)
 
 
 def _shr(x: float | int, n: int = 0) -> float | int:
     """Arithmetic right shift (the left-most bit state is duplicated)
-    >>> shr(2,1)
-    1.0
-    >>> shr(1,1)
+    >>> shr(2, 1)
+    1
+    >>> shr(1, 1)
     0.5
-    >>> 1 |shr| 1
+    >>> 1 <<shr>> 1
     0.5
+    >>> 0.5 <<shr>> 10
+    0.0005
     """
-    return x / 2**n
+    return round4(x / 2**n)
 
 
-shr = Infix(_shr)
+shr = InfixShift(_shr)
 
 
 def sgn(x: float | int = 0) -> int:

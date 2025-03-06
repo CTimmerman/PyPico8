@@ -96,9 +96,9 @@ def pico8_to_python(s: str) -> str:
     s = s.replace("..", "+")
     s = re.sub(r"//\s*1\b", "#int()", s)
     s = s.replace("~=", "!=")
-    s = s.replace(">>", "|shr|")
-    s = s.replace("/", "|div|")
-    s = re.sub(r"\\([^n])", r"|divi|\1", s)
+    s = s.replace(">>", "<<shr>>")
+    s = s.replace("/", "/div/")
+    s = re.sub(r"\\([^n])", r"/divi/\1", s)
     s = s.replace("^", "**")
     s = re.sub(r",%([a-zA-Z0-9]+)", r",peek2(\1)", s)
     # loops, whose variable is local to the loop (TODO). https://www.lexaloffle.com/bbs/?pid=51130#p

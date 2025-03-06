@@ -214,6 +214,11 @@ def escape_command() -> str:
     )
 
 
+def resume():
+    global command_mode
+    command_mode = False
+
+
 def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     """Run from the start of the program. Can be called from inside a program to reset program."""
     global begin, command, command_mode, command_y, cursor_x, running, btnp_state, key, stopped, tick
@@ -274,7 +279,10 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                                 rf"\#0\f7> {escaped_command}", 0, command_y, _wrap=True
                             )
                             try:
-                                exec(command)
+                                if command.startswith("?"):
+                                    print(eval(command[1:]))
+                                else:
+                                    exec(command)
                             except Exception as ex:
                                 print(rf"\#0\fe{ex}", _wrap=True)
                             command = ""
@@ -291,7 +299,7 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                         elif event.key == pygame.K_ESCAPE:
                             command = ""
                             cursor_x = 0
-                        else:
+                        elif event.unicode:
                             command = (
                                 command[:cursor_x] + event.unicode + command[cursor_x:]
                             )
@@ -322,7 +330,7 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                             caption = pygame.display.get_caption()[0]
                             pygame.display.set_caption(caption[: -len(" PAUSED")])
                     elif event.key == pygame.K_ESCAPE:
-                        stopped = True
+                        # stopped = True
                         camera(0, 0)
                         command_mode = True
                 elif event.type == pygame.QUIT:
