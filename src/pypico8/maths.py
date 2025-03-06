@@ -1,6 +1,4 @@
-"""The pico8 manual math section implementations.
-NOTE: Test with python math.py instead of python -m doctest math.py
-"""
+"""The PICO-8 manual math section implementations."""
 
 # pylint:disable = import-error, line-too-long, multiple-imports, no-name-in-module, redefined-builtin, unused-import
 import builtins, math, random  # noqa: E401

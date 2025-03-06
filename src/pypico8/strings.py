@@ -4,7 +4,7 @@
 import builtins, os, pathlib, sys  # noqa: E401
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pypico8.math import flr, hex_fraction, round4
+from pypico8.maths import flr, hex_fraction, round4
 from pypico8.table import Table
 
 

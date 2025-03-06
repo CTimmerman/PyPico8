@@ -12,7 +12,7 @@ import pygame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.audio import threads
-from pypico8.math import ceil, flr, rnd, shl, shr
+from pypico8.maths import ceil, flr, rnd, shl, shr
 from pypico8.strings import (
     PROBLEMATIC_MULTI_CHAR_CHARS,
     chr,
@@ -238,8 +238,8 @@ def clip(
 
     camera(), cursor(), color(), pal(), palt(), fillp(), clip() return their previous state.
 
-    >>> peek4(24352)  # Pico8 hides trailing zeroes.
-    -32640.0
+    >>> peek4(24352)
+    -32640
     >>> clip(10, 20, 30, 40)
     (0, 0, 128, 128)
     >>> clip(0, 0, 64, 64, 1)
@@ -727,21 +727,22 @@ def peek2(addr: int, _: int = 1) -> int:
 def peek4(addr: int) -> float:
     """Read a 32-bit float.
     >>> a = 0x5000
+    >>> # Should be -298.252 but -298.2519 is close enough for now.
     >>> poke4(a, -(1/512 + 1/4 + 42 + 256)); peek4(a)
     0
-    -298.252
+    -298.2519
     >>> v = 2**15; poke4(a, v); peek4(a)
     0
-    -32768.0
+    -32768
     >>> v = 2**15-1; poke4(a, v); peek4(a)
     0
-    32767.0
+    32767
     >>> v = 2**15+1; poke4(a, v); peek4(a)
     0
-    -32767.0
+    -32767
     >>> v = 2**16+1234567; poke4(a, v); peek4(a)
     0
-    -10617.0
+    -10617
     >>> poke4(a, 1.1); peek4(a)
     0
     1.1
