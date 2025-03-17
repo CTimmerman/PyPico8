@@ -1,4 +1,5 @@
 """Sleight of Hand ported from https://twitter.com/MunroHoberman/status/1345134382810619913
+>>> run(_init, _update, _draw)
 """
 
 from pypico8 import (
@@ -6,7 +7,7 @@ from pypico8 import (
     add,
     circ,
     cos,
-    delete,
+    delv,
     pico8_to_python,
     print,
     printh,
@@ -58,7 +59,7 @@ def _draw():
         r(x, y, x + 8, y + 13, 7)
         print(chr(128 + f[3]), x + 1, y + 4, f[3] * 8)
 
-    add(d, delete(d, e(d)), e(len(d)) + 1)
+    add(d, delv(d, e(d)), e(len(d)) + 1)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,17 @@ repos:
 
       - id: doctest
         name: doctest
-        entry: python src/pypico8/spoonfeeder.py "python -X utf8 -m doctest"
+        entry: coverage run -m doctest
+        fail_fast: true
+        language: system
+        pass_filenames: true
+        types_or:
+          - python
+          - markdown
+
+      - id: coverage
+        name: coverage
+        entry: coverage report --fail-under=40
         fail_fast: true
         language: system
         types_or:

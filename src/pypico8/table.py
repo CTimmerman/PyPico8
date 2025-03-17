@@ -66,8 +66,8 @@ class Table(dict):
         30
         >>> A = Table([1,10,2,11,3,12])
         >>> for k in list(A.keys()):
-        ...   if A[k] < 10:
-        ...     delete(A, A[k])
+        ...   if A[k] and A[k] < 10:
+        ...     delv(A, A[k])
         ...
         1
         2
@@ -86,6 +86,10 @@ class Table(dict):
         >>> t[10] = "ten"
         >>> t[10]
         'ten'
+        >>> t[11]
+        >>> t[:1]
+        {1: 'ten'}
+        >>> t[1]
         """
         if isinstance(index, slice):
             start = index.start or 0
@@ -96,12 +100,9 @@ class Table(dict):
             for i in range(start, stop, step):
                 rv.append(self.get(keys[i]))
             return Table(rv)
+
         if index in dict.__iter__(self):
             return dict.__getitem__(self, index)
-
-        for i, k in enumerate(dict.__iter__(self)):
-            if i + 1 == index:
-                return dict.__getitem__(self, k)
 
         return None
 
@@ -110,6 +111,24 @@ class Table(dict):
             return super().__getattribute__(name)
         except AttributeError:
             return self.__getitem__(name)
+
+    def len(self):
+        """Only counts sequential items! Lua is awful.
+        See also https://www.reddit.com/r/pico8/comments/cab542/length_of_tables_containing_nil_values/
+        >>> t = Table([10, None, 20])
+        >>> t.len()
+        3
+        >>> t[4] = 30
+        >>> t.len()
+        4
+        >>> t[6] = 40
+        >>> t.len()
+        4
+        """
+        rv = 1
+        while rv in self:
+            rv += 1
+        return rv - 1
 
     def __setattr__(self, name: str, value) -> None:
         return self.__setitem__(name, value)
@@ -171,25 +190,23 @@ def all(t: Table):
 
 
 def foreach(t: Table, fun: type) -> None:
-    "Apply function fun to table t."
+    """Apply function fun to table t."""
     list(map(fun, t))
 
 
-def delete(t: dict, v=None) -> Any | None:
-    """
-    del  t [v]
+def delv(*args) -> Any | None:
+    """(del is a Python keyword)
+    delv  t [v]
 
-    Delete the first instance of value v in Table t
-    The remaining entries are shifted left one index to avoid holes. XXX: What about string keys?!
-    Note that v is the value of the item to be deleted, not the index into the Table.
+    Delete the first instance of value v in Table t.
+    The remaining sequential entries are shifted left one index to avoid holes.
     To remove an item at a particular index, use deli.
-    When v is not given, the last element in the Table is removed.
-    del returns the deleted item, or returns no value when nothing was deleted.
+    delv returns the deleted item or None.
 
     >>> A = Table([1,10,2,11,3,12])
     >>> for k in list(A.keys()):
-    ...   if A[k] < 10:
-    ...     delete(A, A[k])
+    ...   if A[k] and A[k] < 10:
+    ...     delv(A, A[k])
     ...
     1
     2
@@ -201,20 +218,42 @@ def delete(t: dict, v=None) -> Any | None:
     >>> import time; time.sleep(5)  # Give VS Code debugger time to attach to doctest process.
     >>> print(A[3])
     12
+    >>> print(A[4])
+    None
+    >>> A
+    {1: 10, 2: 11, 3: 12}
+    >>> A[2]
+    11
+    >>> A["foo"] = "bar"
+    >>> A.len()
+    3
+    >>> delv(A, 10)
+    10
+    >>> delv(A)
+    >>> delv(A, 99)
+    >>> delv(Table())
+    >>> t = Table([10, None, 30])
+    >>> t.len()
+    3
     """
-    if v is None:
-        try:
-            return t.pop(list(t.keys())[-1])
-        except IndexError:
-            return None
-
+    if len(args) < 2:
+        return None
+    t, v = args[:2]
+    rv = None
+    last_k = None
     for k in list(t.keys()):
-        if t[k] == v:
+        if last_k:
+            if last_k + 1 == k:
+                t[last_k] = t[k]
+                del t[k]
+                last_k = k
+            else:  # Only sequential keys get reindexed.
+                return rv
+        elif t[k] == v:
             rv = t[k]
             del t[k]
-            return rv
-
-    return None
+            last_k = k
+    return rv
 
 
 # del is a Python keyword.
@@ -222,7 +261,7 @@ def delete(t: dict, v=None) -> Any | None:
 
 
 def deli(t: Table, i: int | None = None) -> Any | None:
-    """Like del(), but remove the item from table t at index i.
+    """Like del(), but remove the item from table t at index i or the end.
     >>> A = Table([1,10,2,11,3,12])
     >>> deli(A, 1)
     1
@@ -237,6 +276,11 @@ def deli(t: Table, i: int | None = None) -> Any | None:
     11
     3
     12
+    >>> deli(A)
+    12
+    >>> deli(A, 3)
+    3
+    >>> deli(Table())
     """
     if i is None:
         try:

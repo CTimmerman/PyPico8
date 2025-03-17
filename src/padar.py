@@ -1,15 +1,9 @@
-"""Padar ported from https://munro.itch.io/padar
+r"""Padar ported from https://munro.itch.io/padar
 Aim with arrow keys and fire with action keys (Z/X/C) before you get hit.
-FIXME
-"""
-
-# flake8:noqa
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 s=63
 q={}
 e=9
@@ -48,9 +42,15 @@ for f in all(q)do
 end
 ?u,-s,58
 if(e>0)flip()goto _
-        """
+        '''
     )
 )
+
+>>> run(_init, _update60, _draw)
+"""
+
+# flake8:noqa
+from pypico8 import *
 
 
 def _init():
@@ -63,16 +63,16 @@ def _init():
     pal([-15, 1, -13, 3, -5, 11, -6], 1)
 
 
-def _update():
+def _update60():
     pass
 
 
 def _draw():
     global size, entities, e, score
     pressed = btn()
-    speed = t() / 20  # Why not 8?
+    speed = t() / 8
     if rnd() > 0.98:
-        add(entities, Table([int(rnd(8)) / 8, 50, -0.1]))
+        add(entities, Table([rnd(8) // 1 / 8, 50, -0.1]))
     if pressed > 16:
         entities[1] = Table(
             [
@@ -110,14 +110,14 @@ def _draw():
             circfill(x, y, 1)  # entity
         for k in all(entities):
             if k != f and k[1] == g and abs(k[2] - pressed) < 1:
-                delete(entities, f)
+                delv(entities, f)
                 circfill(x, y, 7)
                 score += 1
 
     print(score, -size, 58)
     if e <= 0:
-        stop("dead")
+        stop()
 
 
 if __name__ == "__main__":
-    run(_init, _update, _draw)
+    run(_init, _update60, _draw)

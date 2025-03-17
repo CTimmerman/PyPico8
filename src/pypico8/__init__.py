@@ -16,6 +16,10 @@
 2025-01-04 v1.9 added deli, ipairs, select.
 2025-02-10 v1.9.1 fixed display memory, print, tonum.
 2025-03-01 v1.10 CLI.
+2025-03-17 v2.0 delete -> delv
+
+For coverage:
+>>> run()
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
@@ -28,7 +32,7 @@ try:
 
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
     from pypico8.maths import atan2, ceil, cos, div, divi, flr, max, mid, min, round4, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
-    from pypico8.table import Table, add, all, delete, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
+    from pypico8.table import Table, add, all, delv, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
     from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
@@ -214,11 +218,6 @@ def escape_command() -> str:
     )
 
 
-def resume():
-    global command_mode
-    command_mode = False
-
-
 def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     """Run from the start of the program. Can be called from inside a program to reset program."""
     global begin, command, command_mode, command_y, cursor_x, running, btnp_state, key, stopped, tick
@@ -320,18 +319,20 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
                     if event.key in (pygame.K_BREAK, pygame.K_p, pygame.K_RETURN):
+                        caption = pygame.display.get_caption()[0]
+                        if stopped and not caption.endswith("PAUSED"):
+                            # Cart stopped by itself.
+                            continue
                         stopped = not stopped
                         if stopped:
                             pause_start = time()
-                            caption = pygame.display.get_caption()[0]
                             pygame.display.set_caption(caption + " PAUSED")
                         else:
                             begin += time() - pause_start
-                            caption = pygame.display.get_caption()[0]
-                            pygame.display.set_caption(caption[: -len(" PAUSED")])
+                            if caption.endswith("PAUSED"):
+                                pygame.display.set_caption(caption[: -len(" PAUSED")])
                     elif event.key == pygame.K_ESCAPE:
-                        # stopped = True
-                        camera(0, 0)
+                        stop()
                         command_mode = True
                 elif event.type == pygame.QUIT:
                     running = False
@@ -360,7 +361,7 @@ def stop(message: str | None = None) -> None:
     global stopped
     if message:
         builtins.print(message)
-
+    reset()
     stopped = True
 
 

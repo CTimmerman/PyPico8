@@ -75,7 +75,7 @@ def pico8_to_python(s: str) -> str:
     import re  # noqa
 
     s = s.replace("local", "")
-    s = re.sub(r"#([a-zA-Z0-9]+)", r"len(\1)", s)
+    s = re.sub(r"#([a-zA-Z0-9]+)", r"\1.len()", s)
     # Lua table
     s = s.replace("{[0]=", "([").replace("}", "])")  # 0-based
     s = s.replace("{", "Table([")  # 1-based
@@ -127,7 +127,7 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     s = re.sub(r"print\(?(\b[^\)]+?)\)?", r"print(\1)", s)
     s = re.sub(r"\?\s*(.*)", r"print(\1)", s)
 
-    s = re.sub(r"\bdel\b", "delete", s)
+    s = re.sub(r"\bdel\b", "delv", s)
     # separate statements
     s = re.sub(r"([\])0-9])([a-zA-Z])", r"\1\n\2", s)
     # hooks
