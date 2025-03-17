@@ -12,7 +12,7 @@ repos:
 
       - id: doctest
         name: doctest
-        entry: coverage run -m doctest
+        entry: coverage run -a -m doctest
         fail_fast: true
         language: system
         pass_filenames: true
