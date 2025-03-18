@@ -727,6 +727,8 @@ def peek2(addr: int, _: int = 1) -> int:
     0
     >>> peek2(GENERAL_USE_PT)
     -255
+    >>> poke2(GENERAL_USE_PT, 0)
+    0
     """
     n = peek(addr) + shl(peek(addr + 1), 8)
     # Convert to two's complement signed

@@ -8,6 +8,8 @@ class InfixDiv:
     >>> div = InfixDiv(lambda x,y: x / y)
     >>> 1 + 1 /div/ 2
     1.5
+    >>> div(1, 2)
+    0.5
     """
 
     def __init__(self, function):
@@ -29,6 +31,8 @@ class InfixShift:
     4
     >>> shl = InfixShift(lambda x,y: x << y)
     >>> 1 + 1 <<shl>> 1
+    4
+    >>> shl(2, 1)
     4
     """
 

@@ -15,14 +15,13 @@ repos:
         entry: coverage run -a -m doctest
         fail_fast: true
         language: system
-        pass_filenames: true
         types_or:
           - python
           - markdown
 
       - id: coverage
         name: coverage
-        entry: coverage report --fail-under=40
+        entry: coverage report --show-missing --fail-under=60
         fail_fast: true
         language: system
         types_or:
