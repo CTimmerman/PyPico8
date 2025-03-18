@@ -17,9 +17,6 @@
 2025-02-10 v1.9.1 fixed display memory, print, tonum.
 2025-03-01 v1.10 CLI.
 2025-03-17 v2.0 delete -> delv
-
-For coverage:
->>> run()
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
@@ -108,6 +105,9 @@ def btn(i: int | None = None, p: int = 0) -> int | bool:
     ** Note for cart authors: when
         Using a physical gamepad, certain combinations of buttons can be awkward
         (UP to jump/accelerate instead of [X] or [O]) or even impossible (LEFT + RIGHT)
+
+    >>> btn()
+    0
     """
 
     pressed = list(nr for nr, isdown in enumerate(pygame.key.get_pressed()) if isdown)
@@ -158,7 +158,11 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
     POKE(0x5F5C, DELAY) -- set the initial delay before repeating. 255 means never repeat.
     POKE(0x5F5D, DELAY) -- set the repeating delay.
 
-    In both cases, 0 can be used for the default behaviour (delays 15 and 4)"""
+    In both cases, 0 can be used for the default behaviour (delays 15 and 4)
+
+    >>> btnp(0)
+    False
+    """
     pressed = btn(i, p)
     if i is None:
         return pressed
@@ -197,19 +201,16 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
     return False
 
 
-def init(_init=lambda: True) -> None:
-    """Initialize."""
-    _init_video()
-    _init()
-    flip()
-
-
 def erase_command() -> None:
     s = r"\#1\f1" + (" " * (len(command) + 3))
     print(s, 0, command_y, _wrap=True)
 
 
 def escape_command() -> str:
+    r"""Return printable command.
+    >>> escape_command()
+    '\\#8 \\#0'
+    """
     return (
         command[:cursor_x].replace("\\", "\\\\")
         + rf"\#{8 if (t() * 10 % 8) < 4 else 0}{command[cursor_x:cursor_x+1] or ' '}\#0"
@@ -218,8 +219,17 @@ def escape_command() -> str:
     )
 
 
+def init(_init=lambda: True) -> None:
+    """Initialize."""
+    _init_video()
+    _init()
+    flip()
+
+
 def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
-    """Run from the start of the program. Can be called from inside a program to reset program."""
+    """Run from the start of the program. Can be called from inside a program to reset program.
+    >>> run()
+    """
     global begin, command, command_mode, command_y, cursor_x, running, btnp_state, key, stopped, tick
 
     begin = py_time.time()
@@ -356,25 +366,6 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
     pygame.quit()
 
 
-def stop(message: str | None = None) -> None:
-    """Stop the cart and optionally print a message."""
-    global stopped
-    if message:
-        builtins.print(message)
-    reset()
-    stopped = True
-
-
-def t() -> float:
-    """Return seconds since cart start."""
-    return py_time.time() - begin
-
-
-def time() -> float:
-    """Return seconds since cart start."""
-    return t()
-
-
 def stat(x: int) -> int | bool | str:
     """
     Get system status where x is:
@@ -412,9 +403,24 @@ def stat(x: int) -> int | bool | str:
 
     100     Current breadcrumb label, or nil
     110     Returns true when in frame-by-frame mode
+
+    >>> _init_video()
+    >>> stat(7)
+    30
+    >>> for i in range(30, 111): _ = stat(i)
     """
     if x == 7:
         return get_fps()
+
+    if x in range(16, 20):
+        x += 4
+    if x in range(20, 24):
+        note = (audio_channel_notes[x - 20] + 1) % 32
+        audio_channel_notes[x - 20] = note
+
+        sfx(peek(12800 + note * 2))  # TODO: loop in different thread.
+        return note
+
     if x == 30:
         return btn() > 0
     if x == 31:
@@ -428,13 +434,56 @@ def stat(x: int) -> int | bool | str:
             primary, middle, secondary = pygame.mouse.get_pressed()
             return 1 * primary + 2 * secondary + 4 * middle
 
-    if x in range(16, 20):
-        x += 4
-    if x in range(20, 24):
-        note = (audio_channel_notes[x - 20] + 1) % 32
-        audio_channel_notes[x - 20] = note
+    utc_time = py_time.gmtime()
+    if x == 80:
+        return utc_time.tm_year
+    if x == 81:
+        return utc_time.tm_mon
+    if x == 82:
+        return utc_time.tm_mday
+    if x == 83:
+        return utc_time.tm_hour
+    if x == 84:
+        return utc_time.tm_min
+    if x == 85:
+        return utc_time.tm_sec
 
-        sfx(peek(12800 + note * 2))  # TODO: loop in different thread.
-        return note
+    local_time = py_time.localtime()
+    if x == 90:
+        return local_time.tm_year
+    if x == 91:
+        return local_time.tm_mon
+    if x == 92:
+        return local_time.tm_mday
+    if x == 93:
+        return local_time.tm_hour
+    if x == 94:
+        return local_time.tm_min
+    if x == 95:
+        return local_time.tm_sec
 
     return 0
+
+
+def stop(message: str | None = None) -> None:
+    """Stop the cart and optionally print a message.
+    >>> stop("doctest")
+    doctest
+    """
+    global stopped
+    if message:
+        builtins.print(message)
+    reset()
+    stopped = True
+
+
+def t() -> float:
+    """Return seconds since cart start."""
+    return py_time.time() - begin
+
+
+def time() -> float:
+    """Return seconds since cart start.
+    >>> _ = time()
+    """
+    return t()

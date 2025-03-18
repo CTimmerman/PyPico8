@@ -25,6 +25,9 @@ def sfx(n, channel=-1, offset=0, length=1):
 
     channel -1 (default) to automatically choose a channel that is not being used
     channel -2 to stop the sound from playing on any channel
+
+    >>> sfx(0)
+    >>> sfx(-1)
     """
     if channel == -1:
         chan = pygame.mixer.find_channel()
@@ -40,7 +43,7 @@ def sfx(n, channel=-1, offset=0, length=1):
             time.sleep(note.get_length() * reps)
 
 
-class Note(Sound):
+class Note(Sound):  # pylint: disable=too-few-public-methods
     """A musical note. Code from https://gist.github.com/ohsqueezy/6540433"""
 
     def __init__(self, frequency, volume=0.1):
@@ -81,6 +84,9 @@ def music(n=0, fade_len=0, channel_mask=0):
 
     Reserved channels can still be used to play sound effects on, but only when that
     channel index is explicitly requested by sfx().
+
+    >>> music(0)
+    >>> music(-1)
     """
     # global threads
     if n == -1:

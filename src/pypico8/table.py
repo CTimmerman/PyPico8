@@ -256,10 +256,6 @@ def delv(*args) -> Any | None:
     return rv
 
 
-# del is a Python keyword.
-# def del():
-
-
 def deli(t: Table, i: int | None = None) -> Any | None:
     """Like del(), but remove the item from table t at index i or the end.
     >>> A = Table([1,10,2,11,3,12])

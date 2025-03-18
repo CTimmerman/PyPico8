@@ -144,6 +144,12 @@ scrolled: int = 0
 
 
 def debug(s):
+    """Print to host.
+    >>> set_debug()
+    >>> debug("doctest")
+    doctest
+    >>> set_debug(0)
+    """
     if DEBUG:
         printh(s)
 
@@ -520,6 +526,9 @@ def flip() -> None:
     pget(i % 64 * 2, row) + (pget(i % 64 * 2 + 1, row) << 4)
 
     24336 is screen palette start.
+
+
+    >>> for i in (135, 134, 133, 131, 130, 129, 7, 6, 5, 4, 3, 2, 1): flip()
     """
     global frame_count
     frame_count += 1
@@ -653,6 +662,9 @@ def map(
     For example, when layers is 0x5, only sprites with flag 0 and 2 are drawn.
 
     Sprite 0 is always taken to mean empty, and is never drawn.
+
+    >>> map(0, 0, 0, 0)
+    >>> cls()
     """
     yi = cell_y
     xi = cell_x
@@ -1872,6 +1884,8 @@ def sspr(
     and draw in rectangle (dx, dy, dw, dh)
     Colour 0 drawn as transparent by default (see palt())
     dw, dh defaults to sw, sh
+
+    >>> sspr(0, 0, 0, 0, 0, 0)
     """
     if dw is None:
         dw = sw
