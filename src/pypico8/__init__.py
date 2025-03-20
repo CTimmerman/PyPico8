@@ -32,7 +32,7 @@ try:
     from pypico8.table import Table, add, all, delv, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
-    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
+    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, debug, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
 except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
@@ -202,7 +202,7 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
 
 
 def erase_command() -> None:
-    s = r"\#1\f1" + (" " * (len(command) + 3))
+    s = r"\#0\f0" + (" " * (len(command) + 3))
     print(s, 0, command_y, _wrap=True)
 
 
@@ -255,7 +255,20 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                 # printh(f"{escaped_command} curx: {cursor_x} peekx: {peek(0x5F26)}")
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_LEFT:
+                        debug(event)
+                        if (
+                            event.key == pygame.K_HOME
+                            or event.key == pygame.K_KP7
+                            and event.unicode == ""
+                        ):
+                            cursor_x = 0
+                        if (
+                            event.key == pygame.K_END
+                            or event.key == pygame.K_KP1
+                            and event.unicode == ""
+                        ):
+                            cursor_x = len(command)
+                        elif event.key == pygame.K_LEFT:
                             cursor_x = max(cursor_x - 1, 0)
                         elif event.key == pygame.K_RIGHT:
                             cursor_x = min(cursor_x + 1, len(command))

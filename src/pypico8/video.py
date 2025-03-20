@@ -691,12 +691,20 @@ def map(
 
 
 def mget(x: int, y: int) -> int:
-    """Get map value (v) at x,y"""
+    """Get map value (v) at x,y
+    >>> mget(0, 0)
+    0
+    """
     return map_sprites[(x % 128) + (y % 64) * 128]
 
 
 def mset(x: int, y: int, v: int) -> None:
-    """Set map value (v) at x,y"""
+    """Set map value (v) at x,y
+    >>> mset(0, 0, 3)
+    >>> mget(0, 0)
+    3
+    >>> mset(0, 0, 0)
+    """
     map_sprites[x + y * 128] = v
 
 
@@ -709,15 +717,24 @@ def peek(addr: int) -> int:
     0
     >>> peek(2**16)
     0
+    >>> mem[0] = "foo"
+    >>> peek(0)
+    0
+    >>> mem[0] = 0
+    >>> peek("foo")
+    0
     """
     try:
-        return mem[int(addr)]  # & 0xFF
-    except IndexError:
+        addr = flr(addr)
+    except ValueError:
+        addr = 0
+    if addr < 0 or addr >= len(mem):
         return 0
+    try:
+        return mem[addr] & 0xFF
     except TypeError as ex:
-        raise TypeError(
-            f"Mem addr {addr} is type {type(mem[addr])}: {mem[addr]} instead of int!"
-        ) from ex
+        debug(f"mem[{addr}] {ex}")
+        return 0
 
 
 def peek2(addr: int, _: int = 1) -> int:
@@ -921,6 +938,10 @@ def circ(
     """
     Draw a circle at x,y with radius r.
     If r is negative, the circle is not drawn.
+
+    >>> circ(0, 0)
+    >>> circ(0, 0, -1)
+    >>> circ(0, 0, 0)
     """
     if radius < 0:
         return
@@ -955,6 +976,8 @@ def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
+
+    >>> circfill(0, 0)
     """
     circ(x, y, r, col, False)
 
@@ -968,6 +991,8 @@ def line(
 ) -> None:
     """Draw line.
     If x1,y1 are not given, the end of the last drawn line is used.
+
+    >>> line(0, 0)
     """
 
     if x1 is None:
@@ -997,7 +1022,9 @@ def line(
 def oval(
     x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border: bool = True
 ) -> None:
-    """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
+    """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle.
+    >>> oval(0, 0, 0, 0)
+    """
     if x1 < x0:
         x0, x1 = x1, x0
     if y1 < y0:
@@ -1013,13 +1040,19 @@ def oval(
 
 
 def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
-    """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle."""
+    """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle.
+    >>> ovalfill(0, 0, 0, 0)
+    """
     oval(x0, y0, x1, y1, col, False)
 
 
 def rect(*args, _border_only=True) -> int:
     """Draw a rectangle. x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border_only=True
-    Col None => 0 but No col => draw color!!!"""
+    Col None => 0 but No col => draw color!!!
+
+    >>> rect(0, 0, 0, 0, 10)
+    0
+    """
     x0, y0 = pos(args[0], args[1])
     x1, y1 = pos(args[2], args[3])
     if x1 < x0:
@@ -1050,7 +1083,10 @@ def rect(*args, _border_only=True) -> int:
 
 
 def rectfill(*args) -> int:
-    """Draw a filled rectangle."""
+    """Draw a filled rectangle.
+    >>> rectfill(0, 0, 0, 0)
+    0
+    """
     return rect(*args, _border_only=False)
 
 
@@ -1461,6 +1497,10 @@ def print(
     12
     >>> print(r"\#8 \#0", 0, 0)
     4
+    >>> print("This string is longer than 128 pixels.")
+    128
+    >>> print("\\f8\\^:247cb67c7eff0106\\f6nice\ntutorial", 10, 10)
+    42
     """
     if s is None:
         return None
@@ -1722,7 +1762,7 @@ def print(
         y += char_height
 
     mem[CURSOR_Y_PT] = y & 0xFF
-    return x
+    return min(128, x)
 
 
 def scroll(dy: int = 0) -> int:
@@ -1826,6 +1866,10 @@ def sset(x: int = 0, y: int = 0, col=None) -> None:
 
 
 def sprite_get(x: int = 0, y: int = 0, w: int = 16, h: int = 16) -> pygame.Surface:
+    """
+    >>> sprite_get()
+    <Surface(16x16x32 SW)>
+    """
     sprite = pygame.Surface((w, h))
     x = flr(x)
     y = flr(y)
@@ -1848,6 +1892,9 @@ def spr(
     """
     draw sprite n (0..255) at position x,y
         width and height are 1,1 by default and specify how many sprites wide to blit.
+
+    >>> spr(0)
+    >>> spr(0, 0, 0, 1, 1, True, True)
     """
     sx = (n % 16) * 8
     sy = (n // 16) * 8
@@ -1867,8 +1914,13 @@ def spr(
             _pset(x + tdx, y + tdy, sget(sx + dx, sy + dy), False)
 
 
-def show_surf(s: pygame.Surface):
-    builtins.print(f"show_surf {s} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
+def _show_surf(s: pygame.Surface):
+    """
+    >>> _show_surf(pygame.Surface((1, 1)))  # doctest:+ELLIPSIS
+    _show_surf <Surface(1x1x32 SW)> from <module>:
+    00,00,00,ff ...
+    """
+    builtins.print(f"_show_surf {s} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
     for y in range(s.get_height()):
         for x in range(s.get_width()):
             builtins.print(f"{','.join(f'{n:02x}' for n in s.get_at((x, y)))}", end=" ")
@@ -1895,7 +1947,8 @@ def sspr(
     Colour 0 drawn as transparent by default (see palt())
     dw, dh defaults to sw, sh
 
-    >>> sspr(0, 0, 0, 0, 0, 0)
+    >>> sspr(0, 0, 0, 0, 0, 0, -1, -1)
+    >>> sspr(0, 0, 1, 1, 1, 1)
     """
     if dw is None:
         dw = sw

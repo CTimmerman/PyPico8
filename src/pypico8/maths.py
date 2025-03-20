@@ -83,12 +83,18 @@ def hex_fraction(decimal_number: float, precision: int = 4) -> str:
 
 
 def max(first: float | int, second: float | int = 0) -> float | int:
-    "Return max of two numbers."
+    """Return max of two numbers.
+    >>> max(1, 2)
+    2
+    """
     return builtins.max(first, second)
 
 
 def min(first: float | int, second: float | int = 0) -> float | int:
-    "Return min of two numbers."
+    """Return min of two numbers.
+    >>> min(1, 2)
+    1
+    """
     return builtins.min(first, second)
 
 
@@ -147,6 +153,8 @@ def round4(n: float) -> float | int:
     0.0258
     >>> round4(0.0257568359)
     0.0257
+    >>> round4(-1.99991)
+    -2
     """
     if n < 0:
         if n % 1 >= 0.9999:  # Note the =
@@ -166,6 +174,9 @@ def rnd(x: float | int = 1) -> float:
     """Random number or item.
     >>> rnd(1e9) != rnd(1e9)
     True
+    >>> _ = rnd(-1)
+    >>> rnd({"a": "aaa"})
+    'a'
     """
     if isinstance(x, dict):
         return random.choice(tuple(x))
@@ -232,6 +243,8 @@ def sqrt(x: float | int) -> float:
     """Square root x.
     >>> sqrt(2)
     1.4142
+    >>> sqrt(-1)
+    0
     """
     if x < 0:
         return 0
@@ -335,10 +348,3 @@ def sin(x: float | int) -> float:
     if rv == 0:
         return 0
     return rv
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
-    # doctest.run_docstring_examples(round4, globals())
