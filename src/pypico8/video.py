@@ -387,6 +387,9 @@ def cursor(x: int = 0, y: int = 0, col=None) -> int:
     """
     Set the cursor position and carriage return margin
     If col is specified, also set the current color.
+
+    >>> cursor(0, 0, 7)
+    0
     """
     mem[CURSOR_X_PT] = x
     mem[CURSOR_Y_PT] = y
@@ -504,6 +507,10 @@ def fillp(p: int | float | str = 0) -> float:
 
 
 def rgb(col: int) -> tuple:
+    """
+    >>> rgb(128)
+    (41, 24, 20)
+    """
     col = uint8(col)
     if col >= 128:
         col = 128 + (col % 16)
@@ -528,7 +535,8 @@ def flip() -> None:
     24336 is screen palette start.
 
 
-    >>> for i in (135, 134, 133, 131, 130, 129, 7, 6, 5, 4, 3, 2, 1): flip()
+    >>> for i in (135, 134, 133, 131, 130, 129, 7, 6, 5, 4, 3, 2, 1):
+    ...   mem[VIDEO_MODE_PT] = i; flip()
     """
     global frame_count
     frame_count += 1
@@ -2082,19 +2090,23 @@ def reset() -> None:
 
 
 def get_fps():
+    """
+    >>> get_fps()
+    30
+    """
     return fps
 
 
 def get_frame_count():
+    """
+    >>> _ = get_frame_count()
+    """
     return frame_count
 
 
 def _set_fps(n: int = 30):
+    """
+    >>> _set_fps(30)
+    """
     global fps
     fps = n
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
