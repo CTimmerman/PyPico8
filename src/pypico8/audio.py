@@ -3,6 +3,7 @@
 # pylint:disable = multiple-imports, no-member, unused-argument, wrong-import-position
 import os, threading, time  # noqa: E401
 from array import array
+from collections.abc import MutableSequence, Sequence
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
@@ -12,10 +13,10 @@ pre_init(44100, -16, 1, 1024)
 pygame.init()
 
 audio_channel_notes = [0, 0, 0]
-threads: list = []
+threads: list[threading.Thread] = []
 
 
-def sfx(n, channel=-1, offset=0, length=1):
+def sfx(n: int, channel: int = -1, offset: int = 0, length: int = 1) -> None:
     """
     play sfx n on channel (0..3) from note offset (0..31) for length notes
     n -1 to stop sound on that channel
@@ -46,15 +47,15 @@ def sfx(n, channel=-1, offset=0, length=1):
 class Note(Sound):  # pylint: disable=too-few-public-methods
     """A musical note. Code from https://gist.github.com/ohsqueezy/6540433"""
 
-    def __init__(self, frequency, volume=0.1):
+    def __init__(self, frequency: int, volume: float = 0.1) -> None:
         self.frequency = frequency
         Sound.__init__(self, self.build_samples())
         self.set_volume(volume)
 
-    def build_samples(self):
+    def build_samples(self) -> Sequence[int]:
         """Raw wave data."""
         period = int(round(get_init()[0] / self.frequency))
-        samples = array("h", [0] * period)
+        samples: MutableSequence[int] = array("h", [0] * period)
         amplitude = 2 ** (abs(get_init()[1]) - 1) - 1
         for sample_time in range(period):
             # square wave
@@ -74,7 +75,7 @@ for sfx_i in range(64):
     sfx_list.append(sfx_notes)
 
 
-def music(n=0, fade_len=0, channel_mask=0):
+def music(n: int = 0, fade_len: int = 0, channel_mask: int = 0) -> None:
     """
     play music starting from pattern n (0..63)
     n -1 to stop music
@@ -91,14 +92,14 @@ def music(n=0, fade_len=0, channel_mask=0):
     # global threads
     if n == -1:
         for thread in threads:
-            thread.stop = True
+            thread.stop = True  # type: ignore[attr-defined]
             thread.join()
         return
 
-    def music_worker():
+    def music_worker() -> None:
         thread = threading.current_thread()
-        thread.do_work = threading.Event()  # set() and clear() to run and pause.
-        thread.do_work.set()
+        thread.do_work = threading.Event()  # type: ignore[attr-defined]  # set() and clear() to run and pause.
+        thread.do_work.set()  # type: ignore[attr-defined]
         pattern = sfx_list[n]
         while True:
             for note in pattern:
@@ -107,7 +108,7 @@ def music(n=0, fade_len=0, channel_mask=0):
                 time.sleep(note.get_length() * reps)
                 if getattr(thread, "stop", False):
                     return
-                thread.do_work.wait()
+                thread.do_work.wait()  # type: ignore[attr-defined]
 
     thread = threading.Thread(target=music_worker)
     threads.append(thread)

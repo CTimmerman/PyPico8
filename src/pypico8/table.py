@@ -1,9 +1,11 @@
 """Table object functions."""
 
-from typing import Any
+from typing import Iterable, Any
+
+# import numba
 
 
-class Table(dict):
+class Table(dict[Any, Any]):
     """
     In Lua, tables are a collection of key-value pairs where the key and value
     types can both be mixed. They can be used as arrays by indexing them with integers.
@@ -41,7 +43,7 @@ class Table(dict):
     10
     """
 
-    def __init__(self, stuff=None, **kwargs):
+    def __init__(self, stuff: Any = None, **kwargs: Any) -> None:
         if stuff is not None:
             if isinstance(stuff, dict):
                 for index, item in enumerate(stuff):
@@ -56,7 +58,7 @@ class Table(dict):
             for key in stuff:
                 self[key] = stuff[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """
         >>> t = Table([10, 20, 30])
         >>> for v in t:
@@ -80,7 +82,7 @@ class Table(dict):
         for index in dict.__iter__(self.copy()):
             yield dict.__getitem__(self, index)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: Any) -> Any:
         """
         >>> t = Table()
         >>> t[10] = "ten"
@@ -106,13 +108,13 @@ class Table(dict):
 
         return None
 
-    def __getattribute__(self, name: str):
+    def __getattribute__(self, name: str) -> Any:
         try:
             return super().__getattribute__(name)
         except AttributeError:
             return self.__getitem__(name)
 
-    def len(self):
+    def len(self) -> int:
         """Only counts sequential items! Lua is awful.
         See also https://www.reddit.com/r/pico8/comments/cab542/length_of_tables_containing_nil_values/
         >>> t = Table([10, None, 20])
@@ -130,17 +132,18 @@ class Table(dict):
             rv += 1
         return rv - 1
 
-    def __setattr__(self, name: str, value) -> None:
+    def __setattr__(self, name: str, value: Any) -> None:
         return self.__setitem__(name, value)
 
 
+# @numba.jit()  # AttributeError: 'NoneType' object has no attribute '_code'
 def add(t: Table, v: Any, index: int | None = None) -> Any:  # NOSONAR
     """https://www.lexaloffle.com/pico-8.php?page=manual#:~:text=add%20t
     add t v [index]
 
     Add value v to the end of Table t.
     Equivalent to t[#t+1] = v
-    If index is given then the element is inserted at that position
+    If index is given then the element is inserted at that position!
 
     >>> foo = Table()
     >>> add(foo, 11)
@@ -150,19 +153,34 @@ def add(t: Table, v: Any, index: int | None = None) -> Any:  # NOSONAR
     >>> print(foo[2])
     22
     >>> bar = Table(x=0.0, y=99.0)
-    >>> add(foo, bar)
+    >>> add(foo, bar, 1)
     {'x': 0.0, 'y': 99.0}
     >>> foo
-    {1: 11, 2: 22, 3: {'x': 0.0, 'y': 99.0}}
+    {1: {'x': 0.0, 'y': 99.0}, 2: 11, 3: 22}
     """
+    last = t.len() + 1
     if index is None:
-        index = len(t) + 1
-    t[index] = v
+        index = last
+    else:
+        index = int(index // 1)
+
+    # print(f"Adding value {v} to index {index} of len {t.len()} q len {len(t)}")
+    for i in range(last, 0, -1):
+        if i == index:
+            # print(f"Setting index {index} to value {v} of len {t.len()} t {t}")
+            t[i] = v
+            # print(f"len {len(t)} or rather {t.len()} {t} now.")
+            break
+        if i > index:
+            # Move values up to make room.
+            # print(f"Shifting up to index {i} value {v}")
+            t[i] = t[i - 1]
+
     return v
 
 
 # pylint:disable=redefined-builtin
-def all(t: Table):
+def all(t: Table) -> Any:
     """
     Returns an iterator for all non-nil items in a sequence in a table, for use with for...in.
     >>> t = Table([11, None, 13])
@@ -194,7 +212,7 @@ def foreach(t: Table, fun: type) -> None:
     list(map(fun, t))
 
 
-def delv(*args) -> Any | None:
+def delv(*args: Any) -> Any | None:
     """(del is a Python keyword)
     delv  t [v]
 
@@ -313,7 +331,7 @@ def deli(t: Table, i: int | None = None) -> Any | None:
     return rv
 
 
-def pairs(d: dict):
+def pairs(d: dict[Any, Any]) -> Iterable[Any]:
     """Return dict key-value pairs.
     >>> pairs({'foo': 'bar'})
     dict_items([('foo', 'bar')])
@@ -321,15 +339,15 @@ def pairs(d: dict):
     return d.items()
 
 
-def ipairs(d: dict):
-    """Return dict key > 1 -value pairs.
+def ipairs(d: dict[Any, Any]) -> list[tuple[int, Any]]:
+    """Return key-value pairs if key > 0.
     >>> ipairs({-1: 'a', 0: 'b', 1: "c", 2: "d"})
     [(1, 'c'), (2, 'd')]
     """
     return [(k, v) for k, v in d.items() if isinstance(k, int) and k > 0]
 
 
-def pack(*args) -> Table:
+def pack(*args: Any) -> Table:
     """
     >>> pack('hello', 64, 64, 14)
     {1: 'hello', 2: 64, 3: 64, 4: 14}
@@ -337,7 +355,7 @@ def pack(*args) -> Table:
     return Table(args)
 
 
-def unpack(tbl, start=1, stop=None) -> list:
+def unpack(tbl: Table, start: int = 1, stop: int | None = None) -> list[Any]:
     """
     >>> t = Table(["hello", 64, 64, 14])
     >>> unpack(t)
@@ -355,7 +373,7 @@ def unpack(tbl, start=1, stop=None) -> list:
     return rv
 
 
-def select(start, *array):
+def select(start: Any, *array: Any) -> int | tuple[Any, Any]:
     """Lua select from array. https://pico-8.fandom.com/wiki/Select
     Pico8 0.2.2c returns only the index value though, at a messed up location.
 

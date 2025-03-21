@@ -4,6 +4,7 @@
 
 # pylint:disable = function-redefined, global-statement, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-function-args, too-many-lines, unused-import, wrong-import-position
 import base64, builtins, decimal, io, math, os, re, sys  # noqa: E401
+from typing import Any
 
 from emoji.tokenizer import tokenize
 
@@ -12,7 +13,7 @@ import pygame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pypico8.audio import threads
-from pypico8.maths import ceil, flr, rnd, shl, shr
+from pypico8.maths import ceil, flr, rnd, round4, shl, shr  # type: ignore
 from pypico8.strings import (
     PROBLEMATIC_MULTI_CHAR_CHARS,
     chr,
@@ -143,7 +144,7 @@ spritesheet: pygame.Surface
 scrolled: int = 0
 
 
-def debug(s):
+def debug(s: Any) -> None:
     """Print to host.
     >>> set_debug()
     >>> debug("doctest")
@@ -231,8 +232,8 @@ def clip(
     y: int = 0,
     w: int = SCREEN_SIZE[0],
     h: int = SCREEN_SIZE[1],
-    clip_previous=False,
-) -> tuple:
+    clip_previous: bool = False,
+) -> tuple[int, int, int, int]:
     """
     When the draw state has a clipping rectangle set, all draw operations will not affect any pixels in the
     graphics buffer outside of this rectangle. This is useful for reserving parts of the screen
@@ -383,7 +384,7 @@ def color(col: int | float | str | None = None) -> int:
     return old_col
 
 
-def cursor(x: int = 0, y: int = 0, col=None) -> int:
+def cursor(x: int = 0, y: int = 0, col: int | None = None) -> int:
     """
     Set the cursor position and carriage return margin
     If col is specified, also set the current color.
@@ -492,8 +493,8 @@ def fillp(p: int | float | str = 0) -> float:
     #     debug(s[i : i + 4])
     # https://pico-8.fandom.com/wiki/Fillp
 
-    part, whole = math.modf(p)  # type: ignore
-    if p < 0 and part:  # type: ignore
+    part, whole = math.modf(p)
+    if p < 0 and part:
         whole -= 1
     poke2(FILL_PATTERN_PT, whole)
 
@@ -506,7 +507,7 @@ def fillp(p: int | float | str = 0) -> float:
     return prev_state
 
 
-def rgb(col: int) -> tuple:
+def rgb(col: int) -> tuple[int, int, int]:
     """
     >>> rgb(128)
     (41, 24, 20)
@@ -755,7 +756,7 @@ def peek2(addr: int, _: int = 1) -> int:
     >>> poke2(GENERAL_USE_PT, 0)
     0
     """
-    n = peek(addr) + shl(peek(addr + 1), 8)
+    n = peek(addr) + int(shl(peek(addr + 1), 8))
     # Convert to two's complement signed
     if n >= (1 << 15):  # If n is outside the signed range
         n -= 1 << 16  # Apply two's complement adjustment for negative value
@@ -766,10 +767,15 @@ def peek2(addr: int, _: int = 1) -> int:
 def peek4(addr: int) -> float:
     """Read a 32-bit float.
     >>> a = 0x5000
-    >>> # Should be -298.252 but -298.2519 is close enough for now.
+    >>> poke4(a, 0.9999); peek4(a)
+    0
+    0.9999
+    >>> poke4(a, 0.99991); peek4(a)
+    0
+    1
     >>> poke4(a, -(1/512 + 1/4 + 42 + 256)); peek4(a)
     0
-    -298.2519
+    -298.252
     >>> v = 2**15; poke4(a, v); peek4(a)
     0
     -32768
@@ -797,10 +803,10 @@ def peek4(addr: int) -> float:
     )
     if int(rv) & 2**15:
         rv = -0xFFFF + rv - 1
-    return round(rv, 4)
+    return round4(rv)
 
 
-def poke(addr: int, val: int = 0, *more) -> int:
+def poke(addr: int, val: int = 0, *more: int) -> int:
     """
     Write one byte to an address in base ram.
     Legal addresses are 0x0..0x7fff
@@ -850,9 +856,9 @@ def poke(addr: int, val: int = 0, *more) -> int:
                     return 0
                 for thread in threads:
                     if val == 1:
-                        thread.do_work.clear()
+                        thread.do_work.clear()  # type: ignore[attr-defined]
                     elif val == 0:
-                        thread.do_work.set()
+                        thread.do_work.set()  # type: ignore[attr-defined]
         elif AUDIO_FX_PT <= addr <= 0x5F7F:  # 24384 24447
             # https://pico-8.fandom.com/wiki/Memory#Hardware_state
             if (
@@ -919,6 +925,18 @@ def poke4(addr: int, val: int) -> int:
     192
     0
     0
+    >>> p(0.9999)
+    249
+    255
+    0
+    0
+    >>> p(0.99991)
+    250
+    255
+    0
+    0
+    >>> peek4(0x5000)
+    1
     """
     whole = int(val)
     part = int(shl(val, 16))
@@ -1046,7 +1064,7 @@ def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None
     oval(x0, y0, x1, y1, col, False)
 
 
-def rect(*args, _border_only=True) -> int:
+def rect(*args: Any, _border_only: bool = True) -> int:
     """Draw a rectangle. x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border_only=True
     Col None => 0 but No col => draw color!!!
 
@@ -1082,7 +1100,7 @@ def rect(*args, _border_only=True) -> int:
     return 0
 
 
-def rectfill(*args) -> int:
+def rectfill(*args: Any) -> int:
     """Draw a filled rectangle.
     >>> rectfill(0, 0, 0, 0)
     0
@@ -1090,7 +1108,7 @@ def rectfill(*args) -> int:
     return rect(*args, _border_only=False)
 
 
-def pal(*args) -> int | None:
+def pal(*args: Any) -> int | None:
     """pal(old_col, new_col, p) changes the draw state so all instances of a given color are replaced with a new color. p: palette (0 for draw, 1 for display, 2 for secondary)
 
     pal() resets draw palette and screen palette to system defaults (including transparency values and fill pattern)
@@ -1362,7 +1380,7 @@ def pset(x: int, y: int, col: int | None = None) -> int:
     return 0
 
 
-def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
+def _pset(x: int, y: int, col: int | None = None, use_pattern: bool = True) -> None:
     """Set the color of a pixel at x, y in memory.
     Each byte contains two adjacent pixels,
     with the lo 4 bits being the left/even pixel
@@ -1413,7 +1431,7 @@ def _pset(x: int, y: int, col: int | None = None, use_pattern=True) -> None:
 def _pset_cel(
     cel: pygame.Surface | None = None,
     area: pygame.Rect | None = None,
-):
+) -> None:
     """Draw nontransparent area of a surface."""
     if cel is None:
         cel = surf
@@ -1470,7 +1488,7 @@ def print(
     x: int | None = None,
     y: int | None = None,
     col: int | None = None,
-    _wrap=False,
+    _wrap: bool = False,
 ) -> int | None:
     r"""Prints to screen, supporting control codes at https://www.lexaloffle.com/dl/docs/pico-8_manual.html#Appendix_A__P8SCII_Control_Codes
     For example, to print with a blue background ("\#c") and dark gray foreground ("\f5"): PRINT("\#C\F5 BLUE ")
@@ -1741,8 +1759,12 @@ def print(
 
             for hi in range(r.h):
                 for wi in range(r.w):
-                    clr_at = character.get_at((wi, hi))
-                    if clr_at[:3] != (0, 0, 0):
+                    clr_at = tuple(character.get_at((wi, hi)))
+                    if clr_at[:3] != (
+                        0,
+                        0,
+                        0,
+                    ):  # TODO: Check whether Color == BLACK = Color((0, 0, 0)) is faster.
                         _pset(
                             x - 1 + wi,
                             y - 1 + hi,
@@ -1813,19 +1835,22 @@ def uint8(col: int | float | None = None) -> int:
     # (0x8F if mem[PERSIST_PT] else 0x0F) # https://youtu.be/AsVzk6kCAJY?t=434
 
 
-def set_debug(b: bool = True):
+def set_debug(b: bool = True) -> None:
     global DEBUG
     DEBUG = b
 
 
 def replace_color(
-    surface: pygame.Surface, old_color: tuple, new_color: tuple
+    surface: pygame.Surface,
+    old_color: tuple[int, int, int, int],
+    new_color: tuple[int, int, int, int],
 ) -> pygame.Surface:
     """Replace single color in surface."""
+    old_col = pygame.Color(old_color)
     r = surface.get_rect()
     for hi in range(r.h):
         for wi in range(r.w):
-            if surface.get_at((wi, hi)) == old_color:
+            if surface.get_at((wi, hi)) == old_col:
                 surface.set_at((wi, hi), new_color)
 
     return surface
@@ -1848,7 +1873,7 @@ def sget(x: int | float = 0, y: int | float = 0) -> int:
     return 0x0F & (mem[SPRITE_SHEET_PT + y * 64 + mx] >> int(4 * hi))
 
 
-def sset(x: int = 0, y: int = 0, col=None) -> None:
+def sset(x: int = 0, y: int = 0, col: int | None = None) -> None:
     """Set the color of a spritesheet pixel.
     Each 64-byte row contains 128 pixels. Each byte contains two adjacent
     pixels, with the low 4 bits being the left/even pixel and the high 4
@@ -1914,7 +1939,7 @@ def spr(
             _pset(x + tdx, y + tdy, sget(sx + dx, sy + dy), False)
 
 
-def _show_surf(s: pygame.Surface):
+def _show_surf(s: pygame.Surface) -> None:
     """
     >>> _show_surf(pygame.Surface((1, 1)))  # doctest:+ELLIPSIS
     _show_surf <Surface(1x1x32 SW)> from <module>:
@@ -1938,8 +1963,8 @@ def sspr(
     dy: int,
     dw: int | float | None = None,
     dh: int | float | None = None,
-    flip_x=False,
-    flip_y=False,
+    flip_x: bool = False,
+    flip_y: bool = False,
 ) -> None:
     """
     Stretch rectangle from sprite sheet (sx, sy, sw, sh) // given in pixels
@@ -2142,7 +2167,7 @@ def reset() -> None:
     clip()
 
 
-def get_fps():
+def get_fps() -> int:
     """
     >>> get_fps()
     30
@@ -2150,14 +2175,14 @@ def get_fps():
     return fps
 
 
-def get_frame_count():
+def get_frame_count() -> int:
     """
     >>> _ = get_frame_count()
     """
     return frame_count
 
 
-def _set_fps(n: int = 30):
+def _set_fps(n: int = 30) -> None:
     """
     >>> _set_fps(30)
     """

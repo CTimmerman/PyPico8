@@ -42,7 +42,7 @@ def _divi(a: float | int, b: float | int) -> int:
     """
     if not b:
         return -32768 if a < 0 else 32767
-    return math.floor(a / b)
+    return floor(a / b)
 
 
 divi = InfixDiv(_divi)
@@ -160,12 +160,12 @@ def round4(n: float) -> float | int:
         if n % 1 >= 0.9999:  # Note the =
             if n > -1:
                 return -0.0
-            return math.ceil(n)
+            return ceil(n)
 
     if n % 1 > 0.9999:
-        return math.ceil(n)
+        return ceil(n)
     if n % 1 < 0.0001:
-        return math.floor(n)
+        return floor(n)
 
     return round(int(hex_fraction(n), 16) / 16**4 * 10**4) / 10**4
 
@@ -209,15 +209,15 @@ shl = InfixShift(_shl)
 def _shr(x: float | int, n: int = 0) -> float | int:
     """Arithmetic right shift (the left-most bit state is duplicated)
     >>> shr(2, 1)
-    1
+    1.0
     >>> shr(1, 1)
     0.5
     >>> 1 <<shr>> 1
     0.5
-    >>> 0.5 <<shr>> 10
-    0.0005
+    >>> 0.5 <<shr>> 10  #0.0005
+    0.00048828125
     """
-    return round4(x / 2**n)
+    return float(x / 2**n)  # round4 breaks poke4(a, 0.99991); peek4(a)
 
 
 shr = InfixShift(_shr)

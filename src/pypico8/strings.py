@@ -70,7 +70,7 @@ def printh(
 def pico8_to_python(s: str) -> str:
     r"""Hackily translates PICO-8 to Python.
     >>> pico8_to_python('for i=0,30 do ?"웃"')
-    'def _init():\n    global \nfor i in range(0, 30+1): print("웃")\n\nif __name__ == "__main__":\n    run(_init, _update, _draw)\n'
+    'def _init() -> None:\n    global \nfor i in range(0, 30+1): print("웃")\n\nif __name__ == "__main__":\n    run(_init, _update, _draw)\n'
     """
     import re  # noqa
 
@@ -131,11 +131,14 @@ if \1 == \3: break; \1 += \4  # TODO, move to end of loop & maybe use \1 = round
     # separate statements
     s = re.sub(r"([\])0-9])([a-zA-Z])", r"\1\n\2", s)
     # hooks
-    s = "def _init():\n    global \n" + s
+    s = "def _init() -> None:\n    global \n" + s
     s = re.sub(r"\n{3,}", r"\n\n", s)
-    s = s.replace("::_::", "\n\n\ndef _update(): pass\n\n\ndef _draw():\n    global \n")
+    s = s.replace(
+        "::_::",
+        "\n\n\ndef _update() -> None: pass\n\n\ndef _draw() -> None:\n    global \n",
+    )
     s = s.replace("goto _", "return")
-    s = s.replace("def update():\n", "def update():\n    global ")
+    # s = s.replace("def update():\n", "def update() -> None:\n    global ")
     s += f"""\n\nif __name__ == "__main__":\n    run(_init, _update{"60" if "_update60" in s else ""}, _draw)\n"""
     return s
 
@@ -192,9 +195,9 @@ def tonum(s: str | int | float) -> int | float | None:
             if base == 10:
                 return round4(float(s))
             whole, part = a
-            return round4(int(whole, base) + int(part, base) / base ** len(part))  # type: ignore
+            return round4(int(whole, base) + int(part, base) / base ** len(part))
     try:
-        return int(s, base)  # type: ignore
+        return int(s, base)  # type: ignore[arg-type]
     except TypeError as ex:
         # "TypeError: int() can't convert non-string with explicit base" is too vague.
         raise TypeError(f"to_num got type {type(s)}") from ex
@@ -211,7 +214,7 @@ def chr(*index: int | float | str) -> str:  # noqa
     """
     s = ""
     for i in index:
-        s += CHARS[flr(tonum(i)) % 256]  # type: ignore[arg-type]
+        s += CHARS[flr(tonum(i)) % 256]
     return s
 
 
@@ -257,8 +260,8 @@ def sub(s: str, pos0: int, pos1: int | None = None) -> str:
     pos0 = flr(pos0) - (1 if pos0 >= 1 else 0)
     if pos1 is not None:
         pos1 = flr(pos1)
-        if pos1 < 0:  # type: ignore
-            pos1 += 1  # type: ignore
+        if pos1 < 0:
+            pos1 += 1
             if pos1 >= 0:
                 pos1 = None
     return s[pos0:pos1]

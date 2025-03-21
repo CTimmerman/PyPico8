@@ -21,22 +21,26 @@
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
 import builtins, os, sys, time as py_time  # noqa: E401
+from typing import Any, Callable
 
-# fmt:off
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 try:
     import pygame, pygame.freetype  # noqa: E401
 
+    # fmt:off
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    from pypico8.maths import atan2, ceil, cos, div, divi, flr, max, mid, min, round4, rnd, shl, shr, sgn, sin, sqrt, srand  # noqa  # unused here but maybe not elsewhere.
+    from pypico8.maths import atan2, ceil, cos, div, divi, flr, max, mid, min, round4, rnd, shl, shr, sgn, sin, sqrt, srand  # type: ignore  # noqa  # unused here but maybe not elsewhere.
     from pypico8.table import Table, add, all, delv, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
     from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, debug, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
+    # fmt:on
 except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
-# fmt:on
+
+
+FUN0 = Callable[[], None]
 
 false = False
 true = True
@@ -78,7 +82,7 @@ begin = py_time.time()
 btnp_state = 0
 btnp_frame = 0
 command = ""
-command_history: list = []
+command_history: list[str] = []
 command_mode = False
 command_y = 0
 cursor_x = 0
@@ -219,14 +223,16 @@ def escape_command() -> str:
     )
 
 
-def init(_init=lambda: True) -> None:
+def init(_init: FUN0 = lambda: None) -> None:
     """Initialize."""
     _init_video()
     _init()
     flip()
 
 
-def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
+def run(
+    _init: FUN0 = lambda: None, _update: FUN0 = lambda: None, _draw: FUN0 = lambda: None
+) -> None:
     """Run from the start of the program. Can be called from inside a program to reset program.
     >>> run()
     """
@@ -248,7 +254,7 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
 
         stopped = False
         running = True
-        pause_start = 0
+        pause_start = 0.0
         while running:
             if command_mode:
                 erase_command()
@@ -269,9 +275,9 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                         ):
                             cursor_x = len(command)
                         elif event.key == pygame.K_LEFT:
-                            cursor_x = max(cursor_x - 1, 0)
+                            cursor_x = int(max(cursor_x - 1, 0))
                         elif event.key == pygame.K_RIGHT:
-                            cursor_x = min(cursor_x + 1, len(command))
+                            cursor_x = int(min(cursor_x + 1, len(command)))
                         elif event.key == pygame.K_UP:
                             if not command and command_history:
                                 command = command_history[-1]
@@ -279,14 +285,16 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
                                 command_history.append(command)
                             else:
                                 command = command_history[
-                                    max(command_history.index(command) - 1, -1)
+                                    int(max(command_history.index(command) - 1, -1))
                                 ]
                             cursor_x = len(command)
                         elif event.key == pygame.K_DOWN:
                             try:
-                                ci = min(
-                                    command_history.index(command) + 1,
-                                    len(command_history) - 1,
+                                ci = int(
+                                    min(
+                                        command_history.index(command) + 1,
+                                        len(command_history) - 1,
+                                    )
                                 )
                                 command = command_history[ci]
                                 cursor_x = len(command)
@@ -373,7 +381,7 @@ def run(_init=lambda: True, _update=lambda: True, _draw=lambda: True):
         raise
 
     for thread in threads:
-        thread.stop = True
+        thread.stop = True  # type: ignore[attr-defined]
     for thread in threads:
         thread.join()
     pygame.quit()
