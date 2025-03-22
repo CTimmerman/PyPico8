@@ -1,24 +1,8 @@
 """Bike ported from https://twitter.com/2DArray/status/1358220507074723841
-"""
-
-from pypico8 import (
-    Table,
-    camera,
-    circ,
-    cls,
-    cos,
-    line,
-    pico8_to_python,
-    printh,
-    run,
-    sin,
-    t,
-)
-
 
 printh(
     pico8_to_python(
-        """
+        '''
 l={4,0,2,6,8,6,8,7,9,7,7,6,9,0,7,6,4,0,0,0,2,6,1,8,3,8}
 ::_::
     cls()w=t()/4
@@ -33,23 +17,38 @@ l={4,0,2,6,8,6,8,7,9,7,7,6,9,0,7,6,4,0,0,0,2,6,1,8,3,8}
             if((i-16)^2==9) circ(a,g,16) for q=w,w+1,.07 do line(a,g,a+sin(q)*15,g+cos(q)*15) end  -- NOTE: if block goes to end of line!
         end
     end
-flip()goto _"""
+flip()goto _'''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import (
+    Table,
+    camera,
+    circ,
+    cls,
+    cos,
+    line,
+    run,
+    sin,
+    t,
+)
+
+
+def _init() -> None:
     global l
     l = Table(
         [4, 0, 2, 6, 8, 6, 8, 7, 9, 7, 7, 6, 9, 0, 7, 6, 4, 0, 0, 0, 2, 6, 1, 8, 3, 8]
     )
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     cls()
     w = t() / 4
     for j in range(0, 3):

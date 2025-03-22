@@ -4,7 +4,7 @@ Should show two whole white and half red circles at top and bottom of the screen
 from pypico8 import circfill, clip, peek, printh, run
 
 
-def _init():
+def _init() -> None:
     """ """
     # set the clipping region to exclude 8 pixels at the top and bottom
     clip(0, 8, 128, 112)
@@ -28,11 +28,11 @@ def _init():
     printh(str(clip_x) + " " + str(clip_y) + " " + str(clip_w) + " " + str(clip_h))
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     pass
 
 

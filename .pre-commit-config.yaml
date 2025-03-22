@@ -12,7 +12,7 @@ repos:
 
       - id: doctest
         name: doctest
-        entry: coverage run -a -m doctest
+        entry: python -X utf8 -m coverage run -a -m doctest
         fail_fast: true
         language: system
         types_or:

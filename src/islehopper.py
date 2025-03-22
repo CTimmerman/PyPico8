@@ -1,12 +1,8 @@
-"""Islehopper ported from https://twitter.com/ValerADHD/status/1325129814454439936
-"""
-
-from pypico8 import *
-
+r"""Islehopper ported from https://twitter.com/ValerADHD/status/1325129814454439936
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 pal({[0]=1,15,143,138,11,139,3,131,132,5,6,7,7,7,12},1)
 cls()
 _=127
@@ -36,7 +32,7 @@ for i=0,_ do
     a=x
     b=y
     r=d+(i/256)-.25p=_
-    for j=1,24do 
+    for j=1,24do
         a+=q(r)
         b+=u(r)
         h=sget(a&_,b&_)
@@ -58,12 +54,17 @@ for f=e,e+2do
 end
 d+=(w-64)/_/_*4
 flip()goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     global _, x, y, d, z, w, e
     pal(([1, 15, 143, 138, 11, 139, 3, 131, 132, 5, 6, 7, 7, 7, 12]), 1)
     cls()
@@ -88,11 +89,11 @@ def _init():
     memcpy(0, 24576, 8192)  # screen data to sprite sheet
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global _, n, x, y, d, z, w, e
     cls(14)
     for i in range(0, _ + 1):
@@ -117,9 +118,9 @@ def _draw():
     r = round4((atan2(w - 64, e - _) - 0.25))
     m = t()
     for f in range(e, e + 2 + 1):
-        j = sin(m) / 16
-        line(w + cos(r - j) * 16, e + sin(r - j) * 16, w, f, 13)
-        line(w + cos(r + 0.5 + j) * 16, e + sin(r + 0.5 + j) * 16)
+        j2 = sin(m) / 16
+        line(w + cos(r - j2) * 16, e + sin(r - j2) * 16, w, f, 13)
+        line(w + cos(r + 0.5 + j2) * 16, e + sin(r + 0.5 + j2) * 16)
     # }
     d = round4(d + (w - 64) / _ / _ * 4)
 

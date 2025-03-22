@@ -1,25 +1,9 @@
 """Book ported from https://x.com/2DArray/status/1109890993543884801
 FIXME: Left half glitches sometimes on loop.
-"""
-
-from pypico8 import (
-    cls,
-    cos,
-    flip,
-    line,
-    mid,
-    pico8_to_python,
-    printh,
-    sgn,
-    sin,
-    run,
-    t,
-)  # noqa
-
 
 printh(
     pico8_to_python(
-        r"""::_::cls()
+        r'''::_::cls()
         for k=-1,1,2 do
             for j=8-8*k,8+8*k,k do
                 x=59.5
@@ -36,12 +20,28 @@ printh(
             end
         end
         flip()
-        goto _"""
+        goto _'''
     )
 )
 
+>>> run(_draw=_draw)
+"""
 
-def _draw():
+from pypico8 import (
+    cls,
+    cos,
+    flip,
+    line,
+    mid,
+    sgn,
+    sin,
+    round4,
+    run,
+    t,
+)  # noqa
+
+
+def _draw() -> None:
     cls()
     k = -1
     while k <= 1:
@@ -51,8 +51,8 @@ def _draw():
             q = 1 - mid(2 - t() / 4 % 2 - j / 16, 1) ** 2
             p = 1 - q
             y = 84.5 + (16 - j) / 2 * p + q * j / 2
-            w = round(q / 2, 4)
-            i = 0
+            w = round4(q / 2)
+            i = 0.0
             # Pico8's for i=0,1,.02 do doesn't hit 1 but total loops are equal with <=
             while i <= 1:
                 c = 6 + j % 2
@@ -61,17 +61,14 @@ def _draw():
                 if sgn(x - 60) == k:
                     line(x, y, x + 10, y - 40, c)
                     line(x, y, x + 10, y - 41)
-                x = round(x + cos(w), 4)  # page width
-                y = round(y + sin(w), 4)  # open angle
-                w = round(w - p * 0.035 * q * (1 - i), 4)  # page turn amount
-                i = round(i + 0.02, 4)  # book width
-                # }
+                x = round4(x + cos(w))  # page width
+                y = round4(y + sin(w))  # open angle
+                w = round4(w - p * 0.035 * q * (1 - i))  # page turn amount
+                i = round4(i + 0.02)  # book width
             if j == 8 + 8 * k:
                 break
             j += k
-            # }
         k += 2
-        # }
     flip()
 
 

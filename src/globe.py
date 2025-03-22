@@ -1,12 +1,8 @@
 """Globe ported from https://twitter.com/MunroHoberman/status/1335953892685860865
-"""
-
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 q={}
 for i=0,1,.05do
     for j=0,1,.05do
@@ -28,30 +24,35 @@ s=.0125
     end
 flip()
 goto _
-    """
+    '''
     )
 )
 
+>>> run(_init, _update60)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     global q, s
     q = Table()
-    i = 0
+    i = 0.0
     add_count = 0
     while i <= 1:
-        j = 0
+        j = 0.0
         while j <= 1:
             c = sin(i)
             wut = Table(x=c * cos(j), y=sin(j) * c, z=cos(i))
             add(q, wut)
             add_count += 1
-            j = round(j + 0.05, 4)  # Too soon if not rounded!
-        i = round(i + 0.05, 4)
+            j = round4(j + 0.05)  # Too soon if not rounded!
+        i = round4(i + 0.05)
     color(7)
     s = 0.0125
 
 
-def _update60():
+def _update60() -> None:
     # for _ in range(4):
     cls()
     for i in range(2, 882):

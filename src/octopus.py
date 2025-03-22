@@ -13,15 +13,16 @@ end
 flip()goto _
 
 Purple/blue tentacles in the dark.
+>>> run(_draw=_draw)
 """
 
 from pypico8 import circfill, cls, cos, run, sin, t
 
 
-def _draw():
+def _draw() -> None:
     cls()
     for r in range(16, 129, 6):
-        a = 0
+        a = 0.0
         while a < 1:
             a += 1 / r
             b = a + 0.1 * (1 - r / 96) * sin(0.8 * t() + r / 96)

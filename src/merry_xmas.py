@@ -1,12 +1,8 @@
 """Merry Xmas ported from https://twitter.com/Frozax/status/1342463299909275651
-"""
-
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 pal({129,1,140,12,7},1)
 ::_::
 cls(1)
@@ -21,20 +17,25 @@ end
 e(64,64,25,5)
 ?"merry xmas",45,62,7
 flip()goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     pal(Table([129, 1, 140, 12, 7]), 1)
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     cls(1)
 
     def e(x, y, r, d):

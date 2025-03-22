@@ -1,4 +1,19 @@
 """Shivers ported from https://twitter.com/von_rostock/status/1339009642756796423
+
+printh(
+    pico8_to_python(
+        r'''pal({-16,-16,-14,-14,2,2,-8,-8,8,8},1)s=sin::_::c=t()%4
+if(c<.1)m=rnd(19)n=rnd(19)cls(10)
+for i=0,7do
+u=m+54v=n+54for j=0,c*64do
+g=u/512h=v/512k=i/8for l=1,5do g*=2h*=2k+=.5^l*(s(s(g)+s(h))+s(g*2)+t()%32/(1+j/3))/2end
+u+=cos(k)/2v-=s(k)/2pset(u,v,max(pget(u,v)-1))end
+end
+goto _'''
+    )
+)
+
+>>> run(_init, _update, _draw)
 """
 
 # pylint: disable=redefined-builtin
@@ -7,9 +22,7 @@ from pypico8 import (
     cls,
     cos,
     max,
-    pico8_to_python,
     pal,
-    printh,
     pget,
     pset,
     rnd,
@@ -19,32 +32,18 @@ from pypico8 import (
 )
 
 
-printh(
-    pico8_to_python(
-        r"""pal({-16,-16,-14,-14,2,2,-8,-8,8,8},1)s=sin::_::c=t()%4
-if(c<.1)m=rnd(19)n=rnd(19)cls(10)
-for i=0,7do
-u=m+54v=n+54for j=0,c*64do
-g=u/512h=v/512k=i/8for l=1,5do g*=2h*=2k+=.5^l*(s(s(g)+s(h))+s(g*2)+t()%32/(1+j/3))/2end
-u+=cos(k)/2v-=s(k)/2pset(u,v,max(pget(u,v)-1))end
-end
-goto _"""
-    )
-)
-
-
-def _init():
+def _init() -> None:
     global m, n, s
     pal(Table([-16, -16, -14, -14, 2, 2, -8, -8, 8, 8]), 1)
     m = n = 0
     s = sin
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global m, n
     c = t() % 4
     if c < 0.1:

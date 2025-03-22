@@ -951,7 +951,11 @@ def poke4(addr: int, val: int) -> int:
 
 
 def circ(
-    x: int, y: int, radius: int = 4, col: int | None = None, _border: bool = True
+    x: int | float,
+    y: int | float,
+    radius: int | float = 4,
+    col: int | float | None = None,
+    _border: bool = True,
 ) -> None:
     """
     Draw a circle at x,y with radius r.
@@ -990,7 +994,9 @@ def circ(
     _pset_cel(cel, area)
 
 
-def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
+def circfill(
+    x: int | float, y: int | float, r: int | float = 4, col: int | None = None
+) -> None:
     """
     Draw a circle at x,y with radius r
     If r is negative, the circle is not drawn
@@ -1001,11 +1007,11 @@ def circfill(x: int, y: int, r: int = 4, col: int | None = None) -> None:
 
 
 def line(
-    x0: int,
-    y0: int,
-    x1: int | None = None,
-    y1: int | None = None,
-    col: int | None = None,
+    x0: int | float,
+    y0: int | float,
+    x1: int | float | None = None,
+    y1: int | float | None = None,
+    col: int | float | str | None = None,
 ) -> None:
     """Draw line.
     If x1,y1 are not given, the end of the last drawn line is used.
@@ -1038,7 +1044,12 @@ def line(
 
 
 def oval(
-    x0: int, y0: int, x1: int, y1: int, col: int | None = None, _border: bool = True
+    x0: int | float,
+    y0: int | float,
+    x1: int | float,
+    y1: int | float,
+    col: int | None = None,
+    _border: bool = True,
 ) -> None:
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle.
     >>> oval(0, 0, 0, 0)
@@ -1057,7 +1068,13 @@ def oval(
     _pset_cel(cel, area)
 
 
-def ovalfill(x0: int, y0: int, x1: int, y1: int, col: int | None = None) -> None:
+def ovalfill(
+    x0: int | float,
+    y0: int | float,
+    x1: int | float,
+    y1: int | float,
+    col: int | None = None,
+) -> None:
     """Draw an oval that is symmetrical in x and y (an ellipse), with the given bounding rectangle.
     >>> ovalfill(0, 0, 0, 0)
     """
@@ -1328,7 +1345,7 @@ def pos(x: int | float, y: int | float) -> tuple[int, int]:
     return (flr(mem[CAMERA_X_PT] + x), flr(mem[CAMERA_Y_PT] + y))
 
 
-def pget(x: int, y: int) -> int:
+def pget(x: int | float, y: int | float) -> int:
     """Get the palette color of a pixel at x, y.
     >>> pget(-1, -1)
     0
@@ -1360,7 +1377,7 @@ def pget(x: int, y: int) -> int:
     return B & 0x0F
 
 
-def pset(x: int, y: int, col: int | None = None) -> int:
+def pset(x: int | float, y: int | float, col: int | float | None = None) -> int:
     """Set the color and pixel at x, y plus camera offset.
     >>> reset()
     >>> pset(-1, 0, 10); pset(0, 0, 11); pset(1, 0, 12)
@@ -1380,7 +1397,9 @@ def pset(x: int, y: int, col: int | None = None) -> int:
     return 0
 
 
-def _pset(x: int, y: int, col: int | None = None, use_pattern: bool = True) -> None:
+def _pset(
+    x: int, y: int, col: int | float | None = None, use_pattern: bool = True
+) -> None:
     """Set the color of a pixel at x, y in memory.
     Each byte contains two adjacent pixels,
     with the lo 4 bits being the left/even pixel
@@ -1484,9 +1503,9 @@ def get_char_img(n: int) -> pygame.Surface:
 
 
 def print(
-    s: str | None = None,
-    x: int | None = None,
-    y: int | None = None,
+    s: Any = None,
+    x: int | float | None = None,
+    y: int | float | None = None,
     col: int | None = None,
     _wrap: bool = False,
 ) -> int | None:
@@ -1530,13 +1549,15 @@ def print(
         mem[CURSOR_X_PT] = x
         mem[CURSOR_Y_PT] = y
     elif x is not None and y is None:
-        col = x
+        col = flr(x)
         x = None
 
     if x is None:
         x = mem[CURSOR_X_PT]
     if y is None:
         y = mem[CURSOR_Y_PT]
+    else:
+        y = flr(y)
 
     if col is not None:
         color(col)
@@ -1784,7 +1805,7 @@ def print(
         y += char_height
 
     mem[CURSOR_Y_PT] = y & 0xFF
-    return min(128, x)
+    return int(min(128, x))
 
 
 def scroll(dy: int = 0) -> int:
@@ -1955,12 +1976,12 @@ def _show_surf(s: pygame.Surface) -> None:
 
 
 def sspr(
-    sx: int,
-    sy: int,
-    sw: int,
-    sh: int,
-    dx: int,
-    dy: int,
+    sx: int | float,
+    sy: int | float,
+    sw: int | float,
+    sh: int | float,
+    dx: int | float,
+    dy: int | float,
     dw: int | float | None = None,
     dh: int | float | None = None,
     flip_x: bool = False,
@@ -1975,14 +1996,19 @@ def sspr(
     >>> sspr(0, 0, 0, 0, 0, 0, -1, -1)
     >>> sspr(0, 0, 1, 1, 1, 1)
     """
-    if dw is None:
-        dw = sw
-    if dh is None:
-        dh = sh
+    sx = flr(sx)
+    sy = flr(sy)
+    sw = flr(sw)
+    sh = flr(sh)
+
     if dx is None:
         dx = 0
     if dy is None:
         dy = 0
+    if dw is None:
+        dw = sw
+    if dh is None:
+        dh = sh
 
     if dw < 0:
         dw = abs(dw)

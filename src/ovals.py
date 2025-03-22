@@ -1,12 +1,8 @@
-"""Ovals ported from https://www.lexaloffle.com/bbs/?tid=38665"""
-
-# flake8:noqa
-from pypico8 import *
-
+"""Ovals ported from https://www.lexaloffle.com/bbs/?tid=38665
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 pattern={[0]=
 …,∧,░,⧗,▤,✽,★,✽,
 ˇ,░,▤,♪,░,✽,★,☉,
@@ -29,12 +25,18 @@ function _draw()
  end
  print("pico-8 0.2.1",40,62,13)
 end
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+# flake8:noqa
+from pypico8 import *
+
+
+def _init() -> None:
     global pattern
     # fmt: off
     pattern = [
@@ -46,13 +48,13 @@ def _init():
     # fmt: on
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     cls(1)
-    i = 0
+    i = 0.0
     while i <= 31 / 32:
         x = 64 + cos(i + t() / 8) * 48
         y = 64 + sin(i + t() / 8) * 44

@@ -1,4 +1,5 @@
 r"""Spark ported from https://x.com/von_rostock/status/1854655683381109129
+
 r=rnd
 ::_::
 ?"\^!5f11▒1😐<7"
@@ -23,18 +24,20 @@ for d=0,1,.0004do
     end
 end
 goto _
+
+>>> run(_draw=_draw)
 """
 
 from pypico8 import *
 
 
-def _draw():
+def _draw() -> None:
     print(r"\^!5f11▒1😐<7")
     b = rnd() < cos(rnd())
-    u = 0
-    v = 0
+    u = 0.0
+    v = 0.0
     g = rnd()
-    d = 0
+    d = 0.0
     while 1:
         a = rnd()
         x = 64 + d * 33 * sin(a)

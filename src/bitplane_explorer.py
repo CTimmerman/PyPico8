@@ -1,36 +1,8 @@
-"""Bitplane Explorer ported from https://www.lexaloffle.com/bbs/?tid=54214
-"""
-
-# pylint: disable=redefined-builtin
-from pypico8 import (
-    btn,
-    btnp,
-    circ,
-    circfill,
-    cls,
-    color,
-    cursor,
-    deli,
-    ipairs,
-    mid,
-    pico8_to_python,
-    poke,
-    print,
-    printh,
-    rectfill,
-    select,
-    sin,
-    split,
-    sub,
-    run,
-    time,
-    tostr,
-)
-
+r"""Bitplane Explorer ported from https://www.lexaloffle.com/bbs/?tid=54214
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 -- bitplane explorer
 --  BY PANCELOR
 
@@ -77,7 +49,7 @@ function _draw()
   colem=""
   colex=" 🅾️"
  end
- 
+
  -- move
  if not btn(4) and not btn(5) then
   dx,dy=axis(btn())
@@ -87,12 +59,12 @@ function _draw()
  else
   btnex=""
  end
- 
+
  -- animate radius
  rgoal=r0
  rgoal*=1+sin(time()/2)/12
  r=approach(r,rgoal,8)
- 
+
  -- this is the bitplane part.
  -- very short! even shorter
  -- if you hardcode val
@@ -103,7 +75,7 @@ function _draw()
 
  -- outline
  circ(x,y,r,0)
- 
+
  -- explainer text
  cursor(0,0)
  color(7)
@@ -138,9 +110,37 @@ function qf(fmt,...)
  end
  return str
 end
-        """
+        '''
     )
 )
+
+>>> run(_init, _update, _draw)
+"""
+
+# pylint: disable=redefined-builtin
+from pypico8 import (
+    btn,
+    btnp,
+    circ,
+    circfill,
+    cls,
+    color,
+    cursor,
+    deli,
+    ipairs,
+    mid,
+    poke,
+    print,
+    rectfill,
+    select,
+    sin,
+    split,
+    sub,
+    run,
+    time,
+    tostr,
+)
+
 
 col: int = 0
 read: int = 0
@@ -151,7 +151,7 @@ r: int = 0
 r0: int = 0
 
 
-def _init():
+def _init() -> None:
     global col, read, write, x, y, r0
     global r
 
@@ -170,7 +170,7 @@ def _init():
     r = r0
 
 
-def _draw():
+def _draw() -> None:
     global col, r, r0, read, write, x, y
 
     cls()
@@ -194,7 +194,7 @@ def _draw():
     if btn(4):
         dx, dy = axis(btnp())
         r0 += dx * 16
-        r0 = mid(16, 96, r0)
+        r0 = int(mid(16, 96, r0))
         col -= dy
         col &= 0xF
         colem = r"\#0\^i"
@@ -213,7 +213,7 @@ def _draw():
         btnex = ""
 
     # animate radius
-    rgoal = r0
+    rgoal = float(r0)
     rgoal *= 1 + sin(time() / 2) / 12
     r = approach(r, rgoal, 8)
 
@@ -263,18 +263,20 @@ def approach(xv, x1, dx):
 
 
 def qf(fmt: str, *argv) -> str:
-    "Format string."
+    """Format string.
+    >>> qf("aaa%bbb", "ccc", "ddd")
+    'aaacccbbb'
+    """
     parts = split(fmt, "%", False)
-    s = deli(parts, 1)  # type: ignore
-    # printh(f"fmt\"{fmt}\" argv{argv} parts{parts}")
+    s = deli(parts, 1)  # type: ignore  # s = "aaa"
     for ix, pt in ipairs(parts):
-        arg = select(ix, *argv)[1]
+        arg = select(ix, *argv)
         s += tostr(arg) + pt
 
     return str(s)
 
 
-def _update():
+def _update() -> None:
     pass
 
 

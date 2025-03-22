@@ -1,12 +1,8 @@
 """Fractus ported from https://twitter.com/MunroHoberman/status/1357378457458663431
-"""
-
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 function u(x,y,a,n,c)q(x,y,n*.7,c)
     for i=-1,1do
         e=i/5+a+w/n
@@ -27,12 +23,17 @@ q=circfill
     u(63,63,.25,32,59)
     flip()
 goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     global q
     q = circfill
 
@@ -45,11 +46,11 @@ def u(x, y, a, n, c):
             u(x + cos(e) * n, y + sin(e) * n, e, n / 2, c)
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global w
     cls(12)
     q(63, 63, 56, 170)

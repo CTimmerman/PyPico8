@@ -1,12 +1,8 @@
 """3D Helix ported from https://twitter.com/p01/status/1009386060214874112
-"""
-
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 r="3d helix ★ p01"cls()s=sin
 ?r
 memcpy(0,24568,999)::_::cls()for y=0,138 do
@@ -17,12 +13,17 @@ end
 end
 ?r,34,50,7
 flip()goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     global r, s
     r = "3d helix ★ p01"
     cls()
@@ -31,11 +32,11 @@ def _init():
     memcpy(0, 0x6000 - 8, 999)  # screen to spritesheet
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     cls()
     for y in range(0, 138 + 1):
         i = (t() * 8 + y / 8) % 114

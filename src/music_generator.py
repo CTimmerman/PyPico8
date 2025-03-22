@@ -1,13 +1,8 @@
 """Music Generator ported from https://www.youtube.com/watch?v=1EWR6gVyPh4
-"""
-
-# fmt: off
-from pypico8 import cls, flip, flr, line, pico8_to_python, poke, printh, pset, sfx, stat, Table, rnd, run
-# fmt: on
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 q=poke
 r=0x3200
 s={0x2d2c,3,65,16,67,32}
@@ -31,12 +26,21 @@ cls()
             line(2*x,42,2*x,42-n,1.7*(7-x%8))
         end
     end
-goto _"""
+goto _'''
     )
 )
 
+>>> import pygame
+>>> pygame.mixer.init()
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+# fmt: off
+from pypico8 import cls, flip, flr, line, poke, pset, sfx, stat, Table, rnd, run
+# fmt: on
+
+
+def _init() -> None:
     global r, s, t
     r = 0x3200  # 12800 - audio pointer
     s = Table(
@@ -44,17 +48,17 @@ def _init():
     )  # 11564? TODO: https://pico-8.fandom.com/wiki/Memory#Sound_effects
     t = Table([0, 2, 3, 5, 7])
     for i in range(1, len(s) + 1, 2):
-        poke(r + (s[i] or 0), s[i + 1] or 0)  # write notes
+        poke(int(r) + (s[i] or 0), s[i + 1] or 0)  # write notes
 
     sfx(0)
     cls()
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global r, t
 
     flip()

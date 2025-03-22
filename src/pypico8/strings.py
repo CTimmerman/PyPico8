@@ -242,7 +242,7 @@ def ord(s: str, index: int = 1) -> int:  # noqa
     return n % 256
 
 
-def sub(s: str, pos0: int, pos1: int | None = None) -> str:
+def sub(s: str, pos0: int | float, pos1: int | float | None = None) -> str:
     """
     Grab a substring from string str, from pos0 up to and including pos1.
     When pos1 is not specified, the remainer of the string is returned.

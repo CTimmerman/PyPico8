@@ -1,4 +1,16 @@
 """Swarm ported from https://twitter.com/MunroHoberman/status/1358777612206821376
+
+printh(
+    pico8_to_python(
+        r'''w=pset
+q={}poke(24365,1)cls()circfill(63,63,63,9)::_::j=stat(32)k=stat(33)q[1]={x=j,y=k,a=0}for f in all(q)do
+w(f.x,f.y,0)f.a+=.01*sgn((f.a-atan2(j-f.x,k-f.y))%1-.5)f.x+=cos(f.a)f.y+=sin(f.a)if(pget(f.x,f.y)>8 and rnd()>.9)add(q,{x=f.x,y=f.y,a=rnd()})
+w(f.x,f.y,7)end
+flip()goto _'''
+    )
+)
+
+>>> run(_init, _update, _draw)
 """
 
 from pypico8 import (
@@ -9,9 +21,7 @@ from pypico8 import (
     circfill,
     cls,
     cos,
-    pico8_to_python,
     poke,
-    printh,
     pget,
     pset,
     rnd,
@@ -22,18 +32,7 @@ from pypico8 import (
 )
 
 
-printh(
-    pico8_to_python(
-        r"""w=pset
-q={}poke(24365,1)cls()circfill(63,63,63,9)::_::j=stat(32)k=stat(33)q[1]={x=j,y=k,a=0}for f in all(q)do
-w(f.x,f.y,0)f.a+=.01*sgn((f.a-atan2(j-f.x,k-f.y))%1-.5)f.x+=cos(f.a)f.y+=sin(f.a)if(pget(f.x,f.y)>8 and rnd()>.9)add(q,{x=f.x,y=f.y,a=rnd()})
-w(f.x,f.y,7)end
-flip()goto _"""
-    )
-)
-
-
-def _init():
+def _init() -> None:
     global w, q
     w = pset
     q = Table([])
@@ -42,11 +41,11 @@ def _init():
     circfill(63, 63, 63, 9)
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global w, q
     j = stat(32)
     k = stat(33)

@@ -1,13 +1,8 @@
 """Tides of Progress ported from https://twitter.com/MunroHoberman/status/1363231958772441089
-"""
-
-# flake8:noqa
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 pal({-15,1,-13,-5,11,-6,-9,7,10,9,-7,8,-8,2,-14},1)
 f=0
 ::_::
@@ -19,22 +14,28 @@ m=abs(y-1)+cos(e)
 circ(x*64,y*64,1,sqrt(n*n+m*m)*sin(e)*15)
 f+=1
 goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+# flake8:noqa
+from pypico8 import *
+
+
+def _init() -> None:
     global f
     pal(Table([-15, 1, -13, -5, 11, -6, -9, 7, 10, 9, -7, 8, -8, 2, -14]), 1)
     f = 0
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global f
     for _ in range(3000):
         e = t() / 8

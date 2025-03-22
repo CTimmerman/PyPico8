@@ -1,12 +1,8 @@
 """Crystalline String ported from https://twitter.com/lexaloffle/status/1362072813834620929
-"""
-
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 cls()
 z,q=0,{}
 for z=0,1,2>>9 do
@@ -28,25 +24,31 @@ for a in all(q) do
 end
 flip()
 goto ☉
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     global z, q
     cls()
-    z, q = 0, Table()
-    while z <= 1:
+    z = 0.0
+    q = Table()
+    while float(z) <= 1:  # mypy 1.15.0 thinks z is a Table otherwise.
         add(q, Table(x=64, y=64, u=cos(z) / 4, v=sin(z) / 4))
-        z += shr(2, 9)
+        z = float(z) + shr(2, 9)
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     d = 0x6000
     while d <= 0x7FFF:
         poke2(d, peek2(d) / 7.9)

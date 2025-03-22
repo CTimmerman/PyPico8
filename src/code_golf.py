@@ -1,4 +1,5 @@
 """Code Golf ported from https://twitter.com/MBoffin/status/1346539275131580417
+
 printh(
     pico8_to_python(
         '''s=sin c=cos d=circfill b=64 r=128
@@ -8,12 +9,14 @@ line(x,y,x-2,y-2,6)d(i+c(a+i/b+.2)*8,i+s(a+.2)*8,4-32/i,i%2==0and 12or 7)d(i+c(a
 end flip()goto _'''
     )
 )
+
+>>> run(_init, _update, _draw)
 """
 
 from pypico8 import Table, circfill, cls, cos, div, line, rnd, run, sin, t
 
 
-def _init():
+def _init() -> None:
     global s, c, d, b, r, m
     s = sin
     c = cos
@@ -21,15 +24,18 @@ def _init():
     b = 64
     r = 128
     m = Table([])
-    for i in range(0, b + 1):
+
+    for i in range(
+        0, int(b) + 1
+    ):  # Without int() here, mypy 1.15.0 sees b as Table. :(
         m[i] = rnd()
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     cls(1)
     a = t()
     for i in range(

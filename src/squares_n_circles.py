@@ -1,22 +1,8 @@
-"""Squares & Circles ported from https://twitter.com/kadoyan/status/1359150102728876041"""
-
-# pylint: disable = global-statement, invalid-name
-from pypico8 import (
-    Table,
-    circfill,
-    cos,
-    flr,
-    rectfill,
-    pico8_to_python,
-    printh,
-    sin,
-    run,
-)
-
+"""Squares & Circles ported from https://twitter.com/kadoyan/status/1359150102728876041
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 f,r,c,b=flr,16,{3,0},circfill
 function o(c,s,t)
     for n=0.5,1.5,0.01 do
@@ -34,9 +20,24 @@ for n=0,99 do
     rectfill(x,y,x+r,y+r,c[l%2+n%2])
 end
 b(63,63,40,7)o(0,38,-2)o(8,40,0)flip()goto _
-        """
+        '''
     )
 )
+
+>>> run(_draw=_draw)
+"""
+
+# pylint: disable = global-statement, invalid-name
+from pypico8 import (
+    Table,
+    circfill,
+    cos,
+    flr,
+    rectfill,
+    sin,
+    run,
+)
+
 
 ct = Table([3, 0])
 r: int = 16  # Rectangle size.
@@ -52,7 +53,7 @@ def logo(c, size, wut):
         n += 0.01
 
 
-def _draw():
+def _draw() -> None:
     global t
     t += 1
     for n in range(0, 99 + 1):

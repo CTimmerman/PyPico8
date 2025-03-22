@@ -1,24 +1,8 @@
 """QR Trawling ported from https://twitter.com/MunroHoberman/status/1359165139258335238
-"""
-
-from pypico8 import (  # noqa
-    camera,
-    cls,
-    fillp,
-    flip,
-    line,
-    pico8_to_python,
-    printh,
-    pset,
-    rect,
-    rnd,
-    run,
-)
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 function q(x,y)
     for i=1,n do
         rect(x-i,y-i,x+i,y+i,(i+k)%2*7)
@@ -51,27 +35,42 @@ for h=0,3do
     flip()
 end
 goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import (  # noqa
+    camera,
+    cls,
+    fillp,
+    flip,
+    line,
+    pset,
+    rect,
+    rnd,
+    run,
+)
+
+
+def _init() -> None:
     global f
     cls(7)
     f = fillp
 
 
-def q(x, y):
+def q(x, y) -> None:
     for i in range(1, n + 1):
         rect(x - i, y - i, x + i, y + i, (i + k) % 2 * 7)
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global n, k
 
     for h in range(0, 3 + 1):

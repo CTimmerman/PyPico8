@@ -21,7 +21,7 @@ flip()goto _'''
 from pypico8 import *
 
 
-def _init():
+def _init() -> None:
     global a, u, z
     a = Table([])
     u = 1
@@ -30,11 +30,11 @@ def _init():
         add(a, rnd(80))
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global a, u, z
     cls()
     unsorted = z

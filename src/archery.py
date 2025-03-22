@@ -1,29 +1,10 @@
 """Archery ported from https://twitter.com/MunroHoberman/status/1361011664452259843
 Hold button to pull bow.
-"""
-
-# pylint: disable=redefined-builtin
-from pypico8 import (
-    cls,
-    cos,
-    pico8_to_python,
-    printh,
-    run,
-    sin,
-    mid,
-    flip,
-    camera,
-    line,
-    circ,
-    btn,
-    print,
-    min,
-)
 
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
     d=0
     v=0
     f=.9
@@ -52,12 +33,31 @@ printh(
     flip()
     camera(-63,z-99)
     goto _
-"""
+'''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+# pylint: disable=redefined-builtin
+from pypico8 import (
+    cls,
+    cos,
+    run,
+    sin,
+    mid,
+    flip,
+    camera,
+    line,
+    circ,
+    btn,
+    print,
+    min,
+)
+
+
+def _init() -> None:
     global d, v, f, n
 
     d = 0
@@ -66,17 +66,17 @@ def _init():
     n = 0
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global d, v, f, n
 
     cls(7)
 
     # target
-    i = 40
+    i: int = 40
     while i >= 9:
         circ(0, -500, i, i % 2 + 7)
         i += -3
@@ -87,11 +87,11 @@ def _draw():
     # string
     line(-L, 0, 0, z, 8)
     line(L, 0)
-    i = 0
+    j: float = 0.0
     # handle
-    while i <= 0.5:
-        line(cos(i) * L, sin(i) * (20 + d))
-        i += 0.1
+    while j <= 0.5:
+        line(cos(j) * L, sin(j) * (20 + d))
+        j += 0.1
 
     # arrow
     z -= v

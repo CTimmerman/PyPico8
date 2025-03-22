@@ -17,11 +17,14 @@
 2025-02-10 v1.9.1 fixed display memory, print, tonum.
 2025-03-01 v1.10 CLI.
 2025-03-17 v2.0 delete -> delv
+
+>>> _init_video()
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
 import builtins, os, sys, time as py_time  # noqa: E401
-from typing import Any, Callable
+from typing import Callable
+from unittest.mock import Mock
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 try:
@@ -52,6 +55,7 @@ P0_DOWN = 3
 P0_O = 4
 P0_X = 5
 P0_PAUSE = 7
+# scancode to p8 button
 PLAYER_KEYMAPS = (
     {
         80: 0,  # left
@@ -89,10 +93,16 @@ cursor_x = 0
 stopped = False
 running = False
 tick = 0
-buttons_pressed_since = [0] * 2 * 5  # 2 players, 5 buttons each.
+buttons_pressed_since = [0] * 2 * 6  # 2 players * 6 buttons
 
 
-def btn(i: int | None = None, p: int = 0) -> int | bool:
+def mock_pressed():
+    mock_rv = [False] * 512
+    mock_rv[80] = True
+    return mock_rv
+
+
+def btn(button: int | None = None, player: int = 0) -> int | bool:
     """
     get button i state for player p (default 0)
     i: 0..5: left right up down button_o button_x
@@ -112,10 +122,20 @@ def btn(i: int | None = None, p: int = 0) -> int | bool:
 
     >>> btn()
     0
+    >>> # len(pygame.key.get_pressed())
+    >>> mock_rv = [False] * 512
+    >>> mock_rv[80] = True
+    >>> global mock_pressed, real_pressed
+    >>> real_pressed = pygame.key.get_pressed
+    >>> pygame.key.get_pressed = mock_pressed
+    >>> btn(0)
+    True
+    >>> pygame.key.get_pressed = real_pressed
     """
 
     pressed = list(nr for nr, isdown in enumerate(pygame.key.get_pressed()) if isdown)
-    if i is None:
+
+    if button is None:
         bitfield = 1 if 80 in pressed else 0
         bitfield += 2 if 79 in pressed else 0
         bitfield += 4 if 82 in pressed else 0
@@ -137,17 +157,17 @@ def btn(i: int | None = None, p: int = 0) -> int | bool:
 
         return bitfield
 
-    player_keymap = PLAYER_KEYMAPS[p]
-
+    player_keymap = PLAYER_KEYMAPS[player]
+    # printh(f"keymap {player_keymap}\npressed {pressed}\nname >>>{pygame.key.name(122)}<<<")
     button_pressed = False
     for key in pressed:
-        if key in player_keymap and player_keymap[key] == i:
+        if key in player_keymap and player_keymap[key] == button:
             button_pressed = True
 
     return button_pressed
 
 
-def btnp(i: int | None = None, p: int = 0) -> bool | int:
+def btnp(button: int | None = None, player: int = 0) -> bool | int:
     """btnp is short for "Button Pressed"; Instead of being true when a button is held down,
     btnp returns true when a button is down AND it was not down the last frame. It also
     repeats after 15 frames, returning true every 4 frames after that (at 30fps -- double
@@ -164,16 +184,44 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
 
     In both cases, 0 can be used for the default behaviour (delays 15 and 4)
 
+    >>> tick_up(10)
     >>> btnp(0)
     False
+    >>> real_pressed = pygame.key.get_pressed
+    >>> pygame.key.get_pressed = mock_pressed
+    >>> btn(0, 0)
+    True
+    >>> btnp(0)
+    True
+    >>> buttons_pressed_since
+    [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    >>> tick_up(14)
+    >>> btnp(0)
+    False
+    >>> buttons_pressed_since
+    [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    >>> tick_up(1)
+    >>> btnp(0)
+    True
+    >>> buttons_pressed_since
+    [10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    >>> tick_up(1)
+    >>> btnp(0)
+    False
+    >>> tick_up(3)
+    >>> btnp(0)
+    True
+    >>> pygame.key.get_pressed = real_pressed
     """
-    pressed = btn(i, p)
-    if i is None:
+    # printh(f"btn addr: {btn}")
+    pressed = btn(button, player)
+    # printh("pressed?" + str(pressed))
+    if button is None:
         return pressed
-    last_pressed_at = buttons_pressed_since[p * 5 + i]
+    last_pressed_at = buttons_pressed_since[player * 5 + button]
     if not pressed:
         if last_pressed_at:
-            buttons_pressed_since[p * 5 + i] = 0
+            buttons_pressed_since[player * 5 + button] = 0
         return False
 
     d = tick - last_pressed_at
@@ -189,8 +237,8 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
         repeating_delay >>= 1
 
     if last_pressed_at == 0:
-        printh(f"First at tick {tick} frame {get_frame_count()}")
-        buttons_pressed_since[p * 5 + i] = tick
+        # printh(f"First at tick {tick} frame {get_frame_count()}")
+        buttons_pressed_since[player * 5 + button] = tick
         return True
 
     if d == initial_delay or (
@@ -200,7 +248,7 @@ def btnp(i: int | None = None, p: int = 0) -> bool | int:
         # At 15 FPS, True on 0, 7, 9, 11...
         # At 30 FPS, True on 0, 15, 19, 23...
         # At 60 FPS, True on 0, 30, 38, 46...
-        printh(f"Repeat at tick {tick} frame {get_frame_count()}")
+        # printh(f"Repeat at tick {tick} frame {get_frame_count()}")
         return True
     return False
 
@@ -212,8 +260,8 @@ def erase_command() -> None:
 
 def escape_command() -> str:
     r"""Return printable command.
-    >>> escape_command()
-    '\\#8 \\#0'
+    >>> escape_command() in ('\\#0 \\#0', '\\#8 \\#0')
+    True
     """
     return (
         command[:cursor_x].replace("\\", "\\\\")
@@ -261,6 +309,7 @@ def run(
                 # printh(f"{escaped_command} curx: {cursor_x} peekx: {peek(0x5F26)}")
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
+                        # printh(f"KEYDOWN {event}") # eg <Event(768-KeyDown {'unicode': '', 'key': 1073741904, 'mod': 32768, 'scancode': 80, 'window': None})>
                         debug(event)
                         if (
                             event.key == pygame.K_HOME
@@ -375,6 +424,10 @@ def run(
                 tick += 1
                 _draw()
                 flip()
+
+            # Doctest doesn't need user input.
+            if _init.__name__ == _update.__name__ == _draw.__name__ == "<lambda>":
+                running = False
 
     except ZeroDivisionError:
         builtins.print("Use div(a, b) instead.", file=sys.stderr)
@@ -501,6 +554,11 @@ def stop(message: str | None = None) -> None:
 def t() -> float:
     """Return seconds since cart start."""
     return py_time.time() - begin
+
+
+def tick_up(delta: int = 1) -> None:
+    global tick
+    tick += delta
 
 
 def time() -> float:

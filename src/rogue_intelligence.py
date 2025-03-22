@@ -1,26 +1,8 @@
 """Rogue Intelligence ported from https://twitter.com/MunroHoberman/status/1361314323012988938
-"""
-
-# pylint: disable=redefined-builtin
-from pypico8 import (
-    Table,
-    cos,
-    line,
-    max,
-    pal,
-    pget,
-    pico8_to_python,
-    printh,
-    pset,
-    run,
-    sin,
-    t,
-)
-
 
 printh(
     pico8_to_python(
-        r"""function v(x,y,n,a)j=x+n*cos(a)k=y+n*s(a)line(x,y,j,k,7)x=j
+        r'''function v(x,y,n,a)j=x+n*cos(a)k=y+n*s(a)line(x,y,j,k,7)x=j
 y=k
 for i=-1,1do
 if(n>2)v(x,y,n/2,a+i/4+max(s(l)))end
@@ -31,12 +13,29 @@ z=(y-l*999)%127pset(x,z,abs(pget(x,z)-1))end
 end
 for i=0,4do
 v(63,63,29,i/4+l)end
-goto _"""
+goto _'''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+# pylint: disable=redefined-builtin
+from pypico8 import (
+    Table,
+    cos,
+    line,
+    max,
+    pal,
+    pget,
+    pset,
+    run,
+    sin,
+    t,
+)
+
+
+def _init() -> None:
     pal(Table([-16, 2, -8, -2, -1, 15]), 1)
 
 
@@ -52,11 +51,11 @@ def v(x, y, n, a):
             v(x, y, n / 2, a + i / 4 + max(s(L)))
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global L
     L = t() / 8
     y = 0

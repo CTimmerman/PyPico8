@@ -53,7 +53,7 @@ if(e>0)flip()goto _
 from pypico8 import *
 
 
-def _init():
+def _init() -> None:
     global size, entities, e, score
     size = 63
     entities = Table([])
@@ -63,11 +63,11 @@ def _init():
     pal([-15, 1, -13, 3, -5, 11, -6], 1)
 
 
-def _update60():
+def _update60() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global size, entities, e, score
     pressed = btn()
     speed = t() / 8
@@ -84,17 +84,17 @@ def _draw():
                 1,
             ]
         )
-    for i in range(801):
-        f = rnd()
+    for _ in range(801):
+        fr = rnd()
         r = rnd(99)
-        x = r * sin(f)
-        y = r * cos(f)
+        x = r * sin(fr)
+        y = r * cos(fr)
         circfill(x, y, 1, abs(pget(x, y) - 1))
 
-    i = speed
-    while i <= speed + 0.01:
-        line(0, 0, sin(i) * size, cos(i) * size, 7)
-        i = round(i + 0.001, 4)
+    j = speed
+    while j <= speed + 0.01:
+        line(0, 0, sin(j) * size, cos(j) * size, 7)
+        j = round(j + 0.001, 4)
 
     for f in all(entities):
         g = f[1]

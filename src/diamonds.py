@@ -1,12 +1,8 @@
 """Ported from https://twitter.com/Andy_Makes/status/1381801446916698118
-"""
-
-from pypico8 import *
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 pal({10,9,137,142,8,7,12,140,1,2},1)
 ::Gem stone::
 o=20*(t()%1)
@@ -22,20 +18,25 @@ end
 end
 end
 flip()goto Gem stone
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import *
+
+
+def _init() -> None:
     pal(Table([10, 9, 137, 142, 8, 7, 12, 140, 1, 2]), 1)
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     o = 20 * (t() % 1)
     cls(1)
     d = 5

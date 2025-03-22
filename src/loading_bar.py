@@ -1,23 +1,8 @@
 """Loading bar ported from https://twitter.com/heymatthias_/status/1357435447224459266
-"""
-
-from pypico8 import (  # noqa
-    Table,
-    cls,
-    fillp,
-    flr,
-    rectfill,
-    pico8_to_python,
-    print,
-    printh,
-    tostr,
-    run,
-)
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 t={0,16705,23130,0xbebe,0xffff}f=fillp
 r=rectfill
 function d(p)f(t[5-flr(p*5)])end
@@ -26,12 +11,26 @@ cls()x=3w=122print('loading...',48,12,7)
 if(x<w)x+=1p=x/w
 d(p)r(x,56,x,72,9)f(0)rect(x+1,55,x+1,73,7)line(4,55,4,73,7)r(0,76,127,127,0)pr=tostr(flr(p*100))..'%'print(pr,x-9,76,7)flip()
 goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import (  # noqa
+    Table,
+    cls,
+    fillp,
+    flr,
+    rectfill,
+    print,
+    tostr,
+    run,
+)
+
+
+def _init() -> None:
     global t, f, r, x, w, p
     t = Table([0, 16705, 23130, 0xBEBE, 0xFFFF])
     f = fillp
@@ -44,15 +43,15 @@ def _init():
     p = 0
 
 
-def d(pv):
+def d(pv) -> None:
     f(t[5 - flr(pv * 5)])
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global x, p
     if x < w:
         x += 1

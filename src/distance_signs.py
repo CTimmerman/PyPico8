@@ -1,26 +1,8 @@
 """Distance Signs ported from https://x.com/MunroHoberman/status/1365000731284041732
-"""
-
-from pypico8 import (  # noqa
-    Table,
-    circ,
-    cos,
-    div,
-    mid,
-    pal,
-    pico8_to_python,
-    pget,
-    printh,
-    rnd,
-    run,
-    sin,
-    t,
-)
-
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 function s(n)
     return mid(1,(n-.3)/0)
 end
@@ -40,12 +22,29 @@ pal({-16,-14,-11,-3,13},1)
     c=abs(pget(x,y)-1)
     circ(x,y,1,min(7,n*m*2+c))
     goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import (  # noqa
+    Table,
+    circ,
+    cos,
+    div,
+    mid,
+    pal,
+    pget,
+    rnd,
+    run,
+    sin,
+    t,
+)
+
+
+def _init() -> None:
     pal(Table([-16, -14, -11, -3, 13]), 1)
 
 
@@ -53,11 +52,11 @@ def s(n):
     return mid(1, div((n - 0.3), 0))
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     for _ in range(1000):
         r = t() / 8
         x = rnd(128)

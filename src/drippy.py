@@ -1,12 +1,9 @@
 """Drippy demo ported from https://www.lexaloffle.com/bbs/?pid=22497#p
 2021-01-18 Cees Timmerman added lines.
-"""
-
-from pypico8 import line, pget, pico8_to_python, printh, pset, rectfill, rnd, run, stat
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 rectfill(0,0,127,127,1)
 x=64 y=64 c=8
 poke(0x5f2d, 1)
@@ -19,17 +16,17 @@ poke(0x5f2d, 1)
 --used to make this with mouse
 --support as my first test
 
---any advie / help would be 
---greatly appreciated. 
+--any advie / help would be
+--greatly appreciated.
 
 function _draw()
 
---this could probably be much 
+--this could probably be much
 --better but i have no clue how
 --to move a sprite over without
 --erasing whats already there
-    for i=0,127 do 
-        for j=0,127 do 
+    for i=0,127 do
+        for j=0,127 do
   pix = pget(i,j)
   if (pix == 7) then
                 pset(i,j,1)
@@ -44,39 +41,44 @@ function _draw()
 end
 
 function _update()
- 
+
  x = stat(32)-1
  y = stat(33)-1
- 
+
  c=c+0.1
  if (c >= 16) then c = 8 end
 
- for i=1,100 do 
+ for i=1,100 do
   x2 = rnd(128)
   y2 = rnd(128)
   col = pget(x2,y2)
   if (col~=1) then
-   pset(x2,y2+1,col) 
+   pset(x2,y2+1,col)
   end
  end
 end
-"""
+'''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+from pypico8 import line, pget, pset, rectfill, rnd, run, stat
+
+
+def _init() -> None:
     global x, y, c
     rectfill(0, 0, 127, 127, 1)
     x = 64
     y = 64
-    c = 8
+    c = 8.0
 
 
 last_mouse_buttons = 0
 
 
-def _draw():
+def _draw() -> None:
     global last_mouse_buttons
     # hide cursor?
     for i in range(0, 127 + 1):
@@ -85,7 +87,7 @@ def _draw():
             if pix == 7:
                 pset(i, j, 1)
     # draw
-    mouse_buttons = stat(34)
+    mouse_buttons = int(stat(34))
     if mouse_buttons & 1:
         if last_mouse_buttons & 1:
             line(x, y, col=c)
@@ -97,12 +99,12 @@ def _draw():
     # spr(48, x + 2, y + 2)  # Where do they get their fancy sprites and how do they barely leave a trail?
 
 
-def _update():
+def _update() -> None:
     global x, y, c
     x = stat(32)
     y = stat(33)
 
-    c = c + 0.1
+    c = float(c) + 0.1
     if c >= 16:
         c = 8
 

@@ -1,6 +1,6 @@
 """Table object functions."""
 
-from typing import Iterable, Any
+from typing import Any, Generator, Iterable
 
 # import numba
 
@@ -180,7 +180,7 @@ def add(t: Table, v: Any, index: int | None = None) -> Any:  # NOSONAR
 
 
 # pylint:disable=redefined-builtin
-def all(t: Table) -> Any:
+def all(t: Table) -> Generator:
     """
     Returns an iterator for all non-nil items in a sequence in a table, for use with for...in.
     >>> t = Table([11, None, 13])
@@ -373,19 +373,22 @@ def unpack(tbl: Table, start: int = 1, stop: int | None = None) -> list[Any]:
     return rv
 
 
-def select(start: Any, *array: Any) -> int | tuple[Any, Any]:
+def select(start: Any, *array: Any) -> Any:
     """Lua select from array. https://pico-8.fandom.com/wiki/Select
     Pico8 0.2.2c returns only the index value though, at a messed up location.
 
     >>> select(1, "a", "b", "c")
-    ('a', 'b', 'c')
+    'a'
     >>> select(2, "a", "b", "c")
-    ('b', 'c')
+    'b'
     >>> select("#")
     0
-    >>> print(select("#", {1,2,3}, 4, 5, {6,7,8}))
+    >>> select("#", {1,2,3}, 4, 5, {6,7,8})
     4
     """
     if start == "#":
         return len(array)
-    return array[start - 1 :]
+    try:
+        return array[start - 1]
+    except IndexError:
+        return None

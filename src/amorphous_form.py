@@ -1,13 +1,8 @@
 """Amorphous Form ported from https://twitter.com/szczm_/status/1125041539498106881
-"""
-
-# fmt: off
-from pypico8 import printh, pico8_to_python, fillp, cos, sin, camera, cls, t, line, sub, run
-# fmt: on
 
 printh(
     pico8_to_python(
-        r"""
+        r'''
 fillp(7^5)
 a,e=cos,sin
 ::_::
@@ -25,23 +20,30 @@ a,e=cos,sin
     end
 flip()
 goto _
-        """
+        '''
     )
 )
 
+>>> run(_init, _update, _draw)
+"""
 
-def _init():
+# fmt: off
+from pypico8 import fillp, cos, sin, camera, cls, t, line, sub, run
+# fmt: on
+
+
+def _init() -> None:
     global a, e
 
     fillp(7**5)
     a, e = cos, sin
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     d = a(0.12)
     camera(-64, -64)
     cls()

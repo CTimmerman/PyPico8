@@ -23,12 +23,14 @@ r(a,c,a+f,c+5,1)
 r(a+24,c+23,a+36,c+26,5)
 flip()
 goto _
+
+>>> run(_init, _update, _draw)
 """
 
 from pypico8 import cls, pal, poke, print, rect, rectfill, rnd, run
 
 
-def _init():
+def _init() -> None:
     global r, k, a, c, f, t
     cls(13)
     poke(0x5F2C, 3)
@@ -41,11 +43,11 @@ def _init():
     t = 30
 
 
-def _update():
+def _update() -> None:
     pass
 
 
-def _draw():
+def _draw() -> None:
     global r, k, a, c, f, t
     a += 2
     c += 2
