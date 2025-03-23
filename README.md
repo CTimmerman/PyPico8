@@ -22,24 +22,32 @@
         border-top-right-radius: 3px;
         border-bottom-right-radius: 3px;
     }
-
-    .badge.err {
-        background-color: red;
-    }
-
-    .badge.ok {
-        background-color: #97ca00;
-    }
-
-    .badge.warn {
-        background-color: #fe7d37;
-    }
 </style>
-<span class="badge">
-    <span class="badge name">license</span><span class="badge value ok">MIT</span>
+<span style="color: #fff;
+        font-family: Verdana, Geneva, DejaVu Sans, sans-serif;
+        font-size: 11px;
+        margin-bottom: 100px;
+        padding: 2px 5px 3px 5px;
+        text-align: middle;
+        text-shadow: #1116 0px 1px;">
+    <span
+    style="background-color: grey;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;">license</span><span
+    style="background-color: #97ca00;">MIT</span>
 </span>
-<span class="badge">
-    <span class="badge name">coverage</span><span class="badge value ok">99%</span>
+<span style="color: #fff;
+        font-family: Verdana, Geneva, DejaVu Sans, sans-serif;
+        font-size: 11px;
+        margin-bottom: 100px;
+        padding: 2px 5px 3px 5px;
+        text-align: middle;
+        text-shadow: #1116 0px 1px;">
+    <span
+    style="background-color: grey;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;">coverage</span><span
+    style="background-color: #fe7d37;">80%</span>
 </span><br><br>
 
 Run [PICO-8](https://www.lexaloffle.com/pico-8.php) demos in Python.
