@@ -4,34 +4,30 @@ repos:
       - id: mypy
         name: mypy
         entry: mypy
-        fail_fast: true  # Stop on first failure
+        fail_fast: true # Stop on first failure
         language: system
         # files: \.py$  # Only run on .py files
         types: [python]
-        pass_filenames: true  # Only run on staged Python files (default)
+        pass_filenames: true # Only run on staged Python files (default)
 
       - id: doctest
         name: doctest
         entry: python -X utf8 -m coverage run -a -m doctest
         fail_fast: true
         language: system
-        types_or:
-          - python
-          - markdown
+        types: [python]
 
       - id: coverage
         name: coverage
         entry: coverage report --show-missing --fail-under=60
         fail_fast: true
         language: system
-        types_or:
-          - python
-          - markdown
+        types: [python]
 
       - id: black
         name: black
         entry: python -m black
-        language: system  # Don't create venv.
+        language: system # Don't create venv.
         types: [python]
 
       - id: pylint
@@ -40,5 +36,5 @@ repos:
         language: system
         types: [python]
         args:
-          - -rn  # Only display messages
-          - -sn  # Don't display the score
+          - -rn # Only display messages
+          - -sn # Don't display the score
