@@ -1,6 +1,6 @@
 """Table object functions."""
 
-from typing import Any, Generator, Iterable
+from typing import Any, Iterable
 
 # import numba
 
@@ -180,7 +180,7 @@ def add(t: Table, v: Any, index: int | None = None) -> Any:  # NOSONAR
 
 
 # pylint:disable=redefined-builtin
-def all(t: Table) -> Generator:
+def all(t: Table) -> Iterable[Any]:
     """
     Returns an iterator for all non-nil items in a sequence in a table, for use with for...in.
     >>> t = Table([11, None, 13])

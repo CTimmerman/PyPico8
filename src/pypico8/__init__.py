@@ -28,7 +28,8 @@ from unittest.mock import Mock
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 try:
-    import pygame, pygame.freetype  # noqa: E401
+    import pygame
+    from pygame.event import Event
 
     # fmt:off
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -96,10 +97,15 @@ tick = 0
 buttons_pressed_since = [0] * 2 * 6  # 2 players * 6 buttons
 
 
-def mock_pressed():
-    mock_rv = [False] * 512
-    mock_rv[80] = True
-    return mock_rv
+def cli_start() -> None:
+    global command_mode
+    stop()
+    command_mode = True
+
+
+def cli_stop() -> None:
+    global command_mode
+    command_mode = False
 
 
 def btn(button: int | None = None, player: int = 0) -> int | bool:
@@ -278,14 +284,29 @@ def init(_init: FUN0 = lambda: None) -> None:
     flip()
 
 
+def mock_pressed() -> list[bool]:
+    mock_rv = [False] * 512
+    mock_rv[80] = True
+    return mock_rv
+
+
 def run(
     _init: FUN0 = lambda: None, _update: FUN0 = lambda: None, _draw: FUN0 = lambda: None
 ) -> None:
     """Run from the start of the program. Can be called from inside a program to reset program.
+    >>> pygame.event.get = Mock(return_value=[
+    ...     Event(pygame.KEYDOWN, key=pygame.K_BREAK, unicode=''),
+    ...     Event(pygame.KEYDOWN, key=pygame.K_BREAK, unicode=''),
+    ...     Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, unicode=''),
+    ...     Event(pygame.KEYDOWN, key=pygame.K_z, unicode='z'),
+    ...     Event(pygame.KEYDOWN, key=pygame.K_RETURN, unicode=''),
+    ...     Event(pygame.KEYDOWN, key=pygame.K_UP, unicode=''),
+    ...     Event(pygame.KEYDOWN, key=pygame.K_DOWN, unicode=''),
+    ...     Event(pygame.QUIT),
+    ... ])
     >>> run()
     """
     global begin, command, command_mode, command_y, cursor_x, running, btnp_state, key, stopped, tick
-
     begin = py_time.time()
     if _update.__name__ == "_update60":
         _set_fps(60)
@@ -309,8 +330,9 @@ def run(
                 # printh(f"{escaped_command} curx: {cursor_x} peekx: {peek(0x5F26)}")
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
-                        # printh(f"KEYDOWN {event}") # eg <Event(768-KeyDown {'unicode': '', 'key': 1073741904, 'mod': 32768, 'scancode': 80, 'window': None})>
-                        debug(event)
+                        debug(
+                            f"KEYDOWN {event}"
+                        )  # eg <Event(768-KeyDown {'unicode': '', 'key': 1073741904, 'mod': 32768, 'scancode': 80, 'window': None})>
                         if (
                             event.key == pygame.K_HOME
                             or event.key == pygame.K_KP7
@@ -361,6 +383,7 @@ def run(
                                 if command.startswith("?"):
                                     print(eval(command[1:]))
                                 else:
+                                    debug(f"EXEC {command}")
                                     exec(command)
                             except Exception as ex:
                                 print(rf"\#0\fe{ex}", _wrap=True)
@@ -404,6 +427,7 @@ def run(
                             # Cart stopped by itself.
                             continue
                         stopped = not stopped
+                        debug(f"STOPPED {stopped}")
                         if stopped:
                             pause_start = time()
                             pygame.display.set_caption(caption + " PAUSED")
@@ -412,8 +436,8 @@ def run(
                             if caption.endswith("PAUSED"):
                                 pygame.display.set_caption(caption[: -len(" PAUSED")])
                     elif event.key == pygame.K_ESCAPE:
-                        stop()
-                        command_mode = True
+                        cli_start()
+                        break
                 elif event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.VIDEORESIZE:
@@ -426,7 +450,11 @@ def run(
                 flip()
 
             # Doctest doesn't need user input.
-            if _init.__name__ == _update.__name__ == _draw.__name__ == "<lambda>":
+            if (
+                not command_mode
+                and _init.__name__ == _update.__name__ == _draw.__name__ == "<lambda>"
+            ):
+                debug("END RUN")
                 running = False
 
     except ZeroDivisionError:
@@ -481,6 +509,8 @@ def stat(x: int) -> int | bool | str:
     >>> _init_video()
     >>> stat(7)
     30
+    >>> poke(DEVKIT_PT, 1)
+    0
     >>> for i in range(30, 111): _ = stat(i)
     """
     if x == 7:
