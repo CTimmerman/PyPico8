@@ -1,7 +1,5 @@
 # PyPico8
 
-<img src="https://raw.githubusercontent.com/CTimmerman/PyPico8/refs/heads/main/badge.svg?bg=orange&v=99%" alt="test badge">
-
 Run [PICO-8](https://www.lexaloffle.com/pico-8.php) demos in Python.
 
 ## Install on Windows
