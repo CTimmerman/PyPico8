@@ -21,18 +21,7 @@ from pypico8.strings import (
     printh,  # noqa:E401,F401  # printh is for doctest.
     tonum,
 )
-
 from pypico8.table import Table
-
-DEBUG = False
-
-decimal.getcontext().prec = 4
-
-SCREEN_SIZE = (128, 128)
-screen: pygame.Surface
-clock: pygame.time.Clock
-fps: int = 30
-frame_count: int = 0
 
 # Pointers https://pico-8.fandom.com/wiki/Memory
 SPRITE_SHEET_PT = 0
@@ -137,11 +126,19 @@ PATTERNS = {
     "▥": 21845.5,
 }
 
-surf: pygame.Surface
+DEBUG = False
+SCREEN_SIZE = (128, 128)
 characters: list[pygame.Surface] = []
+clock: pygame.time.Clock
+fps: int = 30
+frame_count: int = 0
+screen: pygame.Surface
+scrolled: int = 0
+surf: pygame.Surface
 font_img: pygame.Surface
 spritesheet: pygame.Surface
-scrolled: int = 0
+
+decimal.getcontext().prec = 4
 
 
 def debug(s: Any) -> None:
@@ -212,7 +209,8 @@ Colour format (gfx/screen) is 2 pixels per byte: low bits encode the left pixel 
 Map format is one byte per cel, where each byte normally encodes a sprite index.
 """
 
-mem = [0] * 65535  # 16 bit (15 until Pico8 0.2.4)
+RAM_SIZE = 2**16  # 65536, 16 bit (15 until Pico8 0.2.4)
+mem = [0] * RAM_SIZE
 mem[BITPLANE_PT] = 255  # bitplane mode disabled
 
 
@@ -712,7 +710,6 @@ def mset(x: int, y: int, v: int) -> None:
 def peek(addr: int) -> int:
     """
     Read one byte from an address in base ram.
-    Reading out of 0..2**16 range returns 0.
 
     >>> peek(-1)
     0
@@ -726,11 +723,9 @@ def peek(addr: int) -> int:
     0
     """
     try:
-        addr = flr(addr)
+        addr = flr(addr) % RAM_SIZE
     except ValueError:
         addr = 0
-    if addr < 0 or addr >= len(mem):
-        return 0
     try:
         return mem[addr] & 0xFF
     except TypeError as ex:
@@ -809,10 +804,14 @@ def peek4(addr: int) -> float:
 def poke(addr: int, val: int = 0, *more: int) -> int:
     """
     Write one byte to an address in base ram.
-    Legal addresses are 0x0..0x7fff
-    Writing out of range causes a runtime error.
+    >>> poke(RAM_SIZE, 11)
+    0
+    >>> peek(0)
+    11
     """
+    addr %= RAM_SIZE
     for val in (val, *more):
+        val = flr(val) % 256
         # if val == 9 and addr >= 0 and addr < 200:
         #     printh(f"POKED {addr} {val} from {sys._getframe().f_back.f_code.co_name}:")  # type: ignore[union-attr]
         # if addr >= 0x5F60 and addr < 0x5F60 + 16:
