@@ -1,9 +1,6 @@
 # PyPico8
 
-<object type="image/svg+xml" data="badge.svg?bg=orange&v=99%"></object>
-
-<span id="targetme">foo</span>
-<script>targetme.innerhtml = "bar"</script>
+<img src="badge.svg?bg=orange&v=99%" alt="test badge">
 
 Run [PICO-8](https://www.lexaloffle.com/pico-8.php) demos in Python.
 
