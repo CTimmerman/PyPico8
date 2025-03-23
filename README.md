@@ -3,7 +3,7 @@
 <object type="image/svg+xml" data="badge.svg?bg=orange&v=99%"></object>
 
 <span id="targetme">foo</span>
-<script>trgetme.innerhtml = "bar"<script>
+<script>targetme.innerhtml = "bar"</script>
 
 Run [PICO-8](https://www.lexaloffle.com/pico-8.php) demos in Python.
 
