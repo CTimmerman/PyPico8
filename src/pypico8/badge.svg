@@ -1,0 +1,27 @@
+<!--svg xmlns="http://www.w3.org/2000/svg" width="124" height="20"-->
+<svg xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 124 20" width="100%" height="100%">
+    <defs>
+        <ref id="paramBG" param="bg" default="red"/>
+        <ref id="paramVal" param="v" default="blue"/>
+    </defs>
+    <linearGradient id="b" x2="0" y2="100%">
+        <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+        <stop offset="1" stop-opacity=".1"/>
+    </linearGradient>
+    <mask id="a">
+        <rect width="124" height="20" rx="3" fill="#fff"/>
+    </mask>
+    <g mask="url(#a)">
+        <path fill="#555" d="M0 0h52v20H0z"/>
+        <path fill="url(#paramBG)" d="M52 0h72v20H52z"/>
+        <path fill="url(#b)" d="M0 0h124v20H0z"/>
+    </g>
+    <g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,Geneva,sans-serif" font-size="11">
+        <text x="26" y="15" fill="#010101" fill-opacity=".3">gocov</text>
+        <text x="26" y="14">gocov</text>
+        <text x="87" y="15" fill="#010101" fill-opacity=".3">PLACEHOLDER</text>
+        <text x="87" y="14" value="url(#paramVal)" id="badgetext">PLACEHOLDER</text>
+    </g>
+    <script type="text/ecmascript" xlink:href="https://dev.w3.org/SVG/modules/ref/master/ref2.js"></script>
+</svg>
