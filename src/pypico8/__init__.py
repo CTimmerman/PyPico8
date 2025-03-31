@@ -22,7 +22,7 @@
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
-import builtins, os, sys, time as py_time  # noqa: E401
+import builtins, os, queue, sys, threading, time as py_time  # noqa: E401
 from typing import Callable
 from unittest.mock import Mock
 
@@ -86,15 +86,41 @@ PLAYER_KEYMAPS = (
 begin = py_time.time()
 btnp_state = 0
 btnp_frame = 0
+clock = pygame.time.Clock()
 command = ""
 command_history: list[str] = []
 command_mode = False
 command_y = 0
 cursor_x = 0
+flipper: threading.Thread | None = None
 stopped = False
 running = False
 tick = 0
 buttons_pressed_since = [0] * 2 * 6  # 2 players * 6 buttons
+single_frame_mode = 0
+
+
+class Flipper(threading.Thread):
+    """Async rendering for busy demos like assembled_horizon."""
+
+    def __init__(self) -> None:
+        threading.Thread.__init__(self)
+        self.queue: queue.Queue[str] = queue.Queue(
+            maxsize=10
+        )  # To talk to this thread.
+        self.daemon = True  # Die with main thread.
+
+    def run(self) -> None:
+        t_running = True
+        while t_running:
+            if self.queue.empty():
+                flip()
+                # clock tick in flip should already keep it responsive, but it doesn't with assembled_horizon!
+                pygame.time.wait(1)
+            else:
+                data = self.queue.get()
+                if data == "exit":
+                    t_running = False
 
 
 def cli_start() -> None:
@@ -128,10 +154,6 @@ def btn(button: int | None = None, player: int = 0) -> int | bool:
 
     >>> btn()
     0
-    >>> # len(pygame.key.get_pressed())
-    >>> mock_rv = [False] * 512
-    >>> mock_rv[80] = True
-    >>> global mock_pressed, real_pressed
     >>> real_pressed = pygame.key.get_pressed
     >>> pygame.key.get_pressed = mock_pressed
     >>> btn(0)
@@ -285,15 +307,31 @@ def init(_init: FUN0 = lambda: None) -> None:
 
 
 def mock_pressed() -> list[bool]:
+    """Pretend to press button 0 (left)."""
     mock_rv = [False] * 512
     mock_rv[80] = True
     return mock_rv
+
+
+def pause() -> None:
+    """Pause execution."""
+    global pause_start, stopped
+    stopped = True
+    pause_start = time()
+
+
+def resume() -> None:
+    """Resume execution."""
+    global begin, pause_start, stopped
+    begin += time() - pause_start
+    stopped = False
 
 
 def run(
     _init: FUN0 = lambda: None, _update: FUN0 = lambda: None, _draw: FUN0 = lambda: None
 ) -> None:
     """Run from the start of the program. Can be called from inside a program to reset program.
+
     >>> pygame.event.get = Mock(return_value=[
     ...     Event(pygame.KEYDOWN, key=pygame.K_BREAK, unicode=''),
     ...     Event(pygame.KEYDOWN, key=pygame.K_BREAK, unicode=''),
@@ -305,18 +343,20 @@ def run(
     ...     Event(pygame.QUIT),
     ... ])
     >>> run()
+    >>> cli_stop()
     """
-    global begin, command, command_mode, command_y, cursor_x, running, btnp_state, key, stopped, tick
+    global begin, btnp_state, command, command_mode, command_y, cursor_x, flipper, pause_start, running, single_frame_mode, stopped, tick
     begin = py_time.time()
-    if _update.__name__ == "_update60":
-        _set_fps(60)
-    else:
-        _set_fps(30)
+    command_mode = False
+    fps = 60 if _update.__name__ == "_update60" else 30
+    _set_fps(fps)
 
     try:
         init(_init)
         caption = pygame.display.get_caption()[0]
-        pygame.display.set_caption(caption + " " + sys.argv[-1])
+        pygame.display.set_caption(
+            caption + " " + os.path.split(str(sys.modules["__main__"].__file__))[-1]
+        )
 
         if running:
             return
@@ -324,7 +364,13 @@ def run(
         stopped = False
         running = True
         pause_start = 0.0
+
+        if not flipper:
+            flipper = Flipper()
+            flipper.start()
+
         while running:
+            # clock.tick(15)
             if command_mode:
                 erase_command()
                 # printh(f"{escaped_command} curx: {cursor_x} peekx: {peek(0x5F26)}")
@@ -380,7 +426,15 @@ def run(
                                 rf"\#0\f7> {escaped_command}", 0, command_y, _wrap=True
                             )
                             try:
-                                if command.startswith("?"):
+                                if command == ".":
+                                    single_frame_mode = 1
+                                    _update()
+                                    tick += 1
+                                    _draw()
+                                    flip()
+                                    single_frame_mode = 0
+                                    reset()
+                                elif command.startswith("?"):
                                     print(eval(command[1:]))
                                 else:
                                     debug(f"EXEC {command}")
@@ -419,6 +473,8 @@ def run(
                 pygame.time.wait(200)
                 continue
 
+            # FIXME: demos like assembled_horizon don't return fast enough to be responsive.
+            # check_events()
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
                     if event.key in (pygame.K_BREAK, pygame.K_p, pygame.K_RETURN):
@@ -447,7 +503,9 @@ def run(
                 _update()
                 tick += 1
                 _draw()
-                flip()
+                # flip()  # Assembled_horizon prefers async flipping, but we do need to pause here.
+                pygame.time.wait(10)
+                # printh(f"stat7 {stat(7)} stat8 {stat(8)}")
 
             # Doctest doesn't need user input.
             if (
@@ -461,10 +519,16 @@ def run(
         builtins.print("Use div(a, b) instead.", file=sys.stderr)
         raise
 
+    # audio threads
     for thread in threads:
         thread.stop = True  # type: ignore[attr-defined]
     for thread in threads:
         thread.join()
+
+    # video threads
+    flipper.queue.put("exit")
+    flipper.join()
+
     pygame.quit()
 
 
@@ -508,13 +572,19 @@ def stat(x: int) -> int | bool | str:
 
     >>> _init_video()
     >>> stat(7)
+    0
+    >>> stat(8)
     30
     >>> poke(DEVKIT_PT, 1)
     0
     >>> for i in range(30, 111): _ = stat(i)
     """
+    if x == 6 and "-p" in sys.argv:
+        return " ".join(sys.argv[sys.argv.index("-p") :])  # Unable to verify.
     if x == 7:
-        return get_fps()
+        return get_fps() if command_mode else int(get_frame_count() / time())
+    if x == 8:
+        return 0 if command_mode else get_fps()
 
     if x in range(16, 20):
         x += 4
@@ -566,6 +636,9 @@ def stat(x: int) -> int | bool | str:
     if x == 95:
         return local_time.tm_sec
 
+    if x == 110:
+        return single_frame_mode
+
     return 0
 
 
@@ -587,6 +660,9 @@ def t() -> float:
 
 
 def tick_up(delta: int = 1) -> None:
+    # """
+    # >>> tick_up(0)
+    # """
     global tick
     tick += delta
 

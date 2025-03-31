@@ -1,2 +1,3 @@
 FIXME:
+assembled_horizon - Draw in separate thread to keep main responsive and hopefully render second half while it's sorting?
 music

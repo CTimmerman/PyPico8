@@ -137,7 +137,6 @@ scrolled: int = 0
 surf: pygame.Surface
 font_img: pygame.Surface
 spritesheet: pygame.Surface
-
 decimal.getcontext().prec = 4
 
 
@@ -616,6 +615,8 @@ def flip() -> None:
         screen.blit(surf, (0, 0))
 
     pygame.display.flip()
+    # printh(f"FPS: {clock.get_fps():.1f}")
+    # printh(f"video flip {fps} fps")
     clock.tick(fps)
 
 

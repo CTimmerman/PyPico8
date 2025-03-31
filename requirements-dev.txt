@@ -1,4 +1,5 @@
 black
 coverage
+mypy
 pre-commit
 pylint

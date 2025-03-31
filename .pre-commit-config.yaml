@@ -10,6 +10,23 @@ repos:
         types: [python]
         pass_filenames: true # Only run on staged Python files (default)
 
+      - id: black
+        name: black
+        entry: python -m black
+        fail_fast: true
+        language: system # Don't create venv.
+        types: [python]
+
+      - id: pylint
+        name: pylint
+        entry: pylint
+        fail_fast: true
+        language: system
+        types: [python]
+        args:
+          - -rn # Only display messages
+          - -sn # Don't display the score
+
       - id: doctest
         name: doctest
         entry: python -X utf8 -m coverage run -a -m doctest
@@ -19,22 +36,7 @@ repos:
 
       - id: coverage
         name: coverage
-        entry: coverage report --show-missing --fail-under=60
+        entry: coverage report --show-missing --fail-under=80
         fail_fast: true
         language: system
         types: [python]
-
-      - id: black
-        name: black
-        entry: python -m black
-        language: system # Don't create venv.
-        types: [python]
-
-      - id: pylint
-        name: pylint
-        entry: pylint
-        language: system
-        types: [python]
-        args:
-          - -rn # Only display messages
-          - -sn # Don't display the score
