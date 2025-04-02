@@ -11,3 +11,7 @@ follow_imports = "skip"
 [[tool.mypy.overrides]]
 module = "infix.*"
 warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = ["untyped_package.*"]
+follow_untyped_imports = true

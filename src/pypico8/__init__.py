@@ -1,4 +1,5 @@
-"""Pico8 functions in Python
+"""PyPico8 - PICO-8 functions in Python.
+
 2021-01-03 v1.0 by Cees Timmerman
 2021-01-04 v1.0.1 fixed palette in line()
 2021-01-04 v1.1 added color, circle, mid, oval, and rect functions.
@@ -37,7 +38,7 @@ try:
     from pypico8.table import Table, add, all, delv, deli, foreach, ipairs, pairs, pack, select, unpack  # noqa
     from pypico8.audio import audio_channel_notes, music, sfx, threads  # noqa
     from pypico8.strings import chr, ord, pico8_to_python, printh, split, sub, tonum, tostr  # noqa
-    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, debug, fget, fillp, flip, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
+    from pypico8.video import _init_video, camera, circ, circfill, clip, cls, color, cursor, debug, fget, fillp, flip, flip_getlast, fset, get_char_img, get_fps, get_frame_count, line, map, memcpy, mget, mset, oval, ovalfill, pal, palt, peek, peek2, peek4, pget, poke, poke2, poke4, pos, print, pset, rect, rectfill, replace_color, reset, set_debug, _set_fps, scroll, sget, spr, sset, sspr  # noqa
     # fmt:on
 except ModuleNotFoundError as ex:
     builtins.print(ex)
@@ -86,13 +87,13 @@ PLAYER_KEYMAPS = (
 begin = py_time.time()
 btnp_state = 0
 btnp_frame = 0
+cart: threading.Thread | None = None
 clock = pygame.time.Clock()
 command = ""
 command_history: list[str] = []
 command_mode = False
 command_y = 0
 cursor_x = 0
-flipper: threading.Thread | None = None
 stopped = False
 running = False
 tick = 0
@@ -100,27 +101,36 @@ buttons_pressed_since = [0] * 2 * 6  # 2 players * 6 buttons
 single_frame_mode = 0
 
 
-class Flipper(threading.Thread):
+class CartThread(threading.Thread):
     """Async rendering for busy demos like assembled_horizon."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        draw: FUN0 = lambda: None,
+        init: FUN0 = lambda: None,
+        update: FUN0 = lambda: None,
+    ) -> None:
         threading.Thread.__init__(self)
-        self.queue: queue.Queue[str] = queue.Queue(
-            maxsize=10
-        )  # To talk to this thread.
+        self.draw = draw
+        self.init = init
+        self.update = update
         self.daemon = True  # Die with main thread.
+        self.running = True
+        self.stopped = False
 
     def run(self) -> None:
-        t_running = True
-        while t_running:
-            if self.queue.empty():
-                flip()
-                # clock tick in flip should already keep it responsive, but it doesn't with assembled_horizon!
-                pygame.time.wait(1)
+        print("Cart init...".swapcase())
+        self.init()
+        while self.running:
+            if self.stopped:
+                pygame.time.wait(100)
             else:
-                data = self.queue.get()
-                if data == "exit":
-                    t_running = False
+                self.update()
+                tick_up()
+                self.draw()
+                flip()  # blink_frame needs this.
+                clock.tick(get_fps())
+                # pygame.time.wait(4)
 
 
 def cli_start() -> None:
@@ -299,13 +309,6 @@ def escape_command() -> str:
     )
 
 
-def init(_init: FUN0 = lambda: None) -> None:
-    """Initialize."""
-    _init_video()
-    _init()
-    flip()
-
-
 def mock_pressed() -> list[bool]:
     """Pretend to press button 0 (left)."""
     mock_rv = [False] * 512
@@ -316,7 +319,7 @@ def mock_pressed() -> list[bool]:
 def pause() -> None:
     """Pause execution."""
     global pause_start, stopped
-    stopped = True
+    cart.stopped = stopped = True  # type: ignore
     pause_start = time()
 
 
@@ -324,7 +327,7 @@ def resume() -> None:
     """Resume execution."""
     global begin, pause_start, stopped
     begin += time() - pause_start
-    stopped = False
+    cart.stopped = stopped = False  # type: ignore
 
 
 def run(
@@ -345,14 +348,16 @@ def run(
     >>> run()
     >>> cli_stop()
     """
-    global begin, btnp_state, command, command_mode, command_y, cursor_x, flipper, pause_start, running, single_frame_mode, stopped, tick
+    global begin, btnp_state, command, command_mode, command_y, cursor_x, cart, pause_start, running, single_frame_mode, stopped, tick
     begin = py_time.time()
     command_mode = False
     fps = 60 if _update.__name__ == "_update60" else 30
     _set_fps(fps)
 
     try:
-        init(_init)
+        _init_video()
+        print(__doc__.split("\n", maxsplit=1)[0].swapcase(), _wrap=True)
+
         caption = pygame.display.get_caption()[0]
         pygame.display.set_caption(
             caption + " " + os.path.split(str(sys.modules["__main__"].__file__))[-1]
@@ -365,20 +370,24 @@ def run(
         running = True
         pause_start = 0.0
 
-        if not flipper:
-            flipper = Flipper()
-            flipper.start()
+        if not cart:
+            cart = CartThread(_draw, _init, _update)
+            cart.start()
 
         while running:
-            # clock.tick(15)
+            pygame.time.wait(flr(1 / fps * 1000))
+            # Flip if cart thread didn't in time.
+            if py_time.time() - flip_getlast() > 1 / fps + 0.04:
+                debug("main flip!")
+                flip()
+
             if command_mode:
                 erase_command()
                 # printh(f"{escaped_command} curx: {cursor_x} peekx: {peek(0x5F26)}")
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
-                        debug(
-                            f"KEYDOWN {event}"
-                        )  # eg <Event(768-KeyDown {'unicode': '', 'key': 1073741904, 'mod': 32768, 'scancode': 80, 'window': None})>
+                        debug(f"KEYDOWN {event}")
+                        # eg <Event(768-KeyDown {'unicode': '', 'key': 1073741904, 'mod': 32768, 'scancode': 80, 'window': None})>
                         if (
                             event.key == pygame.K_HOME
                             or event.key == pygame.K_KP7
@@ -435,7 +444,7 @@ def run(
                                     single_frame_mode = 0
                                     reset()
                                 elif command.startswith("?"):
-                                    print(eval(command[1:]))
+                                    print(eval(command[1:]), _wrap=True)
                                 else:
                                     debug(f"EXEC {command}")
                                     exec(command)
@@ -460,6 +469,7 @@ def run(
                                 command[:cursor_x] + event.unicode + command[cursor_x:]
                             )
                             cursor_x += 1
+                            debug(f"command '{command}' cx {cursor_x}")
                     elif event.type == pygame.QUIT:
                         running = False
                     elif event.type == pygame.VIDEORESIZE:
@@ -469,28 +479,23 @@ def run(
                 print(rf"\#0\f7> {escaped_command}", 0, command_y, _wrap=True)
                 command_y -= scroll()
                 # rect(cursor_x * 4, command_y,cursor_x * 4 + 4, command_y + 7, 0)
-                flip()
-                pygame.time.wait(200)
                 continue
 
-            # FIXME: demos like assembled_horizon don't return fast enough to be responsive.
-            # check_events()
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
                     if event.key in (pygame.K_BREAK, pygame.K_p, pygame.K_RETURN):
                         caption = pygame.display.get_caption()[0]
-                        if stopped and not caption.endswith("PAUSED"):
-                            # Cart stopped by itself.
-                            continue
-                        stopped = not stopped
-                        debug(f"STOPPED {stopped}")
                         if stopped:
-                            pause_start = time()
-                            pygame.display.set_caption(caption + " PAUSED")
-                        else:
-                            begin += time() - pause_start
                             if caption.endswith("PAUSED"):
                                 pygame.display.set_caption(caption[: -len(" PAUSED")])
+                                resume()
+                            else:
+                                # Cart stopped by itself.
+                                continue
+                        else:
+                            pause()
+                            pygame.display.set_caption(caption + " PAUSED")
+
                     elif event.key == pygame.K_ESCAPE:
                         cli_start()
                         break
@@ -499,24 +504,17 @@ def run(
                 elif event.type == pygame.VIDEORESIZE:
                     pygame.display.flip()
 
-            if not stopped:
-                _update()
-                tick += 1
-                _draw()
-                # flip()  # Assembled_horizon prefers async flipping, but we do need to pause here.
-                pygame.time.wait(10)
-                # printh(f"stat7 {stat(7)} stat8 {stat(8)}")
-
-            # Doctest doesn't need user input.
-            if (
-                not command_mode
-                and _init.__name__ == _update.__name__ == _draw.__name__ == "<lambda>"
-            ):
-                debug("END RUN")
-                running = False
-
+            # # Doctest doesn't need user input.
+            # if (
+            #     not command_mode
+            #     and _init.__name__ == _update.__name__ == _draw.__name__ == "<lambda>"
+            # ):
+            #     debug("END RUN")
+            #     running = False
+    except SystemExit:
+        running = False
     except ZeroDivisionError:
-        builtins.print("Use div(a, b) instead.", file=sys.stderr)
+        builtins.print("Use a /div/ b instead.", file=sys.stderr)
         raise
 
     # audio threads
@@ -526,8 +524,8 @@ def run(
         thread.join()
 
     # video threads
-    flipper.queue.put("exit")
-    flipper.join()
+    cart.running = False  # type: ignore[union-attr]
+    # cart.join()  # No need to wait for daemon thread.
 
     pygame.quit()
 
@@ -650,6 +648,7 @@ def stop(message: str | None = None) -> None:
     global stopped
     if message:
         builtins.print(message)
+    cart.running = False  # type: ignore
     reset()
     stopped = True
 
@@ -660,9 +659,9 @@ def t() -> float:
 
 
 def tick_up(delta: int = 1) -> None:
-    # """
-    # >>> tick_up(0)
-    # """
+    """
+    >>> tick_up(0)
+    """
     global tick
     tick += delta
 

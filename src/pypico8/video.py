@@ -3,7 +3,8 @@
 """
 
 # pylint:disable = function-redefined, global-statement, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-function-args, too-many-lines, unused-import, wrong-import-position
-import base64, builtins, decimal, io, math, os, re, sys  # noqa: E401
+import base64, builtins, decimal, io, math, os, re, sys, time as py_time  # noqa: E401
+import threading
 from typing import Any
 
 from emoji.tokenizer import tokenize
@@ -132,6 +133,8 @@ characters: list[pygame.Surface] = []
 clock: pygame.time.Clock
 fps: int = 30
 frame_count: int = 0
+last_flip: float = 0.0
+lock = threading.Lock()
 screen: pygame.Surface
 scrolled: int = 0
 surf: pygame.Surface
@@ -536,88 +539,94 @@ def flip() -> None:
     >>> for i in (135, 134, 133, 131, 130, 129, 7, 6, 5, 4, 3, 2, 1):
     ...   mem[VIDEO_MODE_PT] = i; flip()
     """
-    global frame_count
-    frame_count += 1
-    screen.fill(0)
-    # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
+    global frame_count, last_flip
+    with lock:
+        frame_count += 1
+        screen.fill(0)
+        # area = (peek(CLIP_X1_PT), peek(CLIP_Y1_PT), peek(CLIP_X2_PT), peek(CLIP_Y2_PT))
 
-    x = 0
-    y = 0
-    for addr in range(SCREEN_DATA_PT, 0x8000):  # 24576-32767
-        """
-        All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
-        Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
-        and the hi 4 bits being the right/odd pixel.
-        """
-        pixels = mem[addr]
-        # pixels = addr % 16 + 32 # OK
-        col1 = pixels & 0b1111
-        col2 = (pixels >> 4) & 0b1111
-        # col1 = (addr + y) % 16
-        # col2 = (addr + y) % 16
-        # debug(f"x {x}, y {y}, pixels {pixels} so {col1} and {col2}")
-        if addr > SCREEN_DATA_PT and addr % 64 == 0:
-            y += 1
-        surf.set_at((x, y), rgb(mem[SCREEN_PALETTE_PT + col1]))
-        surf.set_at((x + 1, y), rgb(mem[SCREEN_PALETTE_PT + col2]))
-        x = (x + 2) % 128
+        x = 0
+        y = 0
+        for addr in range(SCREEN_DATA_PT, 0x8000):  # 24576-32767
+            """
+            All 128 rows of the screen, top to bottom. Each row contains 128 pixels in 64 bytes.
+            Each byte contains two adjacent pixels, with the lo 4 bits being the left/even pixel
+            and the hi 4 bits being the right/odd pixel.
+            """
+            pixels = mem[addr]
+            # pixels = addr % 16 + 32 # OK
+            col1 = pixels & 0b1111
+            col2 = (pixels >> 4) & 0b1111
+            # col1 = (addr + y) % 16
+            # col2 = (addr + y) % 16
+            # debug(f"x {x}, y {y}, pixels {pixels} so {col1} and {col2}")
+            if addr > SCREEN_DATA_PT and addr % 64 == 0:
+                y += 1
+            surf.set_at((x, y), rgb(mem[SCREEN_PALETTE_PT + col1]))
+            surf.set_at((x + 1, y), rgb(mem[SCREEN_PALETTE_PT + col2]))
+            x = (x + 2) % 128
 
-    # https://www.reddit.com/r/pico8/comments/s4o8l6/comment/hstbjcf/
-    video_mode = mem[VIDEO_MODE_PT]
-    if video_mode == 1:
-        # horizontal stretch, 64x128 screen, left half of normal screen
-        topleft = surf.subsurface(0, 0, 64, 128)
-        screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
-    elif video_mode == 2:
-        # vertical stretch, 128x64 screen, top half of normal screen
-        topleft = surf.subsurface((0, 0, 128, 64))
-        screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
-    elif video_mode == 3:
-        # both stretch, 64x64 screen, top left quarter of normal screen
-        topleft = surf.subsurface((0, 0, 64, 64))
-        screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
-    elif video_mode == 5:
-        # horizontal mirroring, left half copied and flipped to right half
-        topleft = surf.subsurface((0, 0, 64, 128))
-        screen.blit(topleft, (0, 0))
-        screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
-    elif video_mode == 6:
-        # vertical mirroring, top half copied and flipped to bottom half
-        topleft = surf.subsurface((0, 0, 128, 64))
-        screen.blit(topleft, (0, 0))
-        screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
-    elif video_mode == 7:
-        # both mirroring, top left quarter copied and flipped to other quarters
-        topleft = surf.subsurface((0, 0, 64, 64))
-        screen.blit(pygame.transform.flip(topleft, 0, 0), (0, 0))
-        screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
-        screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
-        screen.blit(pygame.transform.flip(topleft, 1, 1), (64, 64))
-    elif video_mode == 129:
-        # horizontal flip
-        screen.blit(pygame.transform.flip(surf, 1, 0), (0, 0))
-    elif video_mode == 130:
-        # vertical flip
-        screen.blit(pygame.transform.flip(surf, 0, 1), (0, 0))
-    elif video_mode == 131:
-        # both flip
-        screen.blit(pygame.transform.flip(surf, 1, 1), (0, 0))
-    elif video_mode == 133:
-        # clockwise 90 degree rotation
-        screen.blit(pygame.transform.rotate(surf, -90), (0, 0))
-    elif video_mode == 134:
-        # 180 degree rotation (effectively equivalent to 131)
-        screen.blit(pygame.transform.rotate(surf, 180), (0, 0))
-    elif video_mode == 135:
-        # counterclockwise 90 degree rotation
-        screen.blit(pygame.transform.rotate(surf, 90), (0, 0))
-    else:
-        screen.blit(surf, (0, 0))
+        # https://www.reddit.com/r/pico8/comments/s4o8l6/comment/hstbjcf/
+        video_mode = mem[VIDEO_MODE_PT]
+        if video_mode == 1:
+            # horizontal stretch, 64x128 screen, left half of normal screen
+            topleft = surf.subsurface(0, 0, 64, 128)
+            screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
+        elif video_mode == 2:
+            # vertical stretch, 128x64 screen, top half of normal screen
+            topleft = surf.subsurface((0, 0, 128, 64))
+            screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
+        elif video_mode == 3:
+            # both stretch, 64x64 screen, top left quarter of normal screen
+            topleft = surf.subsurface((0, 0, 64, 64))
+            screen.blit(pygame.transform.scale(topleft, (128, 128)), (0, 0))
+        elif video_mode == 5:
+            # horizontal mirroring, left half copied and flipped to right half
+            topleft = surf.subsurface((0, 0, 64, 128))
+            screen.blit(topleft, (0, 0))
+            screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
+        elif video_mode == 6:
+            # vertical mirroring, top half copied and flipped to bottom half
+            topleft = surf.subsurface((0, 0, 128, 64))
+            screen.blit(topleft, (0, 0))
+            screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
+        elif video_mode == 7:
+            # both mirroring, top left quarter copied and flipped to other quarters
+            topleft = surf.subsurface((0, 0, 64, 64))
+            screen.blit(pygame.transform.flip(topleft, 0, 0), (0, 0))
+            screen.blit(pygame.transform.flip(topleft, 1, 0), (64, 0))
+            screen.blit(pygame.transform.flip(topleft, 0, 1), (0, 64))
+            screen.blit(pygame.transform.flip(topleft, 1, 1), (64, 64))
+        elif video_mode == 129:
+            # horizontal flip
+            screen.blit(pygame.transform.flip(surf, 1, 0), (0, 0))
+        elif video_mode == 130:
+            # vertical flip
+            screen.blit(pygame.transform.flip(surf, 0, 1), (0, 0))
+        elif video_mode == 131:
+            # both flip
+            screen.blit(pygame.transform.flip(surf, 1, 1), (0, 0))
+        elif video_mode == 133:
+            # clockwise 90 degree rotation
+            screen.blit(pygame.transform.rotate(surf, -90), (0, 0))
+        elif video_mode == 134:
+            # 180 degree rotation (effectively equivalent to 131)
+            screen.blit(pygame.transform.rotate(surf, 180), (0, 0))
+        elif video_mode == 135:
+            # counterclockwise 90 degree rotation
+            screen.blit(pygame.transform.rotate(surf, 90), (0, 0))
+        else:
+            screen.blit(surf, (0, 0))
 
-    pygame.display.flip()
-    # printh(f"FPS: {clock.get_fps():.1f}")
-    # printh(f"video flip {fps} fps")
-    clock.tick(fps)
+        pygame.display.flip()
+        last_flip = py_time.time()
+        # printh(f"FPS: {clock.get_fps():.1f}")
+        # printh(f"video flip {fps} fps")
+        # pygame.time.wait(10)
+
+
+def flip_getlast() -> float:
+    return last_flip
 
 
 def memcpy(dest_addr: int, source_addr: int, length: int) -> None:
