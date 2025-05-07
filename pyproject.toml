@@ -1,3 +1,14 @@
+[project]
+name = "PyPico8"
+license = { file = "LICENSE" }
+readme = "README.md"
+# version = "2"
+dynamic = ["version"]
+dependencies = ["emoji", "pygame"]
+
+[project.optional-dependencies]
+dev = ["black", "coverage", "mypy", "pre-commit", "pylint"]
+
 [tool.mypy]
 disable_error_code = ["arg-type", "attr-defined", "index", "name-defined"]
 strict = true

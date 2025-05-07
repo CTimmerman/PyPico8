@@ -44,6 +44,7 @@ except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
 
+__version__ = "2.0.1"
 
 FUN0 = Callable[[], None]
 
@@ -377,7 +378,7 @@ def run(
         while running:
             pygame.time.wait(flr(1 / fps * 1000))
             # Flip if cart thread didn't in time.
-            if py_time.time() - flip_getlast() > 1 / fps + 0.04:
+            if py_time.time() - flip_getlast() > 1 / fps + 0.1:
                 debug("main flip!")
                 flip()
 
@@ -649,6 +650,7 @@ def stop(message: str | None = None) -> None:
     if message:
         builtins.print(message)
     cart.running = False  # type: ignore
+    pygame.time.wait(100)
     reset()
     stopped = True
 

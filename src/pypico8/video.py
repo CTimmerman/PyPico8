@@ -2183,6 +2183,7 @@ def complement(n: int, bits: int = 8, signed: bool = True, twos: bool = False) -
 def reset() -> None:
     """Reset the draw state, including 3 palettes, camera position, clipping, and fill pattern."""
     mem[DRAW_COLOR_PT] = 0
+    mem[VIDEO_MODE_PT] = 0
     # https://pico-8.fandom.com/wiki/Memory#Draw_state
     flags = mem[PERSIST_PT]
     if not flags & 1:
