@@ -44,8 +44,6 @@ except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
 
-__version__ = "2.0.2"
-
 FUN0 = Callable[[], None]
 
 false = False
