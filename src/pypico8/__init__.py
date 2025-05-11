@@ -118,7 +118,6 @@ class CartThread(threading.Thread):
         self.stopped = False
 
     def run(self) -> None:
-        print("Cart init...".swapcase())
         self.init()
         while self.running:
             if self.stopped:
@@ -355,8 +354,6 @@ def run(
 
     try:
         _init_video()
-        print(__doc__.split("\n", maxsplit=1)[0].swapcase(), _wrap=True)
-
         caption = pygame.display.get_caption()[0]
         pygame.display.set_caption(
             caption + " " + os.path.split(str(sys.modules["__main__"].__file__))[-1]
@@ -375,9 +372,10 @@ def run(
 
         flip_aid = "cls" not in inspect.getsource(_draw)
         while running:
+            fps = get_fps()
             pygame.time.wait(flr(1 / fps * 1000))
             # Flip if cart thread didn't in time.
-            if (command_mode or flip_aid) and py_time.time() - flip_getlast() > 1 / 15:
+            if (command_mode or flip_aid) and py_time.time() - flip_getlast() > 1 / fps:
                 # builtins.print("main flip!")
                 flip()
 
@@ -582,7 +580,7 @@ def stat(x: int) -> int | bool | str:
     if x == 7:
         return get_fps() if command_mode else int(get_frame_count() / time())
     if x == 8:
-        return 0 if command_mode else get_fps()
+        return get_fps()
 
     if x in range(16, 20):
         x += 4

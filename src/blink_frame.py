@@ -56,7 +56,7 @@ def _update() -> None:
     if btn(3):
         y = y + 1
     if btnp(4):
-        _set_fps(int(stat(8)) - 15)
+        _set_fps(int(stat(8)) - 15 or 15)
     if btnp(5):
         _set_fps(int(stat(8)) + 15)
 
