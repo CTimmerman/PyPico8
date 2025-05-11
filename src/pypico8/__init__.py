@@ -23,7 +23,7 @@
 """
 
 # pylint:disable = global-statement, import-outside-toplevel, invalid-name, line-too-long, multiple-imports, no-member, pointless-string-statement, redefined-builtin, too-many-arguments,unused-import, unidiomatic-typecheck, wrong-import-position, too-many-nested-blocks
-import builtins, os, queue, sys, threading, time as py_time  # noqa: E401
+import builtins, inspect, os, queue, sys, threading, time as py_time  # noqa: E401
 from typing import Callable
 from unittest.mock import Mock
 
@@ -44,7 +44,7 @@ except ModuleNotFoundError as ex:
     builtins.print(ex)
     # So my PyGLet implementation can import this from the old folder next to the src folder.
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 FUN0 = Callable[[], None]
 
@@ -375,11 +375,12 @@ def run(
             cart = CartThread(_draw, _init, _update)
             cart.start()
 
+        flip_aid = "cls" not in inspect.getsource(_draw)
         while running:
             pygame.time.wait(flr(1 / fps * 1000))
             # Flip if cart thread didn't in time.
-            if py_time.time() - flip_getlast() > 1 / fps + 0.1:
-                debug("main flip!")
+            if (command_mode or flip_aid) and py_time.time() - flip_getlast() > 1 / 15:
+                # builtins.print("main flip!")
                 flip()
 
             if command_mode:
